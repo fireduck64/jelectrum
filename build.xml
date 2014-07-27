@@ -1,0 +1,71 @@
+<project name="JelectrumServer" default="jar" basedir=".">
+ 
+  <property name="build.compiler" value="modern" />
+  <property name="src" value="./src" />
+  <property name="jar" value="./jar" />
+  <property name="build" value="./build" />
+  <property name="test" value="./test" />
+  <property name="build_test" value="./build_test" />
+  <property name="lib" value="./lib" />
+
+  <path id="test.classpath">
+    <pathelement location="${build}" />
+    <pathelement location="${build_test}" />
+    <fileset dir="${lib}">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="build.classpath">
+    <pathelement location="${build}" />
+    <fileset dir="${lib}">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+
+  <target name="test" depends="build_test">
+    <junit fork="yes" haltonfailure="yes">
+	  <jvmarg value="-Xmx1024m"/>
+      <formatter type="plain" usefile="false" />
+      <classpath refid="test.classpath" />
+      <batchtest>
+	    <fileset dir="${test}">
+	  	  <include name="**/*Test.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+
+  <target name="build">
+    <mkdir dir="${build}"/>
+    <javac srcdir="${src}" destdir="${build}" source="1.5" debug="true" debuglevel="lines,vars,source">
+      <classpath refid="build.classpath" />
+    </javac>
+  </target>
+
+  <target name="build_test" depends="build">
+    <mkdir dir="${build_test}"/>
+    <javac srcdir="${test}" destdir="${build_test}" source="1.5" debug="true" debuglevel="lines,vars,source">
+      <classpath refid="test.classpath" />
+    </javac>
+  </target>
+
+  <target name="jar" depends="build">
+    <mkdir dir="${jar}"/>
+	<jar destfile="${jar}/Jelectrum.jar" basedir="build">
+	  <zipgroupfileset dir="${lib}" includes="*.jar" excludes=""/>
+	  <manifest>
+        <attribute name="Main-Class" value="jelectrum.Jelectrum"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="clean">
+    <delete dir="${build}"/>
+    <delete dir="${build_test}"/>
+    <delete dir="${jar}"/>
+  </target>
+
+</project>
+
