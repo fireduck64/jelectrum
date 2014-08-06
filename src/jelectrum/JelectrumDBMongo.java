@@ -2,6 +2,7 @@ package jelectrum;
 
 import java.util.Map;
 import java.util.HashSet;
+import java.util.Set;
 import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.StoredBlock;
@@ -17,6 +18,9 @@ public class JelectrumDBMongo extends JelectrumDB
     private MongoClient mc;
     private DB db;
     private Config conf;
+    protected MongoMapSet<String, Sha256Hash > address_to_tx_map;
+    protected MongoMapSet<Sha256Hash, Sha256Hash > tx_to_block_map;
+    protected MongoMapSet<String, Sha256Hash > txout_spent_by_map;
 
     public JelectrumDBMongo(Config conf)
         throws Exception
@@ -47,12 +51,12 @@ public class JelectrumDBMongo extends JelectrumDB
             db = mc.getDB(conf.get("mongo_db_name"));
 
             tx_map = new MongoMap<Sha256Hash, SerializedTransaction>(getCollection("tx_map"), compress);
-            address_to_tx_map = new MongoMap<String, HashSet<Sha256Hash> >(getCollection("address_to_tx_map"), compress);
+            address_to_tx_map = new MongoMapSet<String, Sha256Hash>(getCollection("address_to_tx_map"), compress);
             block_store_map = new CacheMap<Sha256Hash, StoredBlock>(25000,new MongoMap<Sha256Hash, StoredBlock>(getCollection("block_store_map"),compress));
             special_block_store_map = new MongoMap<String, StoredBlock>(getCollection("special_block_store_map"),compress);
             block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new MongoMap<Sha256Hash, SerializedBlock>(getCollection("block_map"),compress));
-            tx_to_block_map = new MongoMap<Sha256Hash, HashSet<Sha256Hash> >(getCollection("tx_to_block_map"),compress);
-            txout_spent_by_map = new MongoMap<String, HashSet<Sha256Hash> >(getCollection("txout_spent_by_map"),compress);
+            tx_to_block_map = new MongoMapSet<Sha256Hash, Sha256Hash>(getCollection("tx_to_block_map"),compress);
+            txout_spent_by_map = new MongoMapSet<String, Sha256Hash>(getCollection("txout_spent_by_map"),compress);
             block_rescan_map = new MongoMap<Sha256Hash, String>(getCollection("block_rescan_map"),compress);
             special_object_map = new MongoMap<String, Object>(getCollection("special_object_map"),compress);
             header_chunk_map = new CacheMap<Integer, String>(200, new MongoMap<Integer, String>(getCollection("header_chunk_map"),compress));
@@ -90,21 +94,37 @@ public class JelectrumDBMongo extends JelectrumDB
         return block_map;
     }
 
-    public Map<String, HashSet<Sha256Hash> > getAddressToTxMap()
-    {   
-        return address_to_tx_map;
-    }
 
-    public Map<Sha256Hash, HashSet<Sha256Hash> > getTxToBlockMap()
-    {   
-        return tx_to_block_map;
-    }
-
-
-    public Map<String, HashSet<Sha256Hash> > getTxOutSpentByMap()
+    public void addAddressToTxMap(String address, Sha256Hash hash)
     {
-        return txout_spent_by_map;
+        address_to_tx_map.add(address, hash);
     }
+    public Set<Sha256Hash> getAddressToTxSet(String address)
+    {
+        return address_to_tx_map.getSet(address);
+    }
+
+
+  
+    public void addTxToBlockMap(Sha256Hash tx, Sha256Hash block)
+    {
+        tx_to_block_map.add(tx, block);
+    }
+    public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
+    {
+        return tx_to_block_map.getSet(tx);
+    }
+
+    public void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by)
+    {
+        txout_spent_by_map.add(tx_out, spent_by);
+    }
+    public Set<Sha256Hash> getTxOutSpentByMap(String tx_out)
+    {
+        return txout_spent_by_map.getSet(tx_out);
+    }
+
+ 
 
     public Map<Sha256Hash, String> getBlockRescanMap()
     {

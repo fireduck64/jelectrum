@@ -3,6 +3,7 @@ package jelectrum;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -481,7 +482,7 @@ public class ElectrumNotifier
 
     public List<SortedTransaction> getTransactionsForAddress(String address)
     {
-        HashSet<Sha256Hash> tx_list = jelly.getDB().getAddressToTxMap().get(address);
+        Set<Sha256Hash> tx_list = jelly.getDB().getAddressToTxSet(address);
         ArrayList<SortedTransaction> out = new ArrayList<SortedTransaction>();
 
         if (tx_list != null)
@@ -552,7 +553,7 @@ public class ElectrumNotifier
             this.s_tx = jelly.getDB().getTransactionMap().get(tx_hash);
             if (s_tx==null) return;
             this.tx = s_tx.getTx(jelly.getNetworkParameters());
-            HashSet<Sha256Hash> block_list = jelly.getDB().getTxToBlockMap().get(tx.getHash());
+            Set<Sha256Hash> block_list = jelly.getDB().getTxToBlockMap(tx.getHash());
             if (block_list != null)
             {
                 

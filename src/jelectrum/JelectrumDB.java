@@ -2,6 +2,7 @@ package jelectrum;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Set;
 import java.util.HashSet;
 import java.text.DecimalFormat;
 
@@ -15,12 +16,12 @@ public abstract class JelectrumDB
 {
     protected Config conf;
     protected Map<Sha256Hash, SerializedTransaction> tx_map;
-    protected Map<String, HashSet<Sha256Hash> > address_to_tx_map;
+    //protected Map<String, HashSet<Sha256Hash> > address_to_tx_map;
     protected Map<Sha256Hash, StoredBlock> block_store_map;
     protected Map<String, StoredBlock> special_block_store_map;
     protected Map<Sha256Hash, SerializedBlock> block_map;
-    protected Map<Sha256Hash, HashSet<Sha256Hash> > tx_to_block_map;
-    protected Map<String, HashSet<Sha256Hash> > txout_spent_by_map;
+    //protected Map<Sha256Hash, HashSet<Sha256Hash> > tx_to_block_map;
+    //protected Map<String, HashSet<Sha256Hash> > txout_spent_by_map;
     protected Map<Sha256Hash, String> block_rescan_map;
     protected Map<String, Object> special_object_map;
     protected Map<Integer, String> header_chunk_map;
@@ -55,11 +56,15 @@ public abstract class JelectrumDB
 
     public abstract Map<Sha256Hash, SerializedBlock> getBlockMap();
 
-    public abstract Map<String, HashSet<Sha256Hash> > getAddressToTxMap();
+    public abstract void addAddressToTxMap(String address, Sha256Hash hash);
+    public abstract Set<Sha256Hash> getAddressToTxSet(String address);
 
-    public abstract Map<Sha256Hash, HashSet<Sha256Hash> > getTxToBlockMap();
 
-    public abstract Map<String, HashSet<Sha256Hash> > getTxOutSpentByMap();
+    public abstract void addTxToBlockMap(Sha256Hash tx, Sha256Hash block);
+    public abstract Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx);
+
+    public abstract void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by);
+    public abstract Set<Sha256Hash> getTxOutSpentByMap(String tx_out);
 
     public abstract Map<Sha256Hash, String> getBlockRescanMap();
 

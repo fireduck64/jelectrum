@@ -36,8 +36,8 @@ public class Importer
     private MapBlockStore block_store;
     
     //private LRUCache<String, Object> address_locks;
-    private LRUCache<Sha256Hash, Object> tx_locks;
-    private LRUCache<String, Object> tx_out_locks;
+    //private LRUCache<Sha256Hash, Object> tx_locks;
+    //private LRUCache<String, Object> tx_out_locks;
     private LRUCache<Sha256Hash, Transaction> transaction_cache;
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
@@ -48,7 +48,7 @@ public class Importer
     private AtomicInteger imported_blocks= new AtomicInteger(0);
     private AtomicInteger imported_transactions= new AtomicInteger(0);
 
-    private BandedUpdater<String, Sha256Hash> address_to_tx_updater;
+    //private BandedUpdater<String, Sha256Hash> address_to_tx_updater;
 
     private static final int BUSY_ADDRESS_LIMIT=10000;
 
@@ -73,15 +73,15 @@ public class Importer
         block_queue = new LinkedBlockingQueue<Block>(32);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(4096);
         //address_locks = new LRUCache<String, Object>(10000);
-        tx_locks = new LRUCache<Sha256Hash, Object>(10000);
-        tx_out_locks = new LRUCache<String, Object>(10000);
+        //tx_locks = new LRUCache<Sha256Hash, Object>(10000);
+        //tx_out_locks = new LRUCache<String, Object>(10000);
         transaction_cache = new LRUCache<Sha256Hash, Transaction>(100000);
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
         busy_addresses = new LRUCache<String, Boolean>(10000);
 
-        address_to_tx_updater = new BandedUpdater<String, Sha256Hash>(file_db.getAddressToTxMap(), config.getInt("transaction_save_threads")/2);
+        //address_to_tx_updater = new BandedUpdater<String, Sha256Hash>(file_db.getAddressToTxMap(), config.getInt("transaction_save_threads")/2);
 
         for(int i=0; i<config.getInt("block_save_threads"); i++)
         {
@@ -305,27 +305,7 @@ public class Importer
             {
                 TransactionOutPoint out = in.getOutpoint();
                 String key = out.getHash().toString() + ":" + out.getIndex();
-                Object lock = null;
-                synchronized(tx_out_locks)
-                {
-                    lock = tx_out_locks.get(tx.getHash());
-                    if (lock == null)
-                    {
-                        lock = new Object();
-                        tx_locks.put(tx.getHash(), lock);
-                    }
-                }
-                synchronized(lock)
-                {
-                    HashSet<Sha256Hash> set = file_db.getTxOutSpentByMap().get(key);
-                    if (set == null)
-                    {
-                        set = new HashSet<Sha256Hash>(2,0.5f);
-                    }
-                    set.add(tx.getHash());
-                    file_db.getTxOutSpentByMap().put(key, set);
-                }
-
+                file_db.addTxOutSpentByMap(key, tx.getHash());
 
             }
         }
@@ -352,7 +332,8 @@ public class Importer
 
             if (!done)
             {
-                int new_size = address_to_tx_updater.addItem(a, tx.getHash());
+                int new_size = 0;
+                file_db.addAddressToTxMap(a, tx.getHash());
                 if (new_size >= BUSY_ADDRESS_LIMIT) 
                 {
                     boolean print=false;
@@ -370,28 +351,7 @@ public class Importer
 
         if (block_hash!=null)
         {
-            Object lock = null;
-            synchronized(tx_locks)
-            {
-                lock = tx_locks.get(tx.getHash());
-                if (lock == null)
-                {
-                    lock = new Object();
-                    tx_locks.put(tx.getHash(), lock);
-
-                }
-            }
-            synchronized(lock)
-            {
-                HashSet<Sha256Hash> set = file_db.getTxToBlockMap().get(tx.getHash());
-                if (set == null)
-                {
-                    set = new HashSet<Sha256Hash>(2,0.5f);
-                }
-                set.add(block_hash);
-                file_db.getTxToBlockMap().put(tx.getHash(), set);
-            }
-
+            file_db.addTxToBlockMap(tx.getHash(), block_hash);
         }
 
         imported_transactions.incrementAndGet();

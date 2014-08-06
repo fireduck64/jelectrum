@@ -26,7 +26,17 @@ public class MongoEntry extends BasicDBObject
     public MongoEntry(String key, Object value, boolean compress)
     {
         super("_id", key);
+        saveData(key,value,compress);
+    }
+    public MongoEntry(String key, Object value, boolean compress, String key_name)
+    {
+        super("_id", key + "." + value.toString());
+        append(key_name, key);
+        saveData(key,value,compress);
 
+    }
+    private void saveData(String key, Object value, boolean compress)
+    {
         try
         {
 

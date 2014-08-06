@@ -7,12 +7,15 @@ import com.google.bitcoin.params.MainNetParams;
 import com.google.bitcoin.core.BlockChain;
 import com.google.bitcoin.core.PeerGroup;
 import com.google.bitcoin.core.PeerAddress;
+import com.google.bitcoin.core.Transaction;
+import com.google.bitcoin.core.Sha256Hash;
+import org.apache.commons.codec.binary.Hex;
 import java.net.InetAddress;
 import com.google.bitcoin.net.discovery.DnsDiscovery;
 import com.google.bitcoin.net.discovery.IrcDiscovery;
 import com.google.bitcoin.core.DownloadListener;
 
-
+import java.util.LinkedList;
 
 public class Jelectrum
 {
@@ -120,6 +123,27 @@ public class Jelectrum
         jelectrum_db.close();*/
 
 
+        LinkedList<String> broadcast_list=new LinkedList<String>();
+
+        broadcast_list.add("ff91b80282056722374b6bb74c6947b0496b7e9dd0b0be27fd7dc523ec913843");
+        broadcast_list.add("be7e2ac2e4af7bc6cb61bef7b958c318932d5ac5bd14a7ccef111451e6d3a241");
+        broadcast_list.add("da305e024043af44efb11118f76f2ae047f93e6dc3af4fdb8825b238fdf478b2");
+        broadcast_list.add("efc8faa25be9f871d166612b8a59cea64d64cdddf1c31ecb67f8be68e914f70e");
+
+        for(String tx_hash : broadcast_list)
+        {
+            System.out.println("TX: " + tx_hash);
+
+            Transaction tx = jelectrum_db.getTransactionMap().get(new Sha256Hash(tx_hash)).getTx(network_params);
+
+            System.out.println(tx);
+            String tx_str = Hex.encodeHexString(tx.bitcoinSerialize());
+
+            System.out.println(getBitcoinRPC().submitTransaction(tx_str));
+
+
+
+        }
 
 
 

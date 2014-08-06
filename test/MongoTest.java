@@ -3,8 +3,11 @@ import org.junit.Assert;
 
 import com.mongodb.*;
 
+import java.util.Set;
+
 import jelectrum.MongoKey;
 import jelectrum.MongoEntry;
+import jelectrum.MongoMapSet;
 
 public class MongoTest implements java.io.Serializable
 {
@@ -47,6 +50,45 @@ public class MongoTest implements java.io.Serializable
         Assert.assertEquals(17, to_2.a);
 
         
+
+    }
+
+    @Test
+    public void testMapSet()
+        throws Exception
+    {
+        MongoClientOptions.Builder opts = MongoClientOptions.builder();
+        opts.connectionsPerHost(1000);
+
+        MongoClient mc = new MongoClient("localhost", opts.build());
+        DB db = mc.getDB("test");
+
+        DBCollection coll = db.getCollection("mapsettest");
+        coll.drop();
+
+        MongoMapSet<String, String> m = new MongoMapSet<String, String>(coll, true);
+
+        Assert.assertEquals(0, m.size());
+
+        m.add("a","a");
+        m.add("a","b");
+        m.add("a","c");
+        m.add("a","d");
+
+        Set<String> s = m.getSet("a");
+        Assert.assertEquals(4, s.size());
+
+        m.add("a","d");
+        m.add("a","d");
+        m.add("a","d");
+        m.add("a","d");
+        m.add("a","d");
+        m.add("a","d");
+        m.add("a","d");
+
+        s = m.getSet("a");
+        Assert.assertEquals(4, s.size());
+            
 
     }
 
