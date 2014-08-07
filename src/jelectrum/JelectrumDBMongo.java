@@ -45,7 +45,7 @@ public class JelectrumDBMongo extends JelectrumDB
 
 
             MongoClientOptions.Builder opts = MongoClientOptions.builder();
-            opts.connectionsPerHost(5000);
+            opts.connectionsPerHost(100);
 
             mc = new MongoClient(conf.get("mongo_db_host"), opts.build());
             db = mc.getDB(conf.get("mongo_db_name"));

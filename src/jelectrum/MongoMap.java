@@ -65,12 +65,22 @@ public class MongoMap<K,V> implements Map<K, V>
     public V get(Object key)
     {
         long t1 = System.currentTimeMillis();
-        DBObject o = collection.findOne(new MongoKey(key.toString()));
-        long t2 = System.currentTimeMillis();
-        get_stats.addDataPoint(t2-t1);
-        if (o==null) return null;
+        try
+        {
+            DBObject o = collection.findOne(new MongoKey(key.toString()));
+            long t2 = System.currentTimeMillis();
+            get_stats.addDataPoint(t2-t1);
+            if (o==null) return null;
 
-        return (V) MongoEntry.getValue(o, compress);
+            return (V) MongoEntry.getValue(o, compress);
+
+        }
+        catch(java.lang.NullPointerException e)
+        {
+            e.printStackTrace();
+            System.exit(1);
+            return null;
+        }
 
 
     }

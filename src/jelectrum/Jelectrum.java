@@ -77,6 +77,7 @@ public class Jelectrum
     public void start()
         throws Exception
     {
+        //new DBRestartThread().start();
 
         System.out.println("Updating block chain cache");
         block_chain_cache.update(this, block_store.getChainHead());
@@ -179,5 +180,18 @@ public class Jelectrum
     public BitcoinRPC getBitcoinRPC()
     {
         return bitcoin_rpc;
+    }
+
+    public class DBRestartThread extends Thread
+    {
+        public void run()
+        {
+            while(true)
+            {
+                try{Thread.sleep(300L * 1000L);}catch(Throwable t){}
+                getDB().open();
+            }
+        }
+
     }
 }
