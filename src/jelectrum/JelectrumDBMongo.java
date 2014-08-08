@@ -30,6 +30,7 @@ public class JelectrumDBMongo extends JelectrumDB
         conf.require("mongo_db_host");
         conf.require("mongo_db_compression");
         conf.require("mongo_db_name");
+        conf.require("mongo_db_connections_per_host");
         this.conf = conf;
 
         open();
@@ -45,7 +46,7 @@ public class JelectrumDBMongo extends JelectrumDB
 
 
             MongoClientOptions.Builder opts = MongoClientOptions.builder();
-            opts.connectionsPerHost(100);
+            opts.connectionsPerHost(conf.getInt("mongo_db_connections_per_host"));
 
             mc = new MongoClient(conf.get("mongo_db_host"), opts.build());
             db = mc.getDB(conf.get("mongo_db_name"));
@@ -102,6 +103,10 @@ public class JelectrumDBMongo extends JelectrumDB
     public Set<Sha256Hash> getAddressToTxSet(String address)
     {
         return address_to_tx_map.getSet(address);
+    }
+    public long countAddressToTxSet(String address)
+    {
+        return address_to_tx_map.countKey(address);
     }
 
 

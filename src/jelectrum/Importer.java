@@ -25,6 +25,7 @@ import com.google.bitcoin.script.Script;
 import java.util.Collection;
 import java.text.DecimalFormat;
 import java.util.concurrent.TimeUnit;
+import java.util.Random;
 
 public class Importer
 {
@@ -322,6 +323,8 @@ public class Importer
 
         Collection<String> addrs = getAllAddresses(tx, confirmed);
 
+        Random rnd = new Random();
+
         for(String a : addrs)
         {
             boolean done=false;
@@ -332,8 +335,12 @@ public class Importer
 
             if (!done)
             {
-                int new_size = 0;
+                long new_size = 0;
                 file_db.addAddressToTxMap(a, tx.getHash());
+                if (rnd.nextDouble() < 0.01)
+                {
+                    new_size = file_db.countAddressToTxSet(a);
+                }
                 if (new_size >= BUSY_ADDRESS_LIMIT) 
                 {
                     boolean print=false;
@@ -662,7 +669,7 @@ public class Importer
                     {
                         //jelly.getDB().open();
                     }
-                    MongoMap.printStats();
+                    MongoMapSet.printStats();
                 }
 
 

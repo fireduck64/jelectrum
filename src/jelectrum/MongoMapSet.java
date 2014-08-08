@@ -58,6 +58,15 @@ public class MongoMapSet<K,V>
         get_stats.addDataPoint(t2-t1);
         return c;
     }
+    public long countKey(Object key)
+    {
+        long t1 = System.currentTimeMillis();
+        long c = collection.count(new BasicDBObject(KEY,key.toString()));
+        long t2 = System.currentTimeMillis();
+        get_stats.addDataPoint(t2-t1);
+        return c;
+    }
+
 
     public Set<V> getSet(Object key)
     {

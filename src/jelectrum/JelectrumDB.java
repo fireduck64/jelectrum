@@ -58,6 +58,7 @@ public abstract class JelectrumDB
 
     public abstract void addAddressToTxMap(String address, Sha256Hash hash);
     public abstract Set<Sha256Hash> getAddressToTxSet(String address);
+    public abstract long countAddressToTxSet(String address);
 
 
     public abstract void addTxToBlockMap(Sha256Hash tx, Sha256Hash block);

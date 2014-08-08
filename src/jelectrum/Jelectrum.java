@@ -77,8 +77,6 @@ public class Jelectrum
     public void start()
         throws Exception
     {
-        //new DBRestartThread().start();
-
         System.out.println("Updating block chain cache");
         block_chain_cache.update(this, block_store.getChainHead());
 
@@ -99,13 +97,17 @@ public class Jelectrum
 
         peer_group.setMaxConnections(16);
         peer_group.addAddress(new PeerAddress(InetAddress.getByName(config.get("bitcoind_host")),8333));
-        peer_group.addPeerDiscovery(new DnsDiscovery(MainNetParams.get()));
 
-        peer_group.addPeerDiscovery(new IrcDiscovery("#bitcoin"));
+        if (config.getBoolean("bitcoin_network_use_peers"))
+        {
+            peer_group.addPeerDiscovery(new DnsDiscovery(MainNetParams.get()));
 
+            peer_group.addPeerDiscovery(new IrcDiscovery("#bitcoin"));
+
+        }
         peer_group.addEventListener(new DownloadListener());
         peer_group.addEventListener(new ImportEventListener(jelectrum_db, importer));
-        peer_group.setMinBroadcastConnections(2);
+        peer_group.setMinBroadcastConnections(1);
 
         peer_group.start();
         peer_group.downloadBlockChain();
@@ -182,16 +184,4 @@ public class Jelectrum
         return bitcoin_rpc;
     }
 
-    public class DBRestartThread extends Thread
-    {
-        public void run()
-        {
-            while(true)
-            {
-                try{Thread.sleep(300L * 1000L);}catch(Throwable t){}
-                getDB().open();
-            }
-        }
-
-    }
 }
