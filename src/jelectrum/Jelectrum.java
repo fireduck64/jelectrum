@@ -48,6 +48,8 @@ public class Jelectrum
         config = conf;
 
 
+        config.require("bitcoin_network_use_peers");
+
         event_log = new EventLog(config);
 
         //jelectrum_db = new JelectrumDBMapDB(config);
