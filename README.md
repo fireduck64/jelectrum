@@ -10,6 +10,7 @@ Reasons to exist
 ----------------
 
 1) The inital blockchain sync is multithreaded and a good bit faster than the python implementation
+(2 - 3 days with a fast system and SSD)
 
 2) It is good to have multiple implementations of things in general
 
@@ -32,5 +33,17 @@ edit jelly.conf as makes sense
 
 Run:
 java -Xmx4g -Xss256k -jar run/Jelectrum.jar jelly.conf
+
+
+What Doesn't Work
+-----------------
+
+1) IRC for advertising server.
+
+2) Whatever cleverness is being done for UXTO for Electrum 2.0.  I'll have to wait to see
+how this shakes out and then implement here.
+
+3) HTTP/HTTPS.  I see no strong reason to support those over TCP and SSL+TCP.  I imagine it wouldn't be too hard
+but I don't see the need.  If someone feels otherwise, let me know.
 
 
