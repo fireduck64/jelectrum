@@ -156,10 +156,9 @@ public class StratumConnection
                 }
 
             }
-            catch(Exception e)
+            catch(Throwable e)
             {
                 System.out.println(connection_id + ": " + e);
-                e.printStackTrace();
             }
             finally
             {
@@ -201,10 +200,8 @@ public class StratumConnection
             {
                 jelectrum.getEventLog().log("Connection closed " + sock + " " + connection_id);
             }
-            catch(Exception e)
+            catch(Throwable e)
             {
-                System.out.println("" + connection_id + ": " + e);
-                e.printStackTrace();
                 jelectrum.getEventLog().log("Unexpected error ("+connection_id+"): " + e);
             }
             finally
