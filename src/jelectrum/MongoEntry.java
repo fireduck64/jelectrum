@@ -40,7 +40,6 @@ public class MongoEntry extends BasicDBObject
         try
         {
 
-            boolean saved_as_set=false;
             if (value instanceof Set)
             {
                 Set hs = (Set)value;
@@ -57,18 +56,20 @@ public class MongoEntry extends BasicDBObject
                             sb.append(o.toString());
                         }
                         append("hashset", sb.toString());
-                        saved_as_set=true;
 
                     }
                 }
-
-
             }
-            
-            if(!saved_as_set)
+            else if (value instanceof String)
             {
-
-
+                append("string", value.toString());
+            }
+            else if (value instanceof Sha256Hash)
+            {
+                append("sha256hash", value.toString());
+            }
+            else
+            {
 
                 ByteArrayOutputStream b_out = new ByteArrayOutputStream();
                 OutputStream i_out = b_out;
@@ -122,6 +123,14 @@ public class MongoEntry extends BasicDBObject
                 }
                 return hs;
 
+            }
+            else if (o.containsField("string"))
+            {
+                return (String)o.get("string");
+            }
+            else if (o.containsField("sha256hash"))
+            {
+                return new Sha256Hash((String)o.get("sha256hash"));
             }
             else
             {

@@ -18,7 +18,7 @@ public class MongoTest implements java.io.Serializable
     {
 
         MongoClientOptions.Builder opts = MongoClientOptions.builder();
-        opts.connectionsPerHost(1000);
+        opts.connectionsPerHost(100);
 
         MongoClient mc = new MongoClient("localhost", opts.build());
         DB db = mc.getDB("test");
@@ -58,7 +58,7 @@ public class MongoTest implements java.io.Serializable
         throws Exception
     {
         MongoClientOptions.Builder opts = MongoClientOptions.builder();
-        opts.connectionsPerHost(1000);
+        opts.connectionsPerHost(100);
 
         MongoClient mc = new MongoClient("localhost", opts.build());
         DB db = mc.getDB("test");
@@ -126,7 +126,70 @@ public class MongoTest implements java.io.Serializable
 
     }*/
 
+    @Test
+    public void testSaveDirect()
+        throws java.io.IOException
+    {
 
+        MongoClientOptions.Builder opts = MongoClientOptions.builder();
+        opts.connectionsPerHost(100);
+
+        MongoClient mc = new MongoClient("localhost", opts.build());
+        DB db = mc.getDB("test");
+
+        DBCollection coll = db.getCollection("savedirect");
+        coll.drop();
+
+        long t1 = System.currentTimeMillis();
+        for(int i=0; i<10000; i++)
+        {
+            coll.save(new MongoEntry("a_" + i ,"1",false),WriteConcern.ACKNOWLEDGED);
+
+        }
+        long t2 = System.currentTimeMillis();
+        double sec = (t2 - t1) / 1000.0;
+
+        System.out.println("Items saved in: " + sec + "/s");
+        Assert.assertEquals(10000, coll.count());
+
+
+    }
+
+    @Test
+    public void testSaveBulk()
+        throws java.io.IOException
+    {
+
+        MongoClientOptions.Builder opts = MongoClientOptions.builder();
+        opts.connectionsPerHost(100);
+
+        MongoClient mc = new MongoClient("localhost", opts.build());
+        DB db = mc.getDB("test");
+
+        DBCollection coll = db.getCollection("savebulk");
+        coll.drop();
+
+        long t1 = System.currentTimeMillis();
+
+        BulkWriteOperation bulk = coll.initializeUnorderedBulkOperation();
+
+        for(int i=0; i<10000; i++)
+        {
+            bulk.insert(new MongoEntry("a_" + i ,"1",false));
+
+        }
+
+        bulk.execute(WriteConcern.ACKNOWLEDGED);
+        long t2 = System.currentTimeMillis();
+        double sec = (t2 - t1) / 1000.0;
+
+        System.out.println("Bulk items saved in: " + sec + "/s");
+        Assert.assertEquals(10000, coll.count());
+
+
+    }
+
+ 
     public class TestObject implements java.io.Serializable
     {
         int a,b,c,d,e,f,g;
