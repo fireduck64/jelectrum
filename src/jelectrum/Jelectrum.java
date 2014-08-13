@@ -72,6 +72,7 @@ public class Jelectrum
         header_chunk_agent = new HeaderChunkAgent(this);
 
         bitcoin_rpc = new BitcoinRPC(config);
+        bitcoin_rpc.testConnection();
 
 
     }

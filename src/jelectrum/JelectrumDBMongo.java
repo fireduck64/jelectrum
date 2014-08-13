@@ -16,6 +16,7 @@ import com.mongodb.DB;
 public class JelectrumDBMongo extends JelectrumDB
 {
     private MongoClient mc;
+    private MongoClient old_client;
     private DB db;
     private Config conf;
     protected MongoMapSet<String, Sha256Hash > address_to_tx_map;
@@ -37,18 +38,35 @@ public class JelectrumDBMongo extends JelectrumDB
 
    }
 
-    public void open()
+    public synchronized void open()
     {
 
         try
         {
+            if (old_client!=null) old_client.close();
+            old_client = mc;
+            
+
             boolean compress = conf.getBoolean("mongo_db_compression");
 
 
             MongoClientOptions.Builder opts = MongoClientOptions.builder();
             opts.connectionsPerHost(conf.getInt("mongo_db_connections_per_host"));
 
+            // So with regards to https://github.com/fireduck64/jelectrum/issues/1
+            // It seems that occasionally connections get into a bad state and just sit there
+            // with the mongo client trying to read from them.
+            // Testing seems to indicate that setting a socket timeout and a connection max lifetime
+            // seems to fix this issue.  It doesn't explain it.
+            //
+            // However, as I have always said: life is too short to identify every mysterious
+            // fluid that you encounter.
+            //
+            opts.maxConnectionLifeTime(120000);
+            opts.socketTimeout(120000);
+
             mc = new MongoClient(conf.get("mongo_db_host"), opts.build());
+
             db = mc.getDB(conf.get("mongo_db_name"));
 
             tx_map = new MongoMap<Sha256Hash, SerializedTransaction>(getCollection("tx_map"), compress);
@@ -59,7 +77,7 @@ public class JelectrumDBMongo extends JelectrumDB
             tx_to_block_map = new MongoMapSet<Sha256Hash, Sha256Hash>(getCollection("tx_to_block_map"),compress);
             txout_spent_by_map = new MongoMapSet<String, Sha256Hash>(getCollection("txout_spent_by_map"),compress);
             block_rescan_map = new MongoMap<Sha256Hash, String>(getCollection("block_rescan_map"),compress);
-            special_object_map = new MongoMap<String, Object>(getCollection("special_object_map"),compress);
+            special_object_map = new MongoMap<String, Object>(getCollection("special_object_map"),true);
             header_chunk_map = new CacheMap<Integer, String>(200, new MongoMap<Integer, String>(getCollection("header_chunk_map"),compress));
 
         }
@@ -71,59 +89,69 @@ public class JelectrumDBMongo extends JelectrumDB
 
     }
 
-    private DBCollection getCollection(String name)
+    private synchronized DBCollection getCollection(String name)
     {
         return db.getCollection(name);
     }
 
-    public Map<Sha256Hash, StoredBlock> getBlockStoreMap()
+    public synchronized Map<Sha256Hash, StoredBlock> getBlockStoreMap()
     {   
         return block_store_map;
     }
 
-    public Map<String, StoredBlock> getSpecialBlockStoreMap()
+    public synchronized Map<String, StoredBlock> getSpecialBlockStoreMap()
     {   
         return special_block_store_map;
     }
 
-    public Map<Sha256Hash,SerializedTransaction> getTransactionMap()
+    public synchronized Map<Sha256Hash,SerializedTransaction> getTransactionMap()
     {   
         return tx_map;
     }
-    public Map<Sha256Hash, SerializedBlock> getBlockMap()
+    public synchronized Map<Sha256Hash, SerializedBlock> getBlockMap()
     {   
         return block_map;
     }
 
+    public synchronized MongoMapSet<String, Sha256Hash> getAddressToTxMap()
+    {
+        return address_to_tx_map;
+    }
 
     public void addAddressToTxMap(String address, Sha256Hash hash)
     {
-        address_to_tx_map.add(address, hash);
+        getAddressToTxMap().add(address, hash);
     }
     public Set<Sha256Hash> getAddressToTxSet(String address)
     {
-        return address_to_tx_map.getSet(address);
+        return getAddressToTxMap().getSet(address);
     }
     public long countAddressToTxSet(String address)
     {
-        return address_to_tx_map.countKey(address);
+        return getAddressToTxMap().countKey(address);
     }
 
+   
+    public synchronized MongoMapSet<Sha256Hash, Sha256Hash> getTxToBlockMap()
+    {
+        return tx_to_block_map;
+    }
 
   
     public void addTxToBlockMap(Sha256Hash tx, Sha256Hash block)
     {
-        tx_to_block_map.add(tx, block);
+        getTxToBlockMap().add(tx, block);
     }
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
     {
-        return tx_to_block_map.getSet(tx);
+        return getTxToBlockMap().getSet(tx);
     }
 
     public void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by)
     {
         txout_spent_by_map.add(tx_out, spent_by);
     }
+
     public Set<Sha256Hash> getTxOutSpentByMap(String tx_out)
     {
         return txout_spent_by_map.getSet(tx_out);
@@ -131,17 +159,17 @@ public class JelectrumDBMongo extends JelectrumDB
 
  
 
-    public Map<Sha256Hash, String> getBlockRescanMap()
+    public synchronized Map<Sha256Hash, String> getBlockRescanMap()
     {
         return block_rescan_map;
     }
 
-    public Map<String, Object> getSpecialObjectMap()
+    public synchronized Map<String, Object> getSpecialObjectMap()
     {
         return special_object_map;
     }
 
-    public Map<Integer, String> getHeaderChunkMap()
+    public synchronized Map<Integer, String> getHeaderChunkMap()
     {
         return header_chunk_map;
     }

@@ -26,6 +26,8 @@ import java.util.Collection;
 import java.text.DecimalFormat;
 import java.util.concurrent.TimeUnit;
 import java.util.Random;
+import java.util.LinkedList;
+import java.util.TreeMap;
 
 public class Importer
 {
@@ -57,6 +59,8 @@ public class Importer
 
     private volatile boolean run_rates=true;
 
+    private LinkedList<StatusContext> save_thread_list;
+
 
     public Importer(NetworkParameters params, Jelectrum jelly, BlockStore block_store)
         throws com.google.bitcoin.store.BlockStoreException
@@ -84,13 +88,19 @@ public class Importer
 
         //address_to_tx_updater = new BandedUpdater<String, Sha256Hash>(file_db.getAddressToTxMap(), config.getInt("transaction_save_threads")/2);
 
+        save_thread_list = new LinkedList<StatusContext>();
         for(int i=0; i<config.getInt("block_save_threads"); i++)
         {
-            new BlockSaveThread().start();
+            BlockSaveThread t= new BlockSaveThread();
+            save_thread_list.add(t);
+            t.start();
         }
+
         for(int i=0; i<config.getInt("transaction_save_threads"); i++)
         {
-            new TransactionSaveThread().start();
+            TransactionSaveThread t = new TransactionSaveThread();
+            save_thread_list.add(t);
+            t.start();
         }
         
         putInternal(params.getGenesisBlock());
@@ -187,23 +197,58 @@ public class Importer
         Sha256Hash block_hash;
     }
 
-  public class BlockSaveThread extends Thread
+  public class BlockSaveThread extends Thread implements StatusContext
     {
+    
+        private volatile String status;
+        private volatile long last_status_change;
         public BlockSaveThread()
         {
             setDaemon(true);
             setName("BlockSaveThread");
+            setStatus("STARTUP");
+        }
+        public String getStatus()
+        {
+            return status;
         }
 
+        public void setStatus(String new_status)
+        {
+            this.status = new_status;
+            last_status_change = System.currentTimeMillis();
+        }
+ 
+        public long getLastStatusChangeTime()
+        {
+            return last_status_change;
+        }
         public void run()
         {
             while(true)
             {
+                
                 try
                 {
+                    setStatus("BLK_QUEUE_WAIT");
                     Block blk = block_queue.take();
+                    setStatus("BLK_WORK_START");
 
-                    putInternal(blk);
+                    while(true)
+                    {
+                        try
+                        {
+                            putInternal(blk, this);
+                            break;
+                        }
+                        catch(Throwable t)
+                        {
+                            System.out.println("Block "+blk.getHash()+" save failed.  Retrying");
+                            jelly.getEventLog().log("Block "+blk.getHash()+" save failed.  Retrying");
+
+                            t.printStackTrace();
+                        }
+                    }
                 }
                 catch(Throwable e)
                 {
@@ -215,36 +260,58 @@ public class Importer
     }
 
 
-    public class TransactionSaveThread extends Thread
+    public class TransactionSaveThread extends Thread implements StatusContext
     {
+        private volatile String status;
+        private volatile long last_status_change;
         public TransactionSaveThread()
         {
             setDaemon(true);
             setName("TransactionSaveThread");
+            setStatus("STARTUP");
         }
+
+        public String getStatus()
+        {
+            return status;
+        }
+
+        public void setStatus(String new_status)
+        {
+            this.status = new_status;
+            last_status_change = System.currentTimeMillis();
+        }
+        public long getLastStatusChangeTime()
+        {
+            return last_status_change;
+        }
+
+
+
+
         public void run()
         {
             while(true)
             {
                 try
                 {
+                    setStatus("TX_QUEUE_WAIT");
                     TransactionWork tw = tx_queue.take();
+                    setStatus("TX_WORK_START");
 
                     while(true)
                     {
                         try
                         {
 
-                            putInternal(tw.tx, tw.block_hash);
+                            putInternal(tw.tx, tw.block_hash, this);
                             break;
-                        }
-                        catch(java.lang.IllegalAccessError e3)
-                        {
-                            e3.printStackTrace();
-                            System.exit(-1);
                         }
                         catch(Throwable e2)
                         {
+
+                            System.out.println("Transaction "+tw.tx.getHash()+" save failed.  Retrying");
+                            jelly.getEventLog().log("Transaction "+tw.tx.getHash()+" save failed.  Retrying");
                             e2.printStackTrace();
                             
                         }
@@ -314,19 +381,29 @@ public class Importer
 
     public void putInternal(Transaction tx, Sha256Hash block_hash)
     {
+        putInternal(tx, block_hash, new NullStatusContext());
+    }
+    public void putInternal(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
+    {
+
+        ctx.setStatus("TX_SERIALIZE");
         SerializedTransaction s_tx = new SerializedTransaction(tx);
+
+        ctx.setStatus("TX_PUT");
         //System.out.println("Transaction " + tx.getHash() + " " + Util.measureSerialization(s_tx));
         file_db.getTransactionMap().put(tx.getHash(), s_tx);
 
         //putTxOutSpents(tx);
         boolean confirmed = (block_hash != null);
 
+        ctx.setStatus("TX_GET_ADDR");
         Collection<String> addrs = getAllAddresses(tx, confirmed);
 
         Random rnd = new Random();
 
         for(String a : addrs)
         {
+            ctx.setStatus("TX_ADDRESS_LOOP");
             boolean done=false;
             synchronized(busy_addresses)
             {
@@ -336,10 +413,14 @@ public class Importer
             if (!done)
             {
                 long new_size = 0;
+                ctx.setStatus("TX_SAVE_ADDRESS");
                 file_db.addAddressToTxMap(a, tx.getHash());
+                ctx.setStatus("TX_ADDRESS_LOOP");
                 if (rnd.nextDouble() < 0.01)
                 {
+                    ctx.setStatus("TX_GET_ADDR_COUNT");
                     new_size = file_db.countAddressToTxSet(a);
+                    ctx.setStatus("TX_ADDRESS_LOOP");
                 }
                 if (new_size >= BUSY_ADDRESS_LIMIT) 
                 {
@@ -358,28 +439,38 @@ public class Importer
 
         if (block_hash!=null)
         {
+            ctx.setStatus("TX_BLOCK_SAVE");
             file_db.addTxToBlockMap(tx.getHash(), block_hash);
+            ctx.setStatus("TX_ADDRESS_LOOP");
         }
 
         imported_transactions.incrementAndGet();
         int h = -1;
         if (block_hash != null)
         {
+            ctx.setStatus("TX_GET_HEIGHT");
             h = block_store.getHeight(block_hash);
         }
 
 
 
+        ctx.setStatus("TX_NOTIFY");
         jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
+        ctx.setStatus("TX_DONE");
         
 
     }
    
     private void putInternal(Block block)
     {
+        putInternal(block, new NullStatusContext());
+    }
+    private void putInternal(Block block, StatusContext ctx)
+    {
         long t1 = System.currentTimeMillis();
         Sha256Hash hash = block.getHash();
 
+        ctx.setStatus("BLOCK_CHECK_EXIST");
         if (file_db.getBlockMap().containsKey(hash)) 
         {
             imported_blocks.incrementAndGet();
@@ -403,6 +494,7 @@ public class Importer
         //Kick off threaded storage of transactions
         int size=0;
 
+        ctx.setStatus("BLOCK_TX_CACHE_INSERT");
         synchronized(transaction_cache)
         {
             for(Transaction tx : block.getTransactions())
@@ -411,6 +503,7 @@ public class Importer
             }
         }
 
+        ctx.setStatus("BLOCK_TX_ENQUE");
         for(Transaction tx : block.getTransactions())
         {
             try
@@ -426,6 +519,7 @@ public class Importer
         }
         try
         {
+            ctx.setStatus("BLOCK_TX_WAIT");
             int outstanding = size;
             long wait_start=System.currentTimeMillis();
             while(outstanding > 0)
@@ -450,15 +544,18 @@ public class Importer
         {
             throw new RuntimeException(e);
         }
+        
 
         //Once all transactions are in, check for prev block in this store
 
+        ctx.setStatus("BLOCK_WAIT_PREV");
         Sha256Hash prev_hash = block.getPrevBlockHash();
         
         waitForBlockStored(prev_hash);
 
         //System.out.println("Block " + hash + " " + Util.measureSerialization(new SerializedBlock(block)));
 
+        ctx.setStatus("BLOCK_SAVE");
         file_db.getBlockMap().put(hash, new SerializedBlock(block));
 
         block_wait_sem.release(1024);
@@ -658,8 +755,11 @@ public class Importer
                 double tx_rate = (transactions_now - transactions) / sec;
                 if(run_rates)
                 {
+                    String rate_log = name + " Block rate: " + df.format(block_rate) + "/s   Transaction rate: " + df.format(tx_rate) + "/s" + "     txq:" + tx_queue.size() + " blkq:" + block_queue.size() ;
 
-                    System.out.println(name + " Block rate: " + df.format(block_rate) + "/s   Transaction rate: " + df.format(tx_rate) + "/s" + "     txq:" + tx_queue.size() + " blkq:" + block_queue.size()  );
+                    System.out.println(rate_log );
+                    jelly.getEventLog().log(rate_log);
+
 
                     if (name.equals("1-hour"))
                     {
@@ -667,9 +767,16 @@ public class Importer
                     }
                     if (name.equals("5-minute"))
                     {
-                        //jelly.getDB().open();
+                        if (tx_rate < 50.0) System.exit(0);
+                        jelly.getDB().open();
                     }
                     MongoMapSet.printStats();
+                    String status_report = getThreadStatusReport();
+
+
+                    System.out.println(status_report);
+                    jelly.getEventLog().log(status_report);
+
                 }
 
 
@@ -687,5 +794,46 @@ public class Importer
         }
 
     }
+
+    public interface StatusContext
+    {
+        public String getStatus();
+        public void setStatus(String ns);
+        public long getLastStatusChangeTime();
+    }
+
+    public class NullStatusContext implements StatusContext
+    {
+        public String getStatus(){return null;}
+        public void setStatus(String ns){}
+        public long getLastStatusChangeTime(){return System.currentTimeMillis();}
+
+    }
+
+    public String getThreadStatusReport()
+    {
+        TreeMap<String, Integer> status_map = new TreeMap<String, Integer>();
+        status_map.put("STALLED", 0);
+        for(StatusContext t : save_thread_list)
+        {
+            String status = t.getStatus();
+            if (!status_map.containsKey(status))
+            {
+                status_map.put(status, 0);
+            }
+            status_map.put(status, status_map.get(status) + 1);
+
+            long age = System.currentTimeMillis() - t.getLastStatusChangeTime();
+            if (age > 120000L)
+            {
+                status_map.put("STALLED", status_map.get("STALLED") + 1);
+                
+            }
+
+        }
+        return status_map.toString();
+
+    }
+
 
 }

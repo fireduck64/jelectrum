@@ -123,7 +123,31 @@ public class BitcoinRPC
         return sendPost(msg);
 
     }
+    public JSONObject getinfo()
+        throws java.io.IOException, org.json.JSONException
+    {
+        Random rnd = new Random();
+        JSONObject msg = new JSONObject();
+        msg.put("id", "" + rnd.nextInt());
+        msg.put("method","getinfo");
+        return sendPost(msg);
 
+    }
+
+    public void testConnection()
+        throws java.io.IOException, org.json.JSONException
+    {
+        try
+        {
+            System.out.println(getinfo());
+        }
+        catch(Throwable t)
+        {
+            System.out.println("bitcoind getinfo failed - check bitcoind config items");
+            t.printStackTrace();
+        }
+    }
+ 
     public JSONObject submitBlock(Block blk)
         throws java.io.IOException, org.json.JSONException
     {
