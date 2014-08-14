@@ -410,7 +410,7 @@ public class StratumConnection
                 sendMessage(reply);
                 jelectrum.getEventLog().log(connection_id + " - error: " + t);
                 jelectrum.getEventLog().log(t);
-                t.printStackTrace();
+                //t.printStackTrace();
         }
     }
 

@@ -115,6 +115,11 @@ public class Jelectrum
         peer_group.start();
         peer_group.downloadBlockChain();
 
+        while(bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight())
+        {
+            Thread.sleep(5000);
+        }
+
         System.out.println("Block chain caught up");
         event_log.log("Block chain caught up");
 
@@ -124,14 +129,21 @@ public class Jelectrum
 
         header_chunk_agent.start();
 
+
+        while(true)
+        {
+            if (bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight()+2)
+            {
+                System.out.println("We are far behind.  Aborting.");
+                event_log.log("We are far behind.  Aborting.");
+                System.exit(1);
+            }
+
+            Thread.sleep(25000);
+        }
         /*peer_group.stop();
         jelectrum_db.commit();
         jelectrum_db.close();*/
-
-
-
-
-
 
     }
 
@@ -186,5 +198,8 @@ public class Jelectrum
     {
         return bitcoin_rpc;
     }
+
+
+    
 
 }

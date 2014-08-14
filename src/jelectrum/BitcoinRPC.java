@@ -133,6 +133,19 @@ public class BitcoinRPC
         return sendPost(msg);
 
     }
+    public int getBlockHeight()
+        throws java.io.IOException, org.json.JSONException
+    {
+        Random rnd = new Random();
+        JSONObject msg = new JSONObject();
+        msg.put("id", "" + rnd.nextInt());
+        msg.put("method","getblockcount");
+        JSONObject reply = sendPost(msg);
+
+        return reply.getInt("result");
+
+
+    }
 
     public void testConnection()
         throws java.io.IOException, org.json.JSONException

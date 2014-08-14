@@ -55,6 +55,11 @@ public class ElectrumNotifier
 
     }
 
+    public int getHeadHeight()
+    {
+        return chain_head.getHeight();
+    }
+
 
     public void registerBlockchainHeaders(StratumConnection conn, Object request_id, boolean send_initial)
     {
