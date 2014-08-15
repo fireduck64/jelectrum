@@ -56,7 +56,26 @@ public class MongoEntry extends BasicDBObject
                             sb.append(o.toString());
                         }
                         append("hashset", sb.toString());
+                        append("type", "Sha256Hash");
 
+                    }
+                    else if (hs.iterator().next() instanceof String)
+                    {
+                        StringBuilder sb=new StringBuilder();
+                        for(Object o : hs)
+                        {       
+                            if (sb.length() > 0)
+                                sb.append(' ');
+                            sb.append(o.toString());
+                        }
+                        append("hashset", sb.toString());
+                        append("type", "String");
+
+                   
+                    }
+                    else
+                    {
+                        throw new RuntimeException("Don't know how to save a set of: " + hs.iterator().next());
                     }
                 }
             }
@@ -114,14 +133,27 @@ public class MongoEntry extends BasicDBObject
         {
             if (o.containsField("hashset"))
             {
-                HashSet<Sha256Hash> hs = new HashSet<Sha256Hash>();
-                Scanner scan = new Scanner((String)o.get("hashset"));
-                while(scan.hasNext())
+                if (o.get("type").equals("String"))
                 {
-                    Sha256Hash h = new Sha256Hash(scan.next());
-                    hs.add(h);
+                    HashSet<String> hs = new HashSet<String>();
+                    Scanner scan = new Scanner((String)o.get("hashset"));
+                    while(scan.hasNext())
+                    {
+                        hs.add(scan.next());
+                    }
+                    return hs;
                 }
-                return hs;
+                else
+                {
+                    HashSet<Sha256Hash> hs = new HashSet<Sha256Hash>();
+                    Scanner scan = new Scanner((String)o.get("hashset"));
+                    while(scan.hasNext())
+                    {
+                        Sha256Hash h = new Sha256Hash(scan.next());
+                        hs.add(h);
+                    }
+                    return hs;
+                }
 
             }
             else if (o.containsField("string"))

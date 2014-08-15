@@ -44,7 +44,7 @@ public class Importer
     private LRUCache<Sha256Hash, Transaction> transaction_cache;
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
-    private LRUCache<String, Boolean> busy_addresses;
+    private HashSet<String> busy_addresses;
 
     private NetworkParameters params;
 
@@ -77,16 +77,11 @@ public class Importer
 
         block_queue = new LinkedBlockingQueue<Block>(32);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(4096);
-        //address_locks = new LRUCache<String, Object>(10000);
-        //tx_locks = new LRUCache<Sha256Hash, Object>(10000);
-        //tx_out_locks = new LRUCache<String, Object>(10000);
         transaction_cache = new LRUCache<Sha256Hash, Transaction>(100000);
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
-        busy_addresses = new LRUCache<String, Boolean>(10000);
 
-        //address_to_tx_updater = new BandedUpdater<String, Sha256Hash>(file_db.getAddressToTxMap(), config.getInt("transaction_save_threads")/2);
 
         save_thread_list = new LinkedList<StatusContext>();
         for(int i=0; i<config.getInt("block_save_threads"); i++)
@@ -106,6 +101,8 @@ public class Importer
         putInternal(params.getGenesisBlock());
 
         //checkConsistency();
+        
+        tryLoadBusyAddresses();
 
 
     }
@@ -115,6 +112,21 @@ public class Importer
         new RateThread("1-minute", 60000L).start();
         new RateThread("5-minute", 60000L * 5L).start();
         new RateThread("1-hour", 60000L * 60L).start();
+    }
+
+    public void tryLoadBusyAddresses()
+    {
+        try
+        {
+            busy_addresses = (HashSet<String>) jelly.getDB().getSpecialObjectMap().get("BusyAddresses");
+            System.out.println("Busy addresses: " + busy_addresses.size());
+
+        }
+        catch(Throwable t)
+        {
+            System.out.println("Creating new busy address set");
+            busy_addresses = new HashSet<String>(100,0.5f);
+        }
     }
 
     public void checkConsistency()
@@ -140,7 +152,7 @@ public class Importer
                 throw new RuntimeException("Missing block: " + curr_hash);
             }
             checked++;
-            if (checked > 20) return;
+            //if (checked > 20) return;
             
             if (curr_hash.equals(genisis_hash)) return;
 
@@ -407,7 +419,7 @@ public class Importer
             boolean done=false;
             synchronized(busy_addresses)
             {
-                if (busy_addresses.containsKey(a)) done=true;
+                if (busy_addresses.contains(a)) done=true;
             }
 
             if (!done)
@@ -424,12 +436,10 @@ public class Importer
                 }
                 if (new_size >= BUSY_ADDRESS_LIMIT) 
                 {
-                    boolean print=false;
                     synchronized(busy_addresses)
                     {
-                        if (!busy_addresses.containsKey(a)) print=true;
-
-                        busy_addresses.put(a,true);
+                        busy_addresses.add(a);
+                        jelly.getDB().getSpecialObjectMap().put("BusyAddresses", busy_addresses);
                     }
                 }
 

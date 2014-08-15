@@ -2,6 +2,8 @@ package jelectrum;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.ArrayList;
 
 import com.google.bitcoin.core.StoredBlock;
 import com.google.bitcoin.core.Sha256Hash;
@@ -15,6 +17,7 @@ public class BlockChainCache implements java.io.Serializable
     private volatile Sha256Hash head;
     private transient Object update_lock=new Object();
 
+    public static final int HEIGHT_BUCKETS=8;
     public static final int UPDATES_BEFORE_SAVE=100;
     private transient int updates = 0;
     
@@ -24,6 +27,24 @@ public class BlockChainCache implements java.io.Serializable
         height_map = new HashMap<Integer, Sha256Hash>(500000, 0.75f);
         main_chain = new HashSet<Sha256Hash>(500000, 0.75f);
         head=null;
+
+    }
+    public BlockChainCache(ArrayList<HashMap<Integer, Sha256Hash> > lst)
+    {
+        this();
+        for(HashMap<Integer, Sha256Hash> m : lst)
+        {
+            height_map.putAll(m);
+            main_chain.addAll(m.values());
+        }
+        int max_height = -1;
+        for(Integer i : height_map.keySet())
+        {
+            max_height = Math.max(max_height, i);
+        }
+        if (max_height >= 0)
+        head = height_map.get(max_height);
+
 
     }
 
@@ -84,22 +105,41 @@ public class BlockChainCache implements java.io.Serializable
 
     private void save(Jelectrum jelly)
     {
-        jelly.getDB().getSpecialObjectMap().put("BlockChainCache", this);
+        //jelly.getDB().getSpecialObjectMap().put("BlockChainCache", this);
+
+        ArrayList<HashMap<Integer, Sha256Hash> > height_map_list = new ArrayList<HashMap<Integer, Sha256Hash> >();
+        for(int i=0; i<HEIGHT_BUCKETS; i++)
+        {
+            height_map_list.add(new HashMap<Integer, Sha256Hash>(height_map.size() * 2 / HEIGHT_BUCKETS + 1,0.5f));
+        }
+        for(Map.Entry<Integer, Sha256Hash> me : height_map.entrySet())
+        {
+            int h = me.getKey();
+            Sha256Hash hash = me.getValue();
+            int idx = h % HEIGHT_BUCKETS;
+            height_map_list.get(idx).put(h, hash);
+        }
+
+        for(int i=0; i<HEIGHT_BUCKETS; i++)
+        {
+            jelly.getDB().getSpecialObjectMap().put("BlockChainCache_" + i, height_map_list.get(i));
+        }
+
         
     }
     public static BlockChainCache load(Jelectrum jelly)
     {
         try
         {
-
-            BlockChainCache c = (BlockChainCache)jelly.getDB().getSpecialObjectMap().get("BlockChainCache");
-            if (c!=null)
+            ArrayList<HashMap<Integer, Sha256Hash> > height_map_list = new ArrayList<HashMap<Integer, Sha256Hash> >();
+            for(int i=0; i<HEIGHT_BUCKETS; i++)
             {
-                c.retransient();
-                return c;
+                HashMap<Integer, Sha256Hash> m = (HashMap<Integer, Sha256Hash>) jelly.getDB().getSpecialObjectMap().get("BlockChainCache_" + i);
+                height_map_list.add(m);
             }
-            System.out.println("Creating new BlockChainCache");
-            return new BlockChainCache();
+
+            BlockChainCache c = new BlockChainCache(height_map_list);
+            return c;
         }
         catch(Throwable t)
         {
