@@ -89,6 +89,8 @@ public class StratumServer
             char key_pass[] = config.get("keystore_key_password").toCharArray();
             KeyStore ks = KeyStore.getInstance("JKS");
             ks.load(new FileInputStream(config.get("keystore_path")), ks_pass);
+
+
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
             kmf.init(ks, key_pass);
             SSLContext sc = SSLContext.getInstance("TLS");
