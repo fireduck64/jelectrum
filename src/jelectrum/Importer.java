@@ -81,7 +81,7 @@ public class Importer
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
-
+        tryLoadBusyAddresses();
 
         save_thread_list = new LinkedList<StatusContext>();
         for(int i=0; i<config.getInt("block_save_threads"); i++)
@@ -102,7 +102,6 @@ public class Importer
 
         //checkConsistency();
         
-        tryLoadBusyAddresses();
 
 
     }
