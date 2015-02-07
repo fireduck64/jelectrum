@@ -46,4 +46,11 @@ how this shakes out and then implement here.
 3) HTTP/HTTPS.  I see no strong reason to support those over TCP and SSL+TCP.  I imagine it wouldn't be too hard
 but I don't see the need.  If someone feels otherwise, let me know.
 
+4) The following commands that clients don't seem to issue (yet):
+blockchain.address.listunspent
+blockchain.address.get_balance
+blockchain.address.get_proof
+blockchain.address.get_mempool
+blockchain.utxo.get_address
+
 
