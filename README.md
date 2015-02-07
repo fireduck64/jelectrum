@@ -47,10 +47,16 @@ how this shakes out and then implement here.
 but I don't see the need.  If someone feels otherwise, let me know.
 
 4) The following commands that clients don't seem to issue (yet):
+```
 blockchain.address.listunspent
 blockchain.address.get_balance
 blockchain.address.get_proof
 blockchain.address.get_mempool
 blockchain.utxo.get_address
+```
+
+(To check this list compare src/blockchain_processor.py from electrum-server to StratumConnection.java)
+
+
 
 
