@@ -14,7 +14,6 @@ Reasons to exist
 
 2) It is good to have multiple implementations of things in general
 
-
 How to run
 ----------
 
@@ -34,6 +33,15 @@ edit jelly.conf as makes sense
 Run:
 java -Xmx4g -Xss256k -jar run/Jelectrum.jar jelly.conf
 
+My Instance
+-----------
+
+Feel free to connect to my instance which should be running the latest version.
+
+```
+b.1209k.com 50001 (tcp)
+b.1209k.com 50002 (ssl)
+```
 
 What Doesn't Work
 -----------------
