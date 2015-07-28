@@ -113,7 +113,8 @@ public class JelectrumDBMongo extends JelectrumDB
         return block_map;
     }
 
-    public synchronized MongoMapSet<String, Sha256Hash> getAddressToTxMap()
+
+    private synchronized MongoMapSet<String, Sha256Hash> getAddressToTxMap()
     {
         return address_to_tx_map;
     }
@@ -132,7 +133,7 @@ public class JelectrumDBMongo extends JelectrumDB
     }
 
    
-    public synchronized MongoMapSet<Sha256Hash, Sha256Hash> getTxToBlockMap()
+    private synchronized MongoMapSet<Sha256Hash, Sha256Hash> getTxToBlockMap()
     {
         return tx_to_block_map;
     }

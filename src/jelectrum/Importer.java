@@ -776,10 +776,11 @@ public class Importer
                     }
                     if (name.equals("5-minute"))
                     {
-                        if (tx_rate < 50.0) System.exit(0);
-                        jelly.getDB().open();
+                        if (tx_rate < 10.0) System.exit(0);
+                        //jelly.getDB().open();
                     }
-                    MongoMapSet.printStats();
+                    SqlMapSet.printStats();
+                    SqlMap.printStats();
                     String status_report = getThreadStatusReport();
 
 

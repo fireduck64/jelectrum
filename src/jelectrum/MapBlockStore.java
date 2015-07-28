@@ -35,7 +35,8 @@ public class MapBlockStore implements BlockStore
 
         if (!file_db.getSpecialBlockStoreMap().containsKey("head"))
         {
-            
+        
+            System.out.println("Adding genesis");
             Block genesisHeader = params.getGenesisBlock().cloneAsHeader();
             StoredBlock storedGenesis = new StoredBlock(genesisHeader, genesisHeader.getWork(), 0);
             put(storedGenesis);

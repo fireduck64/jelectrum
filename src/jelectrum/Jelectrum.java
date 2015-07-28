@@ -55,7 +55,8 @@ public class Jelectrum
         //jelectrum_db = new JelectrumDBMapDB(config);
         //jelectrum_db = new JelectrumDBDirect(config);
         //jelectrum_db = new JelectrumDBCloudData(config);
-        jelectrum_db = new JelectrumDBMongo(config);
+        //jelectrum_db = new JelectrumDBMongo(config);
+        jelectrum_db = new JelectrumDBSQL(config);
         
         block_store = new MapBlockStore(this);
         
