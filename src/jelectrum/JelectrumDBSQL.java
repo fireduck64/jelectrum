@@ -3,6 +3,7 @@ package jelectrum;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Collection;
 import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.StoredBlock;
@@ -12,9 +13,9 @@ import com.google.bitcoin.core.Block;
 public class JelectrumDBSQL extends JelectrumDB
 {
     private Config conf;
-    protected MapSet<String, Sha256Hash> address_to_tx_map;
-    protected MapSet<Sha256Hash,Sha256Hash> tx_to_block_map;
-    protected MapSet<String, Sha256Hash> txout_spent_by_map;
+    protected SqlMapSet<String> address_to_tx_map;
+    protected SqlMapSet<Sha256Hash> tx_to_block_map;
+    protected SqlMapSet<String> txout_spent_by_map;
     protected boolean compress=false;
 
     public JelectrumDBSQL(Config config)
@@ -49,8 +50,8 @@ public class JelectrumDBSQL extends JelectrumDB
         try
         {
 
-            tx_map = new BandingMap<Sha256Hash, SerializedTransaction>(new SqlMap<Sha256Hash, SerializedTransaction>("tx_map", 64),100);
-            //tx_map = new SqlMap<Sha256Hash, SerializedTransaction>("tx_map", 64);
+            //tx_map = new BandingMap<Sha256Hash, SerializedTransaction>(new SqlMap<Sha256Hash, SerializedTransaction>("tx_map", 64),100);
+            tx_map = new SqlMap<Sha256Hash, SerializedTransaction>("tx_map", 64);
             block_store_map = new CacheMap<Sha256Hash, StoredBlock>(25000,new SqlMap<Sha256Hash, StoredBlock>("block_store_map",64));
             special_block_store_map = new SqlMap<String, StoredBlock>("special_block_store_map",128);
             block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new SqlMap<Sha256Hash, SerializedBlock>("block_map",64));
@@ -104,6 +105,11 @@ public class JelectrumDBSQL extends JelectrumDB
     {
         getAddressToTxMap().add(address, hash);
     }
+    @Override
+    public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash)
+    {
+      address_to_tx_map.addAll(addresses, hash);
+    }
     public Set<Sha256Hash> getAddressToTxSet(String address)
     {
         return getAddressToTxMap().getSet(address);
@@ -124,6 +130,11 @@ public class JelectrumDBSQL extends JelectrumDB
     {
         getTxToBlockMap().add(tx, block);
     }
+    @Override
+    public void addTxsToBlockMap(Collection<Sha256Hash> txs, Sha256Hash block)
+    {
+      tx_to_block_map.addAll(txs, block);
+    }
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
     {
         return getTxToBlockMap().getSet(tx);
@@ -132,6 +143,11 @@ public class JelectrumDBSQL extends JelectrumDB
     public void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by)
     {
         txout_spent_by_map.add(tx_out, spent_by);
+    }
+    @Override
+    public void addTxOutsSpentByMap(Collection<String> tx_outs, Sha256Hash spent_by)
+    {
+      txout_spent_by_map.addAll(tx_outs, spent_by);
     }
 
     public Set<Sha256Hash> getTxOutSpentByMap(String tx_out)

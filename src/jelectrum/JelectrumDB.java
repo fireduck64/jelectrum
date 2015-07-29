@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Collection;
 import java.text.DecimalFormat;
 
 import com.google.bitcoin.core.Sha256Hash;
@@ -57,14 +58,37 @@ public abstract class JelectrumDB
     public abstract Map<Sha256Hash, SerializedBlock> getBlockMap();
 
     public abstract void addAddressToTxMap(String address, Sha256Hash hash);
+    public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash)
+    {
+      for(String a : addresses)
+      {
+        addAddressToTxMap(a, hash);
+      }
+    }
+
     public abstract Set<Sha256Hash> getAddressToTxSet(String address);
     public abstract long countAddressToTxSet(String address);
 
 
     public abstract void addTxToBlockMap(Sha256Hash tx, Sha256Hash block);
+    public void addTxsToBlockMap(Collection<Sha256Hash> txs, Sha256Hash block)
+    {
+      for(Sha256Hash tx : txs)
+      {
+        addTxToBlockMap(tx, block);
+      }
+    }
     public abstract Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx);
 
     public abstract void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by);
+    public void addTxOutsSpentByMap(Collection<String> tx_outs, Sha256Hash spent_by)
+    {
+      for(String tx_out : tx_outs)
+      {
+        addTxOutSpentByMap(tx_out, spent_by);
+      }
+
+    }
     public abstract Set<Sha256Hash> getTxOutSpentByMap(String tx_out);
 
     public abstract Map<Sha256Hash, String> getBlockRescanMap();

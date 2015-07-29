@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -191,6 +192,16 @@ public class SqlMapSet<K> implements MapSet<K, Sha256Hash>
         }
        long t2 = System.currentTimeMillis();
                put_stats.addDataPoint(t2-t1);
+    }
+
+    public void addAll(Collection<K> keys, Sha256Hash val)
+    {
+      LinkedList<Map.Entry<K, Sha256Hash> > lst = new LinkedList<Map.Entry<K, Sha256Hash> >();
+      for(K key : keys)
+      {
+        lst.add(new java.util.AbstractMap.SimpleEntry<K,Sha256Hash>(key, val));
+      }
+      addAll(lst);
     }
 
     public void addAll(Collection<Map.Entry<K,Sha256Hash>> lst)

@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.Random;
 import java.util.LinkedList;
 import java.util.TreeMap;
+import java.util.Map;
+import java.util.HashMap;
 
 public class Importer
 {
@@ -378,15 +380,23 @@ public class Importer
 
     public void putTxOutSpents(Transaction tx)
     {
+      LinkedList<String> tx_outs = new LinkedList<String>();
+
         for(TransactionInput in : tx.getInputs())
         {
             if (!in.isCoinBase())
             {
                 TransactionOutPoint out = in.getOutpoint();
                 String key = out.getHash().toString() + ":" + out.getIndex();
-                file_db.addTxOutSpentByMap(key, tx.getHash());
+                //file_db.addTxOutSpentByMap(key, tx.getHash());
+                tx_outs.add(key);
 
             }
+        }
+        if (tx_outs.size() > 0)
+        {
+          file_db.addTxOutsSpentByMap(tx_outs, tx.getHash());
+        
         }
     }
 
@@ -397,12 +407,15 @@ public class Importer
     public void putInternal(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
     {
 
-        ctx.setStatus("TX_SERIALIZE");
-        SerializedTransaction s_tx = new SerializedTransaction(tx);
 
-        ctx.setStatus("TX_PUT");
-        //System.out.println("Transaction " + tx.getHash() + " " + Util.measureSerialization(s_tx));
-        file_db.getTransactionMap().put(tx.getHash(), s_tx);
+        if (block_hash == null)
+        {
+          ctx.setStatus("TX_SERIALIZE");
+          SerializedTransaction s_tx = new SerializedTransaction(tx);
+          ctx.setStatus("TX_PUT");
+          //System.out.println("Transaction " + tx.getHash() + " " + Util.measureSerialization(s_tx));
+          file_db.getTransactionMap().put(tx.getHash(), s_tx);
+        }
 
         //putTxOutSpents(tx);
         boolean confirmed = (block_hash != null);
@@ -412,7 +425,11 @@ public class Importer
 
         Random rnd = new Random();
 
-        for(String a : addrs)
+        ctx.setStatus("TX_SAVE_ADDRESS");
+        file_db.addAddressesToTxMap(addrs, tx.getHash());
+
+
+        /*for(String a : addrs)
         {
             ctx.setStatus("TX_ADDRESS_LOOP");
             boolean done=false;
@@ -444,14 +461,15 @@ public class Importer
 
             }
 
-        }
+        }*/
 
-        if (block_hash!=null)
+        // Done in a batch at the block level
+        /*if (block_hash!=null)
         {
             ctx.setStatus("TX_BLOCK_SAVE");
             file_db.addTxToBlockMap(tx.getHash(), block_hash);
             ctx.setStatus("TX_ADDRESS_LOOP");
-        }
+        }*/
 
         imported_transactions.incrementAndGet();
         int h = -1;
@@ -513,19 +531,32 @@ public class Importer
         }
 
         ctx.setStatus("BLOCK_TX_ENQUE");
+        LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
+
+        Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
+
         for(Transaction tx : block.getTransactions())
         {
+          txs_map.put(tx.getHash(), new SerializedTransaction(tx));
+
             try
             {
 
                 tx_queue.put(new TransactionWork(tx,sem,hash));
                 size++;
+                tx_list.add(tx.getHash());
             }
             catch(java.lang.InterruptedException e)
             {
                 throw new RuntimeException(e);
             }
         }
+
+        ctx.setStatus("TX_SAVEALL");
+        file_db.getTransactionMap().putAll(txs_map);
+
+        ctx.setStatus("BLOCK_TX_MAP_ADD");
+        file_db.addTxsToBlockMap(tx_list, hash);
         try
         {
             ctx.setStatus("BLOCK_TX_WAIT");
