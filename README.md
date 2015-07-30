@@ -19,8 +19,10 @@ How to run
 
 DB:
 MongoDB: Install and setup mongodb.  A single node instance is just fine.  Run mongodb on SSD if possible.
+On startup, jelectrum will create tables as needed.
 
 PostgreSQL: Install and setup postgresql.
+On startup, jelectrum will create tables and indexes needed.  You'll need to create the database and a user and put it in the config.
 
 Make your SSL cert:
 ./makekey.sh
