@@ -31,7 +31,7 @@ cp jelly.sample.conf jelly.conf
 edit jelly.conf as makes sense
 
 Run:
-java -Xmx4g -Xss256k -jar run/Jelectrum.jar jelly.conf
+java -Xmx4g -Xss256k -jar jar/Jelectrum.jar jelly.conf
 
 My Instance
 -----------
