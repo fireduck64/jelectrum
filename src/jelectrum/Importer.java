@@ -487,7 +487,44 @@ public class Importer
         
 
     }
-   
+
+    public Collection<Map.Entry<String, Sha256Hash> > putInternalInsideBlock(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
+    {
+
+        Collection<Map.Entry<String, Sha256Hash> > lst =new LinkedList<Map.Entry<String, Sha256Hash>>();
+
+
+        ctx.setStatus("TX_GET_ADDR");
+        Collection<String> addrs = getAllAddresses(tx, true);
+
+        for(String addr : addrs)
+        {
+          lst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
+        }
+
+        Random rnd = new Random();
+
+        //ctx.setStatus("TX_SAVE_ADDRESS");
+        //file_db.addAddressesToTxMap(addrs, tx.getHash());
+
+        imported_transactions.incrementAndGet();
+        int h = -1;
+        if (block_hash != null)
+        {
+            ctx.setStatus("TX_GET_HEIGHT");
+            h = block_store.getHeight(block_hash);
+        }
+
+
+
+        ctx.setStatus("TX_NOTIFY");
+        jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
+        ctx.setStatus("TX_DONE");
+        
+        return lst;
+    }
+ 
+
     private void putInternal(Block block)
     {
         putInternal(block, new NullStatusContext());
@@ -517,7 +554,7 @@ public class Importer
             }
         }
 
-        Semaphore sem = new Semaphore(0);
+        
         //Kick off threaded storage of transactions
         int size=0;
 
@@ -533,23 +570,16 @@ public class Importer
         ctx.setStatus("BLOCK_TX_ENQUE");
         LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
 
+        Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
         Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
 
         for(Transaction tx : block.getTransactions())
         {
           txs_map.put(tx.getHash(), new SerializedTransaction(tx));
+          addrTxLst.addAll(putInternalInsideBlock(tx, hash, ctx));
 
-            try
-            {
-
-                tx_queue.put(new TransactionWork(tx,sem,hash));
-                size++;
-                tx_list.add(tx.getHash());
-            }
-            catch(java.lang.InterruptedException e)
-            {
-                throw new RuntimeException(e);
-            }
+          tx_list.add(tx.getHash());
+          size++;
         }
 
         ctx.setStatus("TX_SAVEALL");
@@ -557,34 +587,10 @@ public class Importer
 
         ctx.setStatus("BLOCK_TX_MAP_ADD");
         file_db.addTxsToBlockMap(tx_list, hash);
-        try
-        {
-            ctx.setStatus("BLOCK_TX_WAIT");
-            int outstanding = size;
-            long wait_start=System.currentTimeMillis();
-            while(outstanding > 0)
-            {
-                if (sem.tryAcquire(60, TimeUnit.SECONDS))
-                {
-                    outstanding--;
-                }
-                else
-                {
-                    long t = System.currentTimeMillis();
-                    double sec = (t - wait_start ) / 1000.0;
-                    DecimalFormat df = new DecimalFormat("0.0");
-                    System.out.println("Block " + hash + " still waiting ("+df.format(sec)+ " seconds) on " + outstanding + " transactions.");
 
-                }
+        ctx.setStatus("ADDR_SAVEALL");
+        file_db.addAddressesToTxMap(addrTxLst);
 
-
-            }
-        }
-        catch(java.lang.InterruptedException e)
-        {
-            throw new RuntimeException(e);
-        }
-        
 
         //Once all transactions are in, check for prev block in this store
 

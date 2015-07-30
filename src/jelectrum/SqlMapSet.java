@@ -191,7 +191,7 @@ public class SqlMapSet<K> implements MapSet<K, Sha256Hash>
           }
         }
        long t2 = System.currentTimeMillis();
-               put_stats.addDataPoint(t2-t1);
+      put_stats.addDataPoint(t2-t1);
     }
 
     public void addAll(Collection<K> keys, Sha256Hash val)

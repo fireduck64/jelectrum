@@ -18,7 +18,9 @@ How to run
 ----------
 
 DB:
-Install and setup mongodb.  A single node instance is just fine.  Run mongodb on SSD if possible.
+MongoDB: Install and setup mongodb.  A single node instance is just fine.  Run mongodb on SSD if possible.
+
+PostgreSQL: Install and setup postgresql.
 
 Make your SSL cert:
 ./makekey.sh

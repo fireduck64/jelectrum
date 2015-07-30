@@ -116,7 +116,10 @@ public class MongoMap<K,V> implements Map<K, V>
     }
     public void putAll(Map<? extends K,? extends V> m) 
     {
-        throw new RuntimeException("not implemented - is stupid");
+      for(Map.Entry<? extends K,? extends V> me : m.entrySet())
+      {
+        put(me.getKey(), me.getValue());
+      }
     }
 
     public V remove(Object key) 

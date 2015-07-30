@@ -110,6 +110,11 @@ public class JelectrumDBSQL extends JelectrumDB
     {
       address_to_tx_map.addAll(addresses, hash);
     }
+    @Override
+    public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst)
+    {
+      address_to_tx_map.addAll(lst);
+    }
     public Set<Sha256Hash> getAddressToTxSet(String address)
     {
         return getAddressToTxMap().getSet(address);

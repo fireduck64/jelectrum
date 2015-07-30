@@ -65,6 +65,14 @@ public abstract class JelectrumDB
         addAddressToTxMap(a, hash);
       }
     }
+    public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst)
+    {
+      for(Map.Entry<String, Sha256Hash> me : lst)
+      {
+        addAddressToTxMap(me.getKey(), me.getValue());
+      }
+  
+    }
 
     public abstract Set<Sha256Hash> getAddressToTxSet(String address);
     public abstract long countAddressToTxSet(String address);
@@ -89,6 +97,7 @@ public abstract class JelectrumDB
       }
 
     }
+
     public abstract Set<Sha256Hash> getTxOutSpentByMap(String tx_out);
 
     public abstract Map<Sha256Hash, String> getBlockRescanMap();

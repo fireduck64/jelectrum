@@ -49,14 +49,30 @@ public class Jelectrum
 
 
         config.require("bitcoin_network_use_peers");
+        config.require("db_type");
 
         event_log = new EventLog(config);
+
+        String db_type = config.get("db_type");
 
         //jelectrum_db = new JelectrumDBMapDB(config);
         //jelectrum_db = new JelectrumDBDirect(config);
         //jelectrum_db = new JelectrumDBCloudData(config);
-        //jelectrum_db = new JelectrumDBMongo(config);
-        jelectrum_db = new JelectrumDBSQL(config);
+
+        if (db_type.equals("mongo"))
+        {
+          jelectrum_db = new JelectrumDBMongo(config);
+        }
+        else if (db_type.equals("sql"))
+        {
+          jelectrum_db = new JelectrumDBSQL(config);
+        }
+        else
+        {
+          System.out.println("Unknown db_type: " + db_type);
+          System.out.println("Try mongo or sql");
+          System.exit(-1);
+        }
         
         block_store = new MapBlockStore(this);
         
