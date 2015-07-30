@@ -18,7 +18,7 @@ How to run
 ----------
 
 DB:
-Install and setup mangodb.  A single node instance is just fine.  Run mongodb on SSD if possible.
+Install and setup mongodb.  A single node instance is just fine.  Run mongodb on SSD if possible.
 
 Make your SSL cert:
 ./makekey.sh
