@@ -430,43 +430,6 @@ public class Importer
 
     }
 
-    public Collection<Map.Entry<String, Sha256Hash> > putInternalInsideBlock(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
-    {
-
-        Collection<Map.Entry<String, Sha256Hash> > lst =new LinkedList<Map.Entry<String, Sha256Hash>>();
-
-
-        ctx.setStatus("TX_GET_ADDR");
-        Collection<String> addrs = getAllAddresses(tx, true);
-
-        for(String addr : addrs)
-        {
-          lst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
-        }
-
-        Random rnd = new Random();
-
-        //ctx.setStatus("TX_SAVE_ADDRESS");
-        //file_db.addAddressesToTxMap(addrs, tx.getHash());
-
-        imported_transactions.incrementAndGet();
-        int h = -1;
-        if (block_hash != null)
-        {
-            ctx.setStatus("TX_GET_HEIGHT");
-            h = block_store.getHeight(block_hash);
-        }
-
-
-
-        ctx.setStatus("TX_NOTIFY");
-        jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
-        ctx.setStatus("TX_DONE");
-        
-        return lst;
-    }
- 
-
     private void putInternal(Block block)
     {
         putInternal(block, new NullStatusContext());
@@ -517,8 +480,15 @@ public class Importer
 
         for(Transaction tx : block.getTransactions())
         {
+          imported_transactions.incrementAndGet();
+          Collection<String> addrs = getAllAddresses(tx, true);
+
+          for(String addr : addrs)
+          {
+            addrTxLst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
+          }
+
           txs_map.put(tx.getHash(), new SerializedTransaction(tx));
-          addrTxLst.addAll(putInternalInsideBlock(tx, hash, ctx));
 
           tx_list.add(tx.getHash());
           size++;
@@ -532,6 +502,16 @@ public class Importer
 
         ctx.setStatus("ADDR_SAVEALL");
         file_db.addAddressesToTxMap(addrTxLst);
+
+        int h = block_store.getHeight(hash);
+
+        for(Transaction tx : block.getTransactions())
+        {
+          Collection<String> addrs = getAllAddresses(tx, true);
+          ctx.setStatus("TX_NOTIFY");
+          jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
+          ctx.setStatus("TX_DONE");
+        }
 
 
         //Once all transactions are in, check for prev block in this store
@@ -553,7 +533,6 @@ public class Importer
         double sec = (t2 - t1)/1000.0;
 
 
-        int h = block_store.getHeight(hash);
         if (h % block_print_every ==0)
         {
             System.out.println("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
