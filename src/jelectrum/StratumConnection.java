@@ -171,7 +171,7 @@ public class StratumConnection
                     if (first_address != null)
                     if (System.currentTimeMillis() > PRINT_INFO_DELAY + connection_start_time)
                     {
-                        jelectrum.getEventLog().log(connection_id + " - " + version_info + " " + first_address + " " + subscription_count.get());
+                        jelectrum.getEventLog().log(connection_id + " - " + version_info + " " + subscription_count.get());
                         info_printed=true;
                     }
                 }
