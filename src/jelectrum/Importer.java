@@ -46,7 +46,6 @@ public class Importer
     private LRUCache<Sha256Hash, Transaction> transaction_cache;
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
-    private HashSet<String> busy_addresses;
 
     private NetworkParameters params;
 
@@ -83,8 +82,6 @@ public class Importer
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
-        tryLoadBusyAddresses();
-
         save_thread_list = new LinkedList<StatusContext>();
         for(int i=0; i<config.getInt("block_save_threads"); i++)
         {
@@ -115,20 +112,6 @@ public class Importer
         new RateThread("1-hour", 60000L * 60L).start();
     }
 
-    public void tryLoadBusyAddresses()
-    {
-        try
-        {
-            busy_addresses = (HashSet<String>) jelly.getDB().getSpecialObjectMap().get("BusyAddresses");
-            System.out.println("Busy addresses: " + busy_addresses.size());
-
-        }
-        catch(Throwable t)
-        {
-            System.out.println("Creating new busy address set");
-            busy_addresses = new HashSet<String>(100,0.5f);
-        }
-    }
 
     public void checkConsistency()
         throws com.google.bitcoin.store.BlockStoreException
@@ -429,47 +412,6 @@ public class Importer
         file_db.addAddressesToTxMap(addrs, tx.getHash());
 
 
-        /*for(String a : addrs)
-        {
-            ctx.setStatus("TX_ADDRESS_LOOP");
-            boolean done=false;
-            synchronized(busy_addresses)
-            {
-                if (busy_addresses.contains(a)) done=true;
-            }
-
-            if (!done)
-            {
-                long new_size = 0;
-                ctx.setStatus("TX_SAVE_ADDRESS");
-                file_db.addAddressToTxMap(a, tx.getHash());
-                ctx.setStatus("TX_ADDRESS_LOOP");
-                if (rnd.nextDouble() < 0.01)
-                {
-                    ctx.setStatus("TX_GET_ADDR_COUNT");
-                    new_size = file_db.countAddressToTxSet(a);
-                    ctx.setStatus("TX_ADDRESS_LOOP");
-                }
-                if (new_size >= BUSY_ADDRESS_LIMIT) 
-                {
-                    synchronized(busy_addresses)
-                    {
-                        busy_addresses.add(a);
-                        jelly.getDB().getSpecialObjectMap().put("BusyAddresses", busy_addresses);
-                    }
-                }
-
-            }
-
-        }*/
-
-        // Done in a batch at the block level
-        /*if (block_hash!=null)
-        {
-            ctx.setStatus("TX_BLOCK_SAVE");
-            file_db.addTxToBlockMap(tx.getHash(), block_hash);
-            ctx.setStatus("TX_ADDRESS_LOOP");
-        }*/
 
         imported_transactions.incrementAndGet();
         int h = -1;
@@ -813,11 +755,11 @@ public class Importer
                     }
                     if (name.equals("5-minute"))
                     {
-                        if (tx_rate < 10.0) System.exit(0);
-                        //jelly.getDB().open();
+                        if (tx_rate < 75.0) System.exit(0);
+                        jelly.getDB().open();
                     }
-                    SqlMapSet.printStats();
-                    SqlMap.printStats();
+                    //SqlMapSet.printStats();
+                    //SqlMap.printStats();
                     String status_report = getThreadStatusReport();
 
 

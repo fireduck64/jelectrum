@@ -2,6 +2,10 @@ package jelectrum;
 import java.net.Socket;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.File;
+import java.io.IOException;
 
 import java.io.PrintStream;
 
@@ -48,8 +52,11 @@ public class StratumConnection
 
     public static final long PRINT_INFO_DELAY=15000L;
 
+    private String banner="Jelectrum";
+
 
     public StratumConnection(Jelectrum jelectrum, StratumServer server, Socket sock, String connection_id)
+      throws IOException
     {
         
         this.jelectrum = jelectrum;
@@ -64,6 +71,19 @@ public class StratumConnection
 
         jelectrum.getEventLog().log("New connection from: " + sock + " " + connection_id);
         connection_start_time = System.currentTimeMillis();
+
+        if (jelectrum.getConfig().get("banner_file") != null)
+        {
+          String banner_file_path = jelectrum.getConfig().get("banner_file");
+          DataInputStream d_in = new DataInputStream(new FileInputStream(banner_file_path));
+
+          int len = (int)new File(banner_file_path).length();
+          byte b[] = new byte[len];
+          d_in.readFully(b);
+          banner = new String(b);
+          d_in.close();
+
+        }
     
         new OutThread().start();
         new InThread().start();
@@ -240,7 +260,7 @@ public class StratumConnection
             {
                 JSONObject reply = new JSONObject();
                 reply.put("id", id);
-                reply.put("result","Jelectrum");
+                reply.put("result",banner);
                 sendMessage(reply);
             }
             else if (method.equals("blockchain.headers.subscribe"))
