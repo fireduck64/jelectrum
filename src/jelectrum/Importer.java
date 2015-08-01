@@ -660,7 +660,7 @@ public class Importer
 
                 //System.out.println(out.getParentTransaction().getHash() + " - " + out);
                 //e.printStackTrace();
-                jelly.getEventLog().log("Unable process tx output: " + out.getParentTransaction().getHash());
+                //jelly.getEventLog().log("Unable process tx output: " + out.getParentTransaction().getHash());
             }
             return null;
  

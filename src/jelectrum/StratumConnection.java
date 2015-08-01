@@ -29,7 +29,8 @@ import org.apache.commons.codec.binary.Hex;
 
 public class StratumConnection
 {
-    public static final String JELECTRUM_VERSION="2015.02.07";
+    public static final String JELECTRUM_VERSION="2015.08.01";
+    public static final String PROTO_VERSION="0.9";
 
     private Jelectrum jelectrum;
     private StratumServer server;
@@ -251,7 +252,7 @@ public class StratumConnection
             {
                 JSONObject reply = new JSONObject();
                 reply.put("id", id);
-                reply.put("result","0.9");
+                reply.put("result",PROTO_VERSION);
                 reply.put("jelectrum",JELECTRUM_VERSION);
                 version_info = msg.get("params").toString();
                 sendMessage(reply);

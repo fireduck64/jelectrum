@@ -132,6 +132,7 @@ public class Jelectrum
         peer_group.start();
         peer_group.downloadBlockChain();
 
+
         while(bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight())
         {
             Thread.sleep(5000);
@@ -139,6 +140,7 @@ public class Jelectrum
 
         System.out.println("Block chain caught up");
         event_log.log("Block chain caught up");
+        new IrcBot(this).start();
 
         importer.setBlockPrintEvery(1);
         importer.disableRatePrinting();
