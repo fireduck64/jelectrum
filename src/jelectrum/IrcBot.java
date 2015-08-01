@@ -113,7 +113,7 @@ public class IrcBot extends PircBot
 
 
 
-      joinChannel("#electrum-test");
+      joinChannel("#electrum");
 
       synchronized(connection_lock)
       {
