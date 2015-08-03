@@ -104,13 +104,10 @@ public class IrcBot extends PircBot
 
     public void ircRun() throws java.io.IOException, IrcException, InterruptedException
     {
-      setVerbose(true);
+      //setVerbose(true);
       
       setVersion(getAdvertString());
-      //setFinger("jelectrum h.1209k.com t s");
       connect("irc.freenode.net");
-      //changeNick("E_jelectrum_1209k");
-
 
 
       joinChannel("#electrum");
