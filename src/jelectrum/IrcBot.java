@@ -64,10 +64,12 @@ public class IrcBot extends PircBot
   @Override
   protected void onKick(String channel, String kickerNick, String kickerLogin, String kickerHostname, String recipientNick, String reason)
   {
-    synchronized(connection_lock)
+    jelly.getEventLog().log("Kicked from " + channel + " by " + kickerNick + " for " + reason);
+
+    /*synchronized(connection_lock)
     {
       connection_lock.notifyAll();
-    }
+    }*/
   }
 
 
@@ -111,6 +113,7 @@ public class IrcBot extends PircBot
 
 
       joinChannel("#electrum");
+      joinChannel("#jelectrum");
 
       synchronized(connection_lock)
       {

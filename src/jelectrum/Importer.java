@@ -735,7 +735,10 @@ public class Importer
                     if (name.equals("5-minute"))
                     {
                         if (tx_rate < 75.0) System.exit(0);
-                        jelly.getDB().open();
+                    }
+                    if (name.equals("1-minute"))
+                    {
+                        //if (tx_rate < 10.0) System.exit(0);
                     }
                     //SqlMapSet.printStats();
                     //SqlMap.printStats();
