@@ -158,5 +158,9 @@ public class BlockChainCache implements java.io.Serializable
     {
         return main_chain.contains(hash);
     }
+    public synchronized Sha256Hash getHead()
+    {
+      return head;
+    }
 
 }

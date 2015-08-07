@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Set;
+import java.util.List;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ import com.google.bitcoin.core.NetworkParameters;
 import com.google.bitcoin.core.ScriptException;
 import com.google.bitcoin.core.Address;
 import com.google.bitcoin.script.Script;
+import com.google.bitcoin.script.ScriptChunk;
 
 import java.io.FileInputStream;
 import java.util.Scanner;
@@ -34,24 +36,20 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import java.sql.*;
 import java.text.DecimalFormat;
+import java.util.Random;
 
 /**
  * UTXO hash simulator to validate understanding.
- * It does not deal with re-orgs, partial blocks, databases
- * and the efficency is not great.
  * Blocks have to be loaded in order
  */
 public class MemTrieMonster implements java.io.Serializable
 {
   // A key is 20 bytes of public key, 32 bytes of transaction id and 4 bytes of output index
   public static final int ADDR_SPACE = 56;
-  public static final boolean DEBUG=false;
-
-
+  public static boolean DEBUG=false;
 
   private transient NetworkParameters params;
   private transient Jelectrum jelly;
- 
 
   // Maps a partial key prefix to a tree node
   // The tree node has children, which are other prefixes or full keys
@@ -70,7 +68,7 @@ public class MemTrieMonster implements java.io.Serializable
     {
       System.out.println("node_map: " + node_map.size());
 
-      ByteArrayOutputStream bout = new ByteArrayOutputStream();
+      /*ByteArrayOutputStream bout = new ByteArrayOutputStream();
       GZIPOutputStream zout = new GZIPOutputStream(bout);
       ObjectOutputStream oout=new ObjectOutputStream(zout);
 
@@ -81,9 +79,8 @@ public class MemTrieMonster implements java.io.Serializable
 
       double mb = bout.size() / 1048576.0;
       DecimalFormat df = new DecimalFormat("0.0");
-      System.out.println("Serialized: " + df.format(mb) + " mb");
+      System.out.println("Serialized: " + df.format(mb) + " mb");*/
     }
-    System.gc();
   }
 
   public synchronized void addBlock(Block b)
@@ -93,6 +90,29 @@ public class MemTrieMonster implements java.io.Serializable
       addTransaction(tx);
     }
   }
+
+
+  // They see me rollin, they hating
+  public synchronized void rollbackBlock(Block b)
+  {
+    LinkedList<Transaction> back_list = new LinkedList<Transaction>();
+
+    for(Transaction tx : b.getTransactions())
+    {
+      back_list.addFirst(tx);
+    }
+
+    for(Transaction tx : back_list)
+    {
+      rollTransaction(tx);
+    }
+
+  }
+
+
+
+  
+
   private void addTransaction(Transaction tx)
   {
     
@@ -105,7 +125,6 @@ public class MemTrieMonster implements java.io.Serializable
       {
         node_map.get("").addHash(key, tx.getHash());
 
-        TransactionOutPoint op = new TransactionOutPoint(params, idx, tx.getHash());
       }
       idx++;
     }
@@ -114,25 +133,47 @@ public class MemTrieMonster implements java.io.Serializable
     {
       if (!tx_in.isCoinBase())
       {
-        markSpent(tx_in, tx_in.getOutpoint());
+        String key = getKeyForInput(tx_in);
+        if (key != null)
+        {
+          node_map.get("").removeHash(key, tx_in.getOutpoint().getHash());
+        }
+      }
+    }
+  }
+  
+
+  private void rollTransaction(Transaction tx)
+  {
+    
+    int idx=0;
+    for(TransactionOutput tx_out : tx.getOutputs())
+    {
+      String key = getKeyForOutput(tx_out, idx);
+      if (DEBUG) System.out.println("Adding key: " + key);
+      if (key != null)
+      {
+        node_map.get("").removeHash(key, tx.getHash());
+
+      }
+      idx++;
+    }
+
+    for(TransactionInput tx_in : tx.getInputs())
+    {
+      if (!tx_in.isCoinBase())
+      {
+        String key = getKeyForInput(tx_in);
+        if (key != null)
+        {
+          node_map.get("").addHash(key, tx_in.getOutpoint().getHash());
+        }
       }
     }
   }
 
 
-  private synchronized void markSpent(TransactionInput in, TransactionOutPoint out)
-  {
-      String key = getKeyForInput(in);
-      if (key != null)
-      {
-        node_map.get("").removeHash(key, out.getHash());
-
-      }
-
-
-  }
-
-  public Sha256Hash getRootHash()
+  public synchronized Sha256Hash getRootHash()
   {
     if (DEBUG) System.out.println(node_map);
     return node_map.get("").getHash("");
@@ -157,11 +198,11 @@ public class MemTrieMonster implements java.io.Serializable
       this.prefix = prefix;
     }
 
-    public void setDirty()
+    private void setDirty()
     {
       dirty=true;
     }
-    public void setClean()
+    private void setClean()
     {
       dirty=false;
     }
@@ -177,6 +218,7 @@ public class MemTrieMonster implements java.io.Serializable
     public void addSpring(String s)
     {
       springs.add(s);
+      node_map.put(prefix, this);
     }
     public void addHash(String key, Sha256Hash tx_hash)
     {
@@ -214,7 +256,7 @@ public class MemTrieMonster implements java.io.Serializable
           node_map.put(prefix + common_str, n);
           n.addHash(key, tx_hash);
           n.addSpring(sub.substring(common));
-          
+           
           return;
         }
         
@@ -260,8 +302,10 @@ public class MemTrieMonster implements java.io.Serializable
       }
       if (springs.size() == 1)
       {
+        String ret = prefix + springs.first();
         node_map.remove(prefix);
-        return prefix + springs.first();
+        springs.clear();
+        return ret;
       }
       return prefix;
 
@@ -434,9 +478,9 @@ public class MemTrieMonster implements java.io.Serializable
     public String getKeyForOutput(TransactionOutput out, int idx)
     {
         byte[] public_key=null;
+        Script script = out.getScriptPubKey();
             try
             {  
-                Script script = out.getScriptPubKey();
                 if (script.isSentToRawPubKey())
                 {  
                     byte[] key = out.getScriptPubKey().getPubKey();
@@ -451,8 +495,19 @@ public class MemTrieMonster implements java.io.Serializable
                 }
             }
             catch(ScriptException e)
-            {  
-              return null;
+            { 
+              //com.google.bitcoin.core.Utils.sha256hash160 
+              List<ScriptChunk> chunks = script.getChunks();
+              System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
+              if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+              {
+                public_key = chunks.get(2).data;
+              }
+              else
+              {
+
+                return null;
+              }
             }
 
       return getKey(public_key, out.getParentTransaction().getHash(), idx);
@@ -470,8 +525,14 @@ public class MemTrieMonster implements java.io.Serializable
     {
       int height = scan.nextInt();
       String hash = scan.next();
+      try
+      {
       map.put(height, new Sha256Hash(hash));
+      }
+      catch(Throwable t)
+      {}
     }
+    System.out.println("Loaded checks: " + map.size());
     return map;
 
   }
@@ -480,6 +541,9 @@ public class MemTrieMonster implements java.io.Serializable
   public static void main(String args[]) throws Exception
   {
 
+  StatData get_block_stat=new StatData();
+  StatData add_block_stat=new StatData();
+ 
     Jelectrum j = new Jelectrum(new Config("jelly.conf"));
 
     /*Connection conn = DB.openConnection("jelectrum_db");
@@ -496,6 +560,25 @@ public class MemTrieMonster implements java.io.Serializable
       }
     }
     conn.close();*/
+
+    {
+      Transaction tx = j.getImporter().getTransaction(new Sha256Hash("24d5ee912ade13c7b5ab7813cc910b0372efee4d8a61345ed6a2c626084ca6f0"));
+      TransactionOutput out = tx.getOutputs().get(0);
+
+      Script script = out.getScriptPubKey();
+      byte[] b=script.getProgram();
+
+      System.out.println(Hex.encodeHexString(b));
+
+      List<ScriptChunk> chunks = script.getChunks();
+      for(ScriptChunk c : chunks)
+      {
+        System.out.println(Hex.encodeHexString(c.data));
+      }
+
+      //System.exit(-1);
+
+    }
     
 
     Map<Integer, Sha256Hash> authMap = loadAuthMap("check/utxo-root-file");
@@ -505,10 +588,48 @@ public class MemTrieMonster implements java.io.Serializable
 
     int error=0;
 
+    Random rnd = new Random();
+    DecimalFormat df = new DecimalFormat("0.0");
+
     for(int i=1; i<368694; i++)
     {
+      //if (i == 127630) DEBUG=true;
+
       Sha256Hash block_hash = j.getBlockChainCache().getBlockHashAtHeight(i);
-      m.addBlock(j.getDB().getBlockMap().get(block_hash).getBlock(j.getNetworkParameters()));
+
+      Sha256Hash prev_root_hash = m.getRootHash();
+
+      long t1=System.currentTimeMillis();
+      Block b = j.getDB().getBlockMap().get(block_hash).getBlock(j.getNetworkParameters());
+      long t2=System.currentTimeMillis();
+
+      get_block_stat.addDataPoint(t2-t1);
+
+      t1=System.currentTimeMillis();
+      m.addBlock(b);
+      t2=System.currentTimeMillis();
+      add_block_stat.addDataPoint(t2-t1);
+
+      if (rnd.nextDouble() < 0.01)
+      {
+        //All changes should be eidempotent
+        //which we will depend on if an update is interupted mid stream
+        //We'll just continue to add the block being worked on
+        System.out.println("Adding again for lolz");
+        m.addBlock(b);
+      }
+      if (rnd.nextDouble() < 0.005)
+      {
+        //We should be able to roll back a block and get to the previous state
+        //and then roll forward again
+        System.out.println("Rolling back");
+        m.rollbackBlock(b);
+        Sha256Hash root_hash_now = m.getRootHash();
+        System.out.println("Roll back: " + prev_root_hash + " - " + root_hash_now);
+        if (!prev_root_hash.equals(root_hash_now)) error++;
+        m.addBlock(b);
+      }
+
 
       Sha256Hash root_hash = m.getRootHash();
 
@@ -518,7 +639,7 @@ public class MemTrieMonster implements java.io.Serializable
       {
 
         System.out.println("Height: " + i + " - " + root_hash + " - " + authMap.get(i));
-        //if (!root_hash.equals(authMap.get(i))) error++;
+        if (!root_hash.equals(authMap.get(i))) error++;
       }
       else
       {
@@ -528,11 +649,18 @@ public class MemTrieMonster implements java.io.Serializable
 
       //if (error>5) return;
       if (error>0) System.exit(-1);
-      if (i % 1000 == 0) m.showSize();
+      if (i % 1000 == 0)
+      {
+        m.showSize();
+        get_block_stat.print("get_block", df);
+        add_block_stat.print("add_block", df);
+        System.gc();
+      }
 
     }
 
     m.showSize();
+
 
     System.exit(0);
 

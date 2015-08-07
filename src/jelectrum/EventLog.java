@@ -50,6 +50,13 @@ public class EventLog
         
 
     }
+    public void alarm(String msg)
+    {
+      log(msg);
+      String line = sdf.format(new java.util.Date()) + " - " + msg;
+      System.out.println(line);
+
+    }
 
 }
 

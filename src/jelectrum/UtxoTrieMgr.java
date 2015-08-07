@@ -1,0 +1,711 @@
+
+package jelectrum;
+
+import java.util.Collection;
+import java.util.LinkedList;
+import java.security.MessageDigest;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.Set;
+import java.util.List;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.nio.ByteBuffer;
+
+import com.google.bitcoin.core.Block;
+import com.google.bitcoin.core.Transaction;
+import com.google.bitcoin.core.TransactionInput;
+import com.google.bitcoin.core.TransactionOutput;
+import com.google.bitcoin.core.TransactionOutPoint;
+import com.google.bitcoin.core.Sha256Hash;
+import com.google.bitcoin.core.NetworkParameters;
+import com.google.bitcoin.core.ScriptException;
+import com.google.bitcoin.core.Address;
+import com.google.bitcoin.script.Script;
+import com.google.bitcoin.script.ScriptChunk;
+
+import java.io.FileInputStream;
+import java.util.Scanner;
+
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
+import java.util.zip.GZIPOutputStream;
+
+import org.apache.commons.codec.binary.Hex;
+import java.sql.*;
+import java.text.DecimalFormat;
+import java.util.Random;
+
+/**
+ * Blocks have to be loaded in order
+ */
+public class UtxoTrieMgr
+{
+  // A key is 20 bytes of public key, 32 bytes of transaction id and 4 bytes of output index
+  public static final int ADDR_SPACE = 56;
+  public static boolean DEBUG=false;
+
+  private NetworkParameters params;
+  private Jelectrum jelly;
+
+  // Maps a partial key prefix to a tree node
+  // The tree node has children, which are other prefixes or full keys
+  protected TreeMap<String, UtxoTrieNode> node_map = new TreeMap<String, UtxoTrieNode>();
+
+  protected Map<String, UtxoTrieNode> db_map;
+
+  protected Sha256Hash last_flush_block_hash;
+  protected Sha256Hash last_added_block_hash;
+
+  protected Object block_notify= new Object();
+
+  protected Map<Integer, Sha256Hash> authMap;
+
+  //Not to be trusted, only used for logging
+  protected int block_height;
+
+  public UtxoTrieMgr(Jelectrum jelly)
+  {
+    this.jelly = jelly;
+    this.params = jelly.getNetworkParameters();
+
+    db_map = jelly.getDB().getUtxoTrieMap();
+
+    authMap = loadAuthMap("check/utxo-root-file");
+  }
+
+  public void start()
+  {
+    new UtxoMgrThread().start();
+
+  }
+
+  public void resetEverything()
+  {
+    node_map.clear();
+    putSaveSet("", new UtxoTrieNode(""));
+    last_flush_block_hash = params.getGenesisBlock().getHash();
+    last_added_block_hash = params.getGenesisBlock().getHash();
+    flush();
+
+  }
+
+  private void flush()
+  {
+    saveState(new UtxoStatus(last_added_block_hash, last_flush_block_hash));
+    jelly.getEventLog().alarm("UTXO Flushing: " + node_map.size() + " height: " + block_height);
+    db_map.putAll(node_map.descendingMap());
+    node_map.clear();
+    saveState(new UtxoStatus(last_added_block_hash));
+    last_flush_block_hash = last_added_block_hash;
+  }
+
+  public void saveState(UtxoStatus status)
+  {
+    jelly.getDB().getSpecialObjectMap().put("utxo_trie_mgr_state", status);
+  }
+  public UtxoStatus getUtxoState()
+  {
+    try
+    {
+      Object o = jelly.getDB().getSpecialObjectMap().get("utxo_trie_mgr_state");
+      if (o != null)
+      {
+
+        return (UtxoStatus)o;
+      }
+    }
+    catch(Throwable t)
+    {
+      t.printStackTrace();
+    }
+
+    jelly.getEventLog().alarm("Problem loading UTXO status, starting fresh");
+    resetEverything();
+    return getUtxoState();
+  }
+
+
+  public synchronized void addBlock(Block b)
+  {
+    for(Transaction tx : b.getTransactions())
+    {
+      addTransaction(tx);
+    }
+    last_added_block_hash = b.getHash();
+
+  }
+
+
+  // They see me rollin, they hating
+  public synchronized void rollbackBlock(Block b)
+  {
+    LinkedList<Transaction> back_list = new LinkedList<Transaction>();
+
+    for(Transaction tx : b.getTransactions())
+    {
+      back_list.addFirst(tx);
+    }
+
+    for(Transaction tx : back_list)
+    {
+      rollTransaction(tx);
+    }
+
+  }
+
+  public void putSaveSet(String prefix, UtxoTrieNode node)
+  {
+    node_map.put(prefix, node);
+  }
+
+  public UtxoTrieNode getByKey(String prefix)
+  {
+    UtxoTrieNode n = node_map.get(prefix);
+    if (n != null) return n;
+
+    n = db_map.get(prefix);
+    if (n != null) return n;
+
+    if (prefix == "") n = new UtxoTrieNode("");
+
+    return n;
+  }
+
+  
+
+  private void addTransaction(Transaction tx)
+  {
+    
+    int idx=0;
+    for(TransactionOutput tx_out : tx.getOutputs())
+    {
+      String key = getKeyForOutput(tx_out, idx);
+      if (DEBUG) System.out.println("Adding key: " + key);
+      if (key != null)
+      {
+        getByKey("").addHash(key, tx.getHash(), this);
+
+      }
+      idx++;
+    }
+
+    for(TransactionInput tx_in : tx.getInputs())
+    {
+      if (!tx_in.isCoinBase())
+      {
+        String key = getKeyForInput(tx_in);
+        if (key != null)
+        {
+          getByKey("").removeHash(key, tx_in.getOutpoint().getHash(), this);
+        }
+      }
+    }
+  }
+  
+
+  private void rollTransaction(Transaction tx)
+  {
+    
+    int idx=0;
+    for(TransactionOutput tx_out : tx.getOutputs())
+    {
+      String key = getKeyForOutput(tx_out, idx);
+      if (DEBUG) System.out.println("Adding key: " + key);
+      if (key != null)
+      {
+        getByKey("").removeHash(key, tx.getHash(), this);
+
+      }
+      idx++;
+    }
+
+    for(TransactionInput tx_in : tx.getInputs())
+    {
+      if (!tx_in.isCoinBase())
+      {
+        String key = getKeyForInput(tx_in);
+        if (key != null)
+        {
+          getByKey("").addHash(key, tx_in.getOutpoint().getHash(), this);
+        }
+      }
+    }
+  }
+
+
+  public synchronized Sha256Hash getRootHash()
+  {
+    if (DEBUG) System.out.println(node_map);
+    return getByKey("").getHash("", this);
+
+  }
+  
+  public static int commonLength(String a, String b)
+  {
+    int max = Math.min(a.length(), b.length());
+
+    int same = 0;
+    for(int i=0; i<max; i++)
+    {
+      if (a.charAt(i) == b.charAt(i)) same++;
+      else break;
+    }
+    if (same % 2 == 1) same--;
+    return same;
+
+  }
+
+  public static Sha256Hash hashThings(String skip, Collection<Sha256Hash> hash_list)
+  {
+    try
+    {  
+      
+      if (DEBUG) System.out.print("hash(");
+
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      if ((skip != null) && (skip.length() > 0))
+      {
+        byte[] skipb = Hex.decodeHex(skip.toCharArray());
+        md.update(skipb);
+        if (DEBUG) 
+        {
+          System.out.print("skip:");
+          System.out.print(skip);
+          System.out.print(' ');
+        }
+      }
+      for(Sha256Hash h : hash_list)
+      {
+        md.update(h.getBytes());
+        if (DEBUG)
+        {
+          System.out.print(h);
+          System.out.print(" ");
+        }
+
+      }
+      if (DEBUG) System.out.print(") - ");
+
+      byte[] pass = md.digest();
+      md = MessageDigest.getInstance("SHA-256");
+      md.update(pass);
+
+      Sha256Hash out = new Sha256Hash(md.digest());
+      if (DEBUG) System.out.println(out);
+
+      return out;
+
+    }
+    catch(java.security.NoSuchAlgorithmException e)
+    {  
+      throw new RuntimeException(e);
+    }
+    catch(org.apache.commons.codec.DecoderException e)
+    {  
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void notifyBlock()
+  {
+    synchronized(block_notify)
+    {
+      block_notify.notifyAll();
+    }
+  }
+
+  public static Sha256Hash getHashFromKey(String key)
+  {
+    String hash = key.substring(40, 40+64);
+
+    return new Sha256Hash(hash);
+  }
+
+  public static String getKey(byte[] publicKey, Sha256Hash tx_id, int idx)
+  {
+    String addr_part = Hex.encodeHexString(publicKey);
+    ByteBuffer bb = ByteBuffer.allocate(4);
+    bb.order(java.nio.ByteOrder.LITTLE_ENDIAN);
+    bb.putInt(idx);
+    String idx_str = Hex.encodeHexString(bb.array());
+    String key = addr_part + tx_id + idx_str;
+    return key;
+
+  }
+    public String getKeyForInput(TransactionInput in)
+    {
+      if (in.isCoinBase()) return null;
+      try
+      {   
+        byte[] public_key=null; 
+        Address a = in.getFromAddress();
+        public_key = a.getHash160();
+
+        return getKey(public_key, in.getOutpoint().getHash(), (int)in.getOutpoint().getIndex());
+      }
+      catch(ScriptException e)
+      {
+        //Lets try this the other way
+        try
+        {   
+
+          TransactionOutPoint out_p = in.getOutpoint();
+
+          Transaction src_tx = jelly.getImporter().getTransaction(out_p.getHash());
+          TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
+          return getKeyForOutput(out, (int)out_p.getIndex());
+        }
+        catch(ScriptException e2)
+        {   
+          return null;
+        }
+      }
+
+ 
+    }
+
+    public String getKeyForOutput(TransactionOutput out, int idx)
+    {
+        byte[] public_key=null;
+        Script script = out.getScriptPubKey();
+            try
+            {  
+                if (script.isSentToRawPubKey())
+                {  
+                    byte[] key = out.getScriptPubKey().getPubKey();
+                    byte[] address_bytes = com.google.bitcoin.core.Utils.sha256hash160(key);
+
+                    public_key = address_bytes;
+                }
+                else
+                {  
+                    Address a = script.getToAddress(params);
+                    public_key = a.getHash160();
+                }
+            }
+            catch(ScriptException e)
+            { 
+              //com.google.bitcoin.core.Utils.sha256hash160 
+              List<ScriptChunk> chunks = script.getChunks();
+              System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
+              if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+              {
+                public_key = chunks.get(2).data;
+              }
+              else
+              {
+
+                return null;
+              }
+            }
+
+      return getKey(public_key, out.getParentTransaction().getHash(), idx);
+    }
+
+
+  public static Map<Integer, Sha256Hash> loadAuthMap(String location)
+  {
+    TreeMap<Integer, Sha256Hash> map = new TreeMap<Integer, Sha256Hash>();
+    try
+    {
+    Scanner scan =new Scanner(new FileInputStream(location));
+
+
+    while(scan.hasNext())
+    {
+      int height = scan.nextInt();
+      String hash = scan.next();
+      try
+      {
+      map.put(height, new Sha256Hash(hash));
+      }
+      catch(Throwable t)
+      {}
+    }
+    }
+    catch(java.io.IOException e)
+    {
+      e.printStackTrace();
+    }
+    System.out.println("Loaded checks: " + map.size());
+    return map;
+
+  }
+
+
+  public static void main(String args[]) throws Exception
+  {
+
+    StatData get_block_stat=new StatData();
+    StatData add_block_stat=new StatData();
+ 
+    Jelectrum j = new Jelectrum(new Config("jelly.conf"));
+
+
+
+
+    UtxoTrieMgr m = new UtxoTrieMgr(j);
+
+    m.start();
+
+
+    /*int error=0;
+
+    Random rnd = new Random();
+    DecimalFormat df = new DecimalFormat("0.0");
+
+    for(int i=1; i<368694; i++)
+    {
+      //if (i == 127630) DEBUG=true;
+
+      Sha256Hash block_hash = j.getBlockChainCache().getBlockHashAtHeight(i);
+
+      Sha256Hash prev_root_hash = m.getRootHash();
+
+      long t1=System.currentTimeMillis();
+      Block b = j.getDB().getBlockMap().get(block_hash).getBlock(j.getNetworkParameters());
+      long t2=System.currentTimeMillis();
+
+      get_block_stat.addDataPoint(t2-t1);
+
+      t1=System.currentTimeMillis();
+      m.addBlock(b);
+      t2=System.currentTimeMillis();
+      add_block_stat.addDataPoint(t2-t1);
+
+      if (rnd.nextDouble() < 0.01)
+      {
+        //All changes should be eidempotent
+        //which we will depend on if an update is interupted mid stream
+        //We'll just continue to add the block being worked on
+        System.out.println("Adding again for lolz");
+        m.addBlock(b);
+      }
+      if (rnd.nextDouble() < 0.005)
+      {
+        //We should be able to roll back a block and get to the previous state
+        //and then roll forward again
+        System.out.println("Rolling back");
+        m.rollbackBlock(b);
+        Sha256Hash root_hash_now = m.getRootHash();
+        System.out.println("Roll back: " + prev_root_hash + " - " + root_hash_now);
+        if (!prev_root_hash.equals(root_hash_now)) error++;
+        m.addBlock(b);
+      }
+
+
+      Sha256Hash root_hash = m.getRootHash();
+
+      //System.out.println(m.node_map);
+
+      if (authMap.containsKey(i))
+      {
+
+        System.out.println("Height: " + i + " - " + root_hash + " - " + authMap.get(i));
+        if (!root_hash.equals(authMap.get(i))) error++;
+      }
+      else
+      {
+        System.out.println("Height: " + i + " - " + root_hash);
+
+      }
+
+      //if (error>5) return;
+      if (error>0) System.exit(-1);
+      if (i % 1000 == 0)
+      {
+        get_block_stat.print("get_block", df);
+        add_block_stat.print("add_block", df);
+        m.flush();
+        System.gc();
+      }
+
+    }
+
+
+
+    System.exit(0);*/
+
+
+  }
+
+  public class UtxoMgrThread extends Thread
+  {
+    private BlockChainCache block_chain_cache;
+
+    public UtxoMgrThread()
+    {
+      setName("UtxoMgrThread");
+      setDaemon(true);
+
+      block_chain_cache = jelly.getBlockChainCache();
+
+    }
+
+    public void run()
+    {
+      recover();
+
+      while(true)
+      {
+        while(catchup()){}
+        waitForBlocks();
+      }
+      
+      
+
+
+    }
+    private void recover()
+    {
+      UtxoStatus status = getUtxoState();
+
+      if (!status.isConsistent())
+      {
+        Sha256Hash start = status.getPrevBlockHash();
+        Sha256Hash end = status.getBlockHash();
+        
+        last_flush_block_hash = start;
+
+        jelly.getEventLog().alarm("UTXO inconsistent, attempting recovery from " + start + " to " + end);
+        LinkedList<Sha256Hash> recover_block_list = new LinkedList<Sha256Hash>();
+        Sha256Hash ptr = end;
+        while(!ptr.equals(start))
+        {
+          recover_block_list.addFirst(ptr);
+
+          //System.out.println("Getting prev of : " + ptr);
+
+          ptr = jelly.getDB().getBlockStoreMap().get(ptr).getHeader().getPrevBlockHash();
+        }
+        recover_block_list.addFirst(start);
+
+        jelly.getEventLog().alarm("UTXO attempting recovery of " + recover_block_list.size() + " blocks");
+
+        for(Sha256Hash blk_hash : recover_block_list)
+        {
+          Block b = jelly.getDB().getBlockMap().get(blk_hash).getBlock(jelly.getNetworkParameters());
+          addBlock(b);
+          
+        }
+        flush();
+
+      }
+      else
+      {
+        last_flush_block_hash = status.getBlockHash();
+        last_added_block_hash = status.getBlockHash();
+      }
+
+
+    }
+    int added_since_flush = 0;
+    long last_flush = 0;
+    private boolean catchup()
+    {
+      while(!block_chain_cache.isBlockInMainChain(last_added_block_hash))
+      {
+        rollback();
+      }
+
+      int curr_height = jelly.getDB().getBlockStoreMap().get(last_added_block_hash).getHeight();
+      int head_height = jelly.getElectrumNotifier().getHeadHeight();
+
+
+      for(int i=curr_height+1; i<=head_height; i++)
+      {
+       
+        Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
+        Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(params);
+        if (b.getPrevBlockHash().equals(last_added_block_hash))
+        {
+          addBlock(b);
+          Sha256Hash root_hash = getRootHash();
+          block_height=i;
+
+          if (authMap.containsKey(i))
+          {
+            Sha256Hash target_hash = authMap.get(i);
+            if (!target_hash.equals(root_hash))
+            {
+              jelly.getEventLog().alarm("UTXO hash mismatch " + i + " - " + getRootHash() + " - " + target_hash);
+            }
+            else
+            {
+              jelly.getEventLog().log("UTXO added block " + i + " - " + getRootHash() + " - MATCH");
+
+            }
+          }
+          else
+          {
+            jelly.getEventLog().log("UTXO added block " + i + " - " + getRootHash());
+          }
+          added_since_flush++;
+        }
+        else
+        {
+          return true;
+        }
+
+        if (i % 1000 == 0)
+        {
+          flush();
+          added_since_flush=0;
+          last_flush = System.currentTimeMillis();
+        }
+      
+      }
+      if ((added_since_flush > 0) && (last_flush +15000L < System.currentTimeMillis()))
+      {
+        flush();
+        added_since_flush=0;
+        last_flush = System.currentTimeMillis();
+        
+      }
+
+      return false;
+
+
+      
+      
+
+    }
+
+    private void rollback()
+    {
+      jelly.getEventLog().alarm("UTXO rolling back " + last_added_block_hash);
+
+      Sha256Hash prev = jelly.getDB().getBlockStoreMap().get(last_added_block_hash).getHeader().getPrevBlockHash();
+
+      last_flush_block_hash = prev;
+      Block b = jelly.getDB().getBlockMap().get(last_added_block_hash).getBlock(jelly.getNetworkParameters());
+      rollbackBlock(b);
+
+      //Setting hashes such that it looks like we are doing prev -> last_added_block_hash
+      //That way on recovery we will re-add the block and then roll back again
+      flush();
+
+      last_added_block_hash = prev;
+
+
+    }
+    private void waitForBlocks()
+    {
+      synchronized(block_notify)
+      {
+        try
+        {
+          block_notify.wait(10000);
+        }
+        catch(InterruptedException e){}
+      }
+
+    }
+
+
+  }
+
+}

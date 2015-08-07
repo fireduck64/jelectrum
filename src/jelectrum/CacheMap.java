@@ -100,7 +100,12 @@ public class CacheMap<K,V> implements Map<K,V>
     }
     public void putAll(Map<? extends K,? extends V> m) 
     {
-        throw new RuntimeException("not implemented - is stupid");
+      synchronized(cache)
+      {
+        cache.putAll(m);
+      }
+      inner.putAll(m);
+
     }
 
     public V remove(Object key) 

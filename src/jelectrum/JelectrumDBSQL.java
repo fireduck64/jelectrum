@@ -15,7 +15,6 @@ public class JelectrumDBSQL extends JelectrumDB
     private Config conf;
     protected SqlMapSet<String> address_to_tx_map;
     protected SqlMapSet<Sha256Hash> tx_to_block_map;
-    protected SqlMapSet<String> txout_spent_by_map;
     protected boolean compress=false;
 
     public JelectrumDBSQL(Config config)
@@ -58,13 +57,13 @@ public class JelectrumDBSQL extends JelectrumDB
             block_rescan_map = new SqlMap<Sha256Hash, String>("block_rescan_map",64);
             special_object_map = new SqlMap<String, Object>("special_object_map",128);
             header_chunk_map = new CacheMap<Integer, String>(200, new SqlMap<Integer, String>("header_chunk_map",32));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(10000, new SqlMap<String, UtxoTrieNode>("utxo_trie_map",56*2));
 
             //address_to_tx_map = new BandingMapSet<String, Sha256Hash>(new SqlMapSet<String>("address_to_tx_map",35),10);
             //tx_to_block_map = new BandingMapSet<Sha256Hash, Sha256Hash>(new SqlMapSet<Sha256Hash>("tx_to_block_map",64),10);
             //txout_spent_by_map = new BandingMapSet<String, Sha256Hash>(new SqlMapSet<String>("txout_spent_by_map",128),10);
             address_to_tx_map = new SqlMapSet<String>("address_to_tx_map",35);
             tx_to_block_map = new SqlMapSet<Sha256Hash>("tx_to_block_map",64);
-            txout_spent_by_map = new SqlMapSet<String>("txout_spent_by_map",128);
 
         }
         catch(Exception e)
@@ -143,21 +142,6 @@ public class JelectrumDBSQL extends JelectrumDB
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
     {
         return getTxToBlockMap().getSet(tx);
-    }
-
-    public void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by)
-    {
-        txout_spent_by_map.add(tx_out, spent_by);
-    }
-    @Override
-    public void addTxOutsSpentByMap(Collection<String> tx_outs, Sha256Hash spent_by)
-    {
-      txout_spent_by_map.addAll(tx_outs, spent_by);
-    }
-
-    public Set<Sha256Hash> getTxOutSpentByMap(String tx_out)
-    {
-        return txout_spent_by_map.getSet(tx_out);
     }
 
     public synchronized Map<Sha256Hash, String> getBlockRescanMap()

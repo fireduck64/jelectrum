@@ -124,13 +124,13 @@ public class MongoMap<K,V> implements Map<K, V>
 
     public V remove(Object key) 
     {
-        throw new RuntimeException("not implemented - is stupid");
-
+      collection.remove(new MongoKey(key.toString()));
+      return null;
     }
 
     public Collection<V>   values() 
     {
-        throw new RuntimeException("not implemented - is stupid");
+      throw new RuntimeException("not implemented - is stupid");
     }
 
     public static void printStats()

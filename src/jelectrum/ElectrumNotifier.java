@@ -292,7 +292,7 @@ public class ElectrumNotifier
                 block_data.put("block_height", blk.getHeight());
                 block_data.put("version",header.getVersion());
                 block_data.put("bits", header.getDifficultyTarget());
-                block_data.put("utxo_root", Util.SHA256(header.getHash().toString()));
+                block_data.put("utxo_root", jelly.getUtxoTrieMgr().getRootHash());
 
 
 

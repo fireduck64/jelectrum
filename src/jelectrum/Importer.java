@@ -376,11 +376,6 @@ public class Importer
 
             }
         }
-        if (tx_outs.size() > 0)
-        {
-          file_db.addTxOutsSpentByMap(tx_outs, tx.getHash());
-        
-        }
     }
 
     public void putInternal(Transaction tx, Sha256Hash block_hash)
@@ -542,6 +537,7 @@ public class Importer
         imported_blocks.incrementAndGet();
 
         jelly.getElectrumNotifier().notifyNewBlock(block);
+        jelly.getUtxoTrieMgr().notifyBlock();
     }
 
     private void waitForBlockStored(Sha256Hash hash)

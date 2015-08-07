@@ -21,7 +21,6 @@ public class JelectrumDBMongo extends JelectrumDB
     private Config conf;
     protected MongoMapSet<String, Sha256Hash > address_to_tx_map;
     protected MongoMapSet<Sha256Hash, Sha256Hash > tx_to_block_map;
-    protected MongoMapSet<String, Sha256Hash > txout_spent_by_map;
 
     public JelectrumDBMongo(Config conf)
         throws Exception
@@ -75,10 +74,11 @@ public class JelectrumDBMongo extends JelectrumDB
             special_block_store_map = new MongoMap<String, StoredBlock>(getCollection("special_block_store_map"),compress);
             block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new MongoMap<Sha256Hash, SerializedBlock>(getCollection("block_map"),compress));
             tx_to_block_map = new MongoMapSet<Sha256Hash, Sha256Hash>(getCollection("tx_to_block_map"),compress);
-            txout_spent_by_map = new MongoMapSet<String, Sha256Hash>(getCollection("txout_spent_by_map"),compress);
             block_rescan_map = new MongoMap<Sha256Hash, String>(getCollection("block_rescan_map"),compress);
             special_object_map = new MongoMap<String, Object>(getCollection("special_object_map"),true);
             header_chunk_map = new CacheMap<Integer, String>(200, new MongoMap<Integer, String>(getCollection("header_chunk_map"),compress));
+
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(100000, new MongoMap<String, UtxoTrieNode>(getCollection("utxo_trie_map"),compress));
 
         }
         catch(Exception e)
@@ -146,16 +146,6 @@ public class JelectrumDBMongo extends JelectrumDB
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
     {
         return getTxToBlockMap().getSet(tx);
-    }
-
-    public void addTxOutSpentByMap(String tx_out, Sha256Hash spent_by)
-    {
-        txout_spent_by_map.add(tx_out, spent_by);
-    }
-
-    public Set<Sha256Hash> getTxOutSpentByMap(String tx_out)
-    {
-        return txout_spent_by_map.getSet(tx_out);
     }
 
  

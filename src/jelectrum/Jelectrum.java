@@ -40,6 +40,7 @@ public class Jelectrum
     private ElectrumNotifier notifier;
     private HeaderChunkAgent header_chunk_agent;
     private BitcoinRPC bitcoin_rpc;
+    private UtxoTrieMgr utxo_trie_mgr;
 
     public Jelectrum(Config conf)
         throws Exception
@@ -77,6 +78,8 @@ public class Jelectrum
         block_store = new MapBlockStore(this);
         
         block_chain = new BlockChain(network_params, block_store);
+        
+        utxo_trie_mgr = new UtxoTrieMgr(this);
 
         notifier = new ElectrumNotifier(this);
         
@@ -87,6 +90,7 @@ public class Jelectrum
         block_chain_cache = BlockChainCache.load(this);
 
         header_chunk_agent = new HeaderChunkAgent(this);
+
 
         bitcoin_rpc = new BitcoinRPC(config);
         bitcoin_rpc.testConnection();
@@ -109,6 +113,7 @@ public class Jelectrum
 
         stratum_server.start();
 
+        utxo_trie_mgr.start();
 
         System.out.println("Starting peer download");
 
@@ -218,7 +223,10 @@ public class Jelectrum
         return bitcoin_rpc;
     }
 
-
+    public UtxoTrieMgr getUtxoTrieMgr()
+    {
+      return utxo_trie_mgr;
+    }
     
 
 }
