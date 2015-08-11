@@ -40,6 +40,11 @@ import java.util.Random;
 
 /**
  * Blocks have to be loaded in order
+ * 
+ * @todo - Add shutdown hook to avoid exit during flush
+ * @todo - Add way for importer to know if we are near head and to wait before notifying clients
+ *         so that clients get the correct utxo hash
+ * 
  */
 public class UtxoTrieMgr
 {
@@ -50,6 +55,10 @@ public class UtxoTrieMgr
   private NetworkParameters params;
   private Jelectrum jelly;
 
+  private StatData get_block_stat=new StatData();
+  private StatData add_block_stat=new StatData();
+  private StatData get_hash_stat=new StatData();
+ 
   // Maps a partial key prefix to a tree node
   // The tree node has children, which are other prefixes or full keys
   protected TreeMap<String, UtxoTrieNode> node_map = new TreeMap<String, UtxoTrieNode>();
@@ -94,12 +103,18 @@ public class UtxoTrieMgr
 
   private void flush()
   {
-    saveState(new UtxoStatus(last_added_block_hash, last_flush_block_hash));
+    DecimalFormat df = new DecimalFormat("0.000");
+
+    get_block_stat.print("get_block", df);
+    add_block_stat.print("add_block", df);
+    get_hash_stat.print("get_hash", df);
     jelly.getEventLog().alarm("UTXO Flushing: " + node_map.size() + " height: " + block_height);
+    saveState(new UtxoStatus(last_added_block_hash, last_flush_block_hash));
     db_map.putAll(node_map.descendingMap());
     node_map.clear();
     saveState(new UtxoStatus(last_added_block_hash));
     last_flush_block_hash = last_added_block_hash;
+    jelly.getEventLog().alarm("UTXO Flush complete");
   }
 
   public void saveState(UtxoStatus status)
@@ -370,9 +385,10 @@ public class UtxoTrieMgr
     public String getKeyForOutput(TransactionOutput out, int idx)
     {
         byte[] public_key=null;
-        Script script = out.getScriptPubKey();
+        Script script = null;
             try
             {  
+                script = out.getScriptPubKey();
                 if (script.isSentToRawPubKey())
                 {  
                     byte[] key = out.getScriptPubKey().getPubKey();
@@ -388,17 +404,26 @@ public class UtxoTrieMgr
             }
             catch(ScriptException e)
             { 
-              //com.google.bitcoin.core.Utils.sha256hash160 
-              List<ScriptChunk> chunks = script.getChunks();
-              System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
-              if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+              if (script != null)
               {
-                public_key = chunks.get(2).data;
+                //com.google.bitcoin.core.Utils.sha256hash160 
+                List<ScriptChunk> chunks = script.getChunks();
+                //System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
+                if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+                {
+                  public_key = chunks.get(2).data;
+                }
+                else
+               {
+
+                  return null;
+                }
               }
               else
               {
-
+                System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - unparsable");
                 return null;
+
               }
             }
 
@@ -435,102 +460,6 @@ public class UtxoTrieMgr
 
   }
 
-
-  public static void main(String args[]) throws Exception
-  {
-
-    StatData get_block_stat=new StatData();
-    StatData add_block_stat=new StatData();
- 
-    Jelectrum j = new Jelectrum(new Config("jelly.conf"));
-
-
-
-
-    UtxoTrieMgr m = new UtxoTrieMgr(j);
-
-    m.start();
-
-
-    /*int error=0;
-
-    Random rnd = new Random();
-    DecimalFormat df = new DecimalFormat("0.0");
-
-    for(int i=1; i<368694; i++)
-    {
-      //if (i == 127630) DEBUG=true;
-
-      Sha256Hash block_hash = j.getBlockChainCache().getBlockHashAtHeight(i);
-
-      Sha256Hash prev_root_hash = m.getRootHash();
-
-      long t1=System.currentTimeMillis();
-      Block b = j.getDB().getBlockMap().get(block_hash).getBlock(j.getNetworkParameters());
-      long t2=System.currentTimeMillis();
-
-      get_block_stat.addDataPoint(t2-t1);
-
-      t1=System.currentTimeMillis();
-      m.addBlock(b);
-      t2=System.currentTimeMillis();
-      add_block_stat.addDataPoint(t2-t1);
-
-      if (rnd.nextDouble() < 0.01)
-      {
-        //All changes should be eidempotent
-        //which we will depend on if an update is interupted mid stream
-        //We'll just continue to add the block being worked on
-        System.out.println("Adding again for lolz");
-        m.addBlock(b);
-      }
-      if (rnd.nextDouble() < 0.005)
-      {
-        //We should be able to roll back a block and get to the previous state
-        //and then roll forward again
-        System.out.println("Rolling back");
-        m.rollbackBlock(b);
-        Sha256Hash root_hash_now = m.getRootHash();
-        System.out.println("Roll back: " + prev_root_hash + " - " + root_hash_now);
-        if (!prev_root_hash.equals(root_hash_now)) error++;
-        m.addBlock(b);
-      }
-
-
-      Sha256Hash root_hash = m.getRootHash();
-
-      //System.out.println(m.node_map);
-
-      if (authMap.containsKey(i))
-      {
-
-        System.out.println("Height: " + i + " - " + root_hash + " - " + authMap.get(i));
-        if (!root_hash.equals(authMap.get(i))) error++;
-      }
-      else
-      {
-        System.out.println("Height: " + i + " - " + root_hash);
-
-      }
-
-      //if (error>5) return;
-      if (error>0) System.exit(-1);
-      if (i % 1000 == 0)
-      {
-        get_block_stat.print("get_block", df);
-        add_block_stat.print("add_block", df);
-        m.flush();
-        System.gc();
-      }
-
-    }
-
-
-
-    System.exit(0);*/
-
-
-  }
 
   public class UtxoMgrThread extends Thread
   {
@@ -619,11 +548,30 @@ public class UtxoTrieMgr
       {
        
         Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
+        long t1=System.currentTimeMillis();
         Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(params);
+        long t2=System.currentTimeMillis();
+
+        get_block_stat.addDataPoint(t2-t1);
+
         if (b.getPrevBlockHash().equals(last_added_block_hash))
         {
+          t1=System.currentTimeMillis();
           addBlock(b);
-          Sha256Hash root_hash = getRootHash();
+          t2=System.currentTimeMillis();
+
+          add_block_stat.addDataPoint(t2-t1);
+          Sha256Hash root_hash = null;
+
+
+          if ((i % 50 == 0) || (authMap.containsKey(i)))
+          {
+            t1=System.currentTimeMillis();
+            root_hash = getRootHash();
+            t2=System.currentTimeMillis();
+            get_hash_stat.addDataPoint(t2-t1);
+          }
+
           block_height=i;
 
           if (authMap.containsKey(i))
@@ -631,17 +579,17 @@ public class UtxoTrieMgr
             Sha256Hash target_hash = authMap.get(i);
             if (!target_hash.equals(root_hash))
             {
-              jelly.getEventLog().alarm("UTXO hash mismatch " + i + " - " + getRootHash() + " - " + target_hash);
+              jelly.getEventLog().alarm("UTXO hash mismatch " + i + " - " + root_hash + " - " + target_hash);
             }
             else
             {
-              jelly.getEventLog().log("UTXO added block " + i + " - " + getRootHash() + " - MATCH");
+              jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash + " - MATCH");
 
             }
           }
           else
           {
-            jelly.getEventLog().log("UTXO added block " + i + " - " + getRootHash());
+            jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash);
           }
           added_since_flush++;
         }
@@ -649,8 +597,11 @@ public class UtxoTrieMgr
         {
           return true;
         }
-
-        if (i % 1000 == 0)
+        int flush_mod = 1000;
+        //After the blocks get bigger, flush more often
+        if (block_height > 300000) flush_mod = 100;
+        
+        if (i % flush_mod == 0)
         {
           flush();
           added_since_flush=0;

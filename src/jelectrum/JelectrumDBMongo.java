@@ -78,7 +78,7 @@ public class JelectrumDBMongo extends JelectrumDB
             special_object_map = new MongoMap<String, Object>(getCollection("special_object_map"),true);
             header_chunk_map = new CacheMap<Integer, String>(200, new MongoMap<Integer, String>(getCollection("header_chunk_map"),compress));
 
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(100000, new MongoMap<String, UtxoTrieNode>(getCollection("utxo_trie_map"),compress));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new MongoMap<String, UtxoTrieNode>(getCollection("utxo_trie_map"),compress));
 
         }
         catch(Exception e)
