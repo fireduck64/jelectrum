@@ -3,6 +3,7 @@
 #include <leveldb/env.h>
 #include <leveldb/write_batch.h>
 
+#include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -266,10 +267,15 @@ void* handle_connection(void* arg)
 
 int main(int argc, char* argv[])
 {
+  if (argc != 2)
+  {
+    cout << "Params: ./levelnet path_level_db" << endl;
+    return -1;
+  }
   
   leveldb::Options options;
   options.create_if_missing = true;
-  leveldb::Status status = leveldb::DB::Open(options, "/var/ssd/leveldb", &db);
+  leveldb::Status status = leveldb::DB::Open(options, argv[1], &db);
   
   write_options.sync = true;
 

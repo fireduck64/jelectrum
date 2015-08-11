@@ -75,7 +75,7 @@ public class Jelectrum
         else
         {
           System.out.println("Unknown db_type: " + db_type);
-          System.out.println("Try mongo or sql");
+          System.out.println("Try mongo or sql or leveldb");
           System.exit(-1);
         }
         

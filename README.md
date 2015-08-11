@@ -70,5 +70,25 @@ blockchain.utxo.get_address
 (To check this list compare src/blockchain_processor.py from electrum-server to StratumConnection.java)
 
 
+How to LevelDB
+--------------
+
+LevelDB seems cool and the C++ library seems good, so I've made a network layer to call into the C++ leveldb.
+
+This is done because I've found things to be more reliable if the database is a separate process that doesn't
+get restarted.  It is thus less likely to corrupt the datastore and be a problem.
+
+Anyways, to run it, go into:
+cd cpp
+make
+./levelnet /var/ssd/leveldb
+(replace that path with where you want the leveldb to live)
+
+This will run th leveldb network server on port 8844.  There is absolutely no security or checking.
+Firewall it.
+
+Then you can run jelectrum with db_type=leveldb and copy the other settings from the sample file
+
+
 
 
