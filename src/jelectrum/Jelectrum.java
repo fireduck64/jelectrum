@@ -68,6 +68,10 @@ public class Jelectrum
         {
           jelectrum_db = new JelectrumDBSQL(config);
         }
+        else if (db_type.equals("leveldb"))
+        {
+          jelectrum_db = new JelectrumDBLevelDB(config);
+        }
         else
         {
           System.out.println("Unknown db_type: " + db_type);

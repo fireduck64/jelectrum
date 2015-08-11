@@ -118,10 +118,6 @@ public class JelectrumDBSQL extends JelectrumDB
     {
         return getAddressToTxMap().getSet(address);
     }
-    public long countAddressToTxSet(String address)
-    {
-        return getAddressToTxMap().getSet(address).size();
-    }
 
    
     private synchronized MapSet<Sha256Hash,Sha256Hash> getTxToBlockMap()

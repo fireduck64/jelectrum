@@ -127,10 +127,6 @@ public class JelectrumDBMongo extends JelectrumDB
     {
         return getAddressToTxMap().getSet(address);
     }
-    public long countAddressToTxSet(String address)
-    {
-        return getAddressToTxMap().countKey(address);
-    }
 
    
     private synchronized MongoMapSet<Sha256Hash, Sha256Hash> getTxToBlockMap()
