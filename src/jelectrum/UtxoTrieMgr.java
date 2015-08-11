@@ -83,6 +83,7 @@ public class UtxoTrieMgr
     db_map = jelly.getDB().getUtxoTrieMap();
 
     authMap = loadAuthMap("check/utxo-root-file");
+
   }
 
   public void start()

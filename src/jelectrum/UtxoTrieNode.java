@@ -40,43 +40,29 @@ import java.util.Random;
   public class UtxoTrieNode implements java.io.Serializable
   {
     private String prefix;
-    private Sha256Hash hash;
-    private boolean dirty;
     private String last_skip=null;
 
-    private TreeSet<String> springs;
+    private TreeMap<String, Sha256Hash> springs;
 
 
     public UtxoTrieNode(String prefix)
     {
-      dirty=true;
-      springs = new TreeSet<String>();
+      springs = new TreeMap<String, Sha256Hash>();
       this.prefix = prefix;
     }
 
-    private void setDirty()
-    {
-      dirty=true;
-    }
-    private void setClean()
-    {
-      dirty=false;
-    }
-
-    private void setHash(Sha256Hash hash){ this.hash = hash; }
 
     public void addSpring(String s, UtxoTrieMgr mgr)
     {
-      springs.add(s);
+      springs.put(s, null);
       mgr.putSaveSet(prefix, this);
     }
     public void addHash(String key, Sha256Hash tx_hash, UtxoTrieMgr mgr)
     {
       mgr.putSaveSet(prefix, this);
-      setDirty();
 
       String next = key.substring(prefix.length());
-      for(String sub : springs)
+      for(String sub : springs.keySet())
       {
         if (next.startsWith(sub))
         {
@@ -88,11 +74,12 @@ import java.util.Random;
             UtxoTrieNode n = mgr.getByKey(prefix+sub);
             if (n == null) System.out.println("Missing: " + prefix + sub + " from " + prefix);
             n.addHash(key, tx_hash, mgr);
+            springs.put(sub, null);
           }
           return;
         }
       }
-      for(String sub : springs)
+      for(String sub : springs.keySet())
       {
         int common = UtxoTrieMgr.commonLength(sub, next);
         if (common >= 2)
@@ -100,7 +87,7 @@ import java.util.Random;
           String common_str = sub.substring(0, common);
 
           springs.remove(sub);
-          springs.add(common_str);
+          springs.put(common_str, null);
 
           UtxoTrieNode n = new UtxoTrieNode(prefix + common_str);
 
@@ -111,27 +98,28 @@ import java.util.Random;
         }
         
       }
-      springs.add(next);
+      springs.put(next, null);
 
     }
 
     public String removeHash(String key, Sha256Hash tx_hash, UtxoTrieMgr mgr)
     {
       mgr.putSaveSet(prefix, this);
-      setDirty();
       String rest = key.substring(prefix.length());
-      if (springs.contains(rest))
+      if (springs.containsKey(rest))
       {
         springs.remove(rest);
       }
       else
       {
-        for(String sub : springs)
+        for(String sub : springs.keySet())
         {
           String full = prefix + sub;
           if (rest.startsWith(sub))
           {
             String next_sub = mgr.getByKey(prefix+sub).removeHash(key, tx_hash, mgr);
+            springs.put(sub, null);
+
             if (next_sub == null)
             {
               springs.remove(sub);
@@ -139,7 +127,7 @@ import java.util.Random;
             if (next_sub != full)
             {
               springs.remove(sub);
-              springs.add(next_sub.substring(prefix.length()));
+              springs.put(next_sub.substring(prefix.length()),null);
             }
             break;
           }
@@ -153,7 +141,9 @@ import java.util.Random;
       }
       if (springs.size() == 1)
       {
-        String ret = prefix + springs.first();
+        String ret = prefix + springs.firstKey();
+        springs.put(springs.firstKey(), null);
+
         //node_map.remove(prefix);
         //springs.clear();
         //We are not clearing springs in case we get a partial save
@@ -168,44 +158,53 @@ import java.util.Random;
 
     public Sha256Hash getHash(String skip_string, UtxoTrieMgr mgr)
     {
-      if ((!dirty) && (skip_string.equals(last_skip)))
+      /*if ((!dirty) && (skip_string.equals(last_skip)))
       {
         return hash;
       }
-      last_skip = skip_string;
+      last_skip = skip_string;*/
 
       LinkedList<Sha256Hash> lst=new LinkedList<Sha256Hash>();
 
-      for(String sub : springs)
+      for(String sub : springs.keySet())
       {
-        String sub_skip_str = "";
-        if (sub.length() > 2)
+        if (springs.get(sub) != null)
         {
-          sub_skip_str = sub.substring(2); 
-        }
-        String full_sub = prefix+sub;
-        Sha256Hash h = null;
-        if (full_sub.length() == UtxoTrieMgr.ADDR_SPACE*2)
-        {
-          h = UtxoTrieMgr.getHashFromKey(full_sub);
+          lst.add(springs.get(sub));
         }
         else
         {
-          h = mgr.getByKey(full_sub).getHash(sub_skip_str, mgr);
+          String sub_skip_str = "";
+          if (sub.length() > 2)
+          {
+            sub_skip_str = sub.substring(2); 
+          }
+          String full_sub = prefix+sub;
+          Sha256Hash h = null;
+          if (full_sub.length() == UtxoTrieMgr.ADDR_SPACE*2)
+          {
+            h = UtxoTrieMgr.getHashFromKey(full_sub);
+          }
+          else
+          {
+            h = mgr.getByKey(full_sub).getHash(sub_skip_str, mgr);
+          }
+          lst.add(h);
+
+          springs.put(sub, h);
         }
-        lst.add(h);
       }
+
+      Sha256Hash hash = null;
 
       
       if ((lst.size() == 1) && (prefix.length() >= 2))
       {
-        setHash(lst.get(0));
-        setClean();
+        hash = lst.get(0);
       }
       else
       {
-        setHash(UtxoTrieMgr.hashThings(skip_string,lst));
-        setClean();
+        hash = UtxoTrieMgr.hashThings(skip_string,lst);
       }
 
       return hash;
