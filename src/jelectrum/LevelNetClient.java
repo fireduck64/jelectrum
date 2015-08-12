@@ -18,6 +18,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class LevelNetClient
 {
+  public static final int RESULT_GOOD = 1273252631;
+  public static final int RESULT_BAD = 9999;
+  public static final int RESULT_NOTFOUND = 133133;
+
+
   private Config config;
 
   private String host;
@@ -221,6 +226,8 @@ public class LevelNetClient
       {
         sock = new Socket(host, port);
         sock.setTcpNoDelay(true);
+        sock.setSoTimeout(5000);
+
 
         d_in = new DataInputStream(sock.getInputStream());
       }
@@ -256,7 +263,9 @@ public class LevelNetClient
       writeString(key);
       sock.getOutputStream().flush();
       int status = readInt();
-      if (status == 17) return null;
+
+      if (status == RESULT_NOTFOUND) return null;
+      else if (status != RESULT_GOOD) throw new java.io.IOException("Bad result: " + status);
 
       return readBytes();
     }
@@ -277,6 +286,7 @@ public class LevelNetClient
       sock.getOutputStream().flush();
 
       int status = readInt();
+      if (status != RESULT_GOOD) throw new java.io.IOException("Bad result: " + status);
     }
 
     public void putAll(Map<String, ByteBuffer> map)
@@ -296,6 +306,7 @@ public class LevelNetClient
         writeByteArray(me.getValue());
       }
       int status = readInt();
+      if (status != RESULT_GOOD) throw new java.io.IOException("Bad result: " + status);
 
     }
 

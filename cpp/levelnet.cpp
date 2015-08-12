@@ -18,6 +18,10 @@
 
 using namespace std;
 
+static const int RESULT_GOOD = 1273252631;
+static const int RESULT_BAD = 9999;
+static const int RESULT_NOTFOUND = 133133;
+
 
 leveldb::DB* db;
 leveldb::WriteOptions write_options;
@@ -141,17 +145,17 @@ void* handle_connection(void* arg)
 
       delete key.data();
 
-      int status=0;
+      int status=RESULT_GOOD;
 
       if (db_stat.IsNotFound())
       {
-        status=17;
+        status=RESULT_NOTFOUND;
       }
       
-      status=htonl(status);
-      write_fully(fd, (char*)&status, sizeof(status));
+      int net_status=htonl(status);
+      write_fully(fd, (char*)&net_status, sizeof(net_status));
 
-      if (status==0)
+      if (status==RESULT_GOOD)
       {
         leveldb::Slice s = leveldb::Slice(value);
         if (write_slice(fd, s) < 0) { problems=true; break;}
@@ -173,7 +177,12 @@ void* handle_connection(void* arg)
       delete key.data();
       delete value.data();
 
-      int status=0;
+      int status=RESULT_BAD;
+
+      if (db_stat.ok())
+      {
+        status=RESULT_GOOD;
+      }
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
       fsync(fd);
@@ -203,16 +212,21 @@ void* handle_connection(void* arg)
         slices.push_back(key);
         slices.push_back(value);
       }
-      
-      db->Write(write_options, &write_batch);
+     
+      if (problems) break;
+      leveldb::Status db_stat = db->Write(write_options, &write_batch);
 
+      int status=RESULT_BAD;
+      if (db_stat.ok())
+      {
+        status=RESULT_GOOD;
+      }
+ 
       for(list<leveldb::Slice>::iterator I = slices.begin(); I!=slices.end(); I++)
       {
         delete I->data();
       }
 
-      
-      int status=0;
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
       fsync(fd);
@@ -236,7 +250,7 @@ void* handle_connection(void* arg)
         items++;
       }
 
-      int status=0;
+      int status=RESULT_GOOD;
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
 
@@ -260,7 +274,7 @@ void* handle_connection(void* arg)
     }
 
   }
-
+  cout << "Closing socket with problems" << endl;
   close(fd);
 
 }
@@ -272,6 +286,7 @@ int main(int argc, char* argv[])
     cout << "Params: ./levelnet path_level_db" << endl;
     return -1;
   }
+
   
   leveldb::Options options;
   options.create_if_missing = true;
@@ -280,8 +295,6 @@ int main(int argc, char* argv[])
   write_options.sync = true;
 
   if (!status.ok()) cerr << status.ToString() << endl;
-
-  db->Put(write_options, "hello", "fool");
 
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in serv_addr;
