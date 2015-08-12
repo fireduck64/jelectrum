@@ -225,6 +225,10 @@ void* handle_connection(void* arg)
       {
         status=RESULT_GOOD;
       }
+      else
+      {
+        cout << db_stat.ToString() << endl;
+      }
  
       for(list<leveldb::Slice>::iterator I = slices.begin(); I!=slices.end(); I++)
       {
