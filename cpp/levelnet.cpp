@@ -183,6 +183,10 @@ void* handle_connection(void* arg)
       {
         status=RESULT_GOOD;
       }
+      else
+      {
+        cout << db_stat.ToString() << endl;
+      }
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
       fsync(fd);
