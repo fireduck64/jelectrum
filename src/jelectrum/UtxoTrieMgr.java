@@ -38,6 +38,8 @@ import java.sql.*;
 import java.text.DecimalFormat;
 import java.util.Random;
 
+import static com.google.bitcoin.script.ScriptOpCodes.*;
+
 /**
  * Blocks have to be loaded in order
  * 
@@ -415,14 +417,25 @@ public class UtxoTrieMgr
 
               //com.google.bitcoin.core.Utils.sha256hash160 
               List<ScriptChunk> chunks = script.getChunks();
-              //System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
+              /*System.out.println("STRANGE: " + out.getParentTransaction().getHash() + " - has strange chunks " + chunks.size());
+              for(int i =0; i<chunks.size(); i++)
+              {
+                System.out.print("Chunk " + i + " ");
+                System.out.print(Hex.encodeHex(chunks.get(i).data)); 
+                System.out.println(" " + getOpCodeName(chunks.get(i).data[0]));
+              }*/
+
+              //Remember, java bytes are signed because hate
               if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+              if (chunks.get(0).data[0] == OP_DUP)
+              if ((int)(chunks.get(1).data[0] & 0xFF) == OP_HASH160)
+              if ((int)(chunks.get(3).data[0] & 0xFF) == OP_EQUALVERIFY)
+              if ((int)(chunks.get(4).data[0] & 0xFF) == OP_CHECKSIG)
+              if (chunks.get(5).data[0] == OP_NOP)
               {
+
+
                 public_key = chunks.get(2).data;
-              }
-              else
-              {
-                return null;
               }
             }
 
