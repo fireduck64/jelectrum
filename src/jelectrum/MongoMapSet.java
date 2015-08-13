@@ -38,7 +38,8 @@ public class MongoMapSet<K,V>
         this.collection = collection;
         this.compress=compress;
 
-        collection.ensureIndex(new BasicDBObject(KEY,1), new BasicDBObject());
+        //collection.ensureIndex(new BasicDBObject(KEY,1), new BasicDBObject());
+        collection.createIndex(new BasicDBObject(KEY,1));
         /*Map<String, Object> m = new TreeMap<String, Object>();
         m.put(KEY,1);
         m.put("data",1);

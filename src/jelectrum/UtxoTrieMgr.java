@@ -84,6 +84,12 @@ public class UtxoTrieMgr
 
     authMap = loadAuthMap("check/utxo-root-file");
 
+    if (jelly.getConfig().isSet("utxo_reset") && jelly.getConfig().getBoolean("utxo_reset"))
+    {
+      jelly.getEventLog().alarm("UTXO reset");
+      resetEverything();
+    }
+
   }
 
   public void start()
@@ -383,7 +389,7 @@ public class UtxoTrieMgr
  
     }
 
-    public String getKeyForOutput(TransactionOutput out, int idx)
+    public static byte[] getPublicKeyForTxOut(TransactionOutput out, NetworkParameters params)
     {
         byte[] public_key=null;
         Script script = null;
@@ -405,29 +411,28 @@ public class UtxoTrieMgr
             }
             catch(ScriptException e)
             { 
-              if (script != null)
-              {
-                //com.google.bitcoin.core.Utils.sha256hash160 
-                List<ScriptChunk> chunks = script.getChunks();
-                //System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
-                if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
-                {
-                  public_key = chunks.get(2).data;
-                }
-                else
-               {
+              if (script == null) return null;
 
-                  return null;
-                }
+              //com.google.bitcoin.core.Utils.sha256hash160 
+              List<ScriptChunk> chunks = script.getChunks();
+              //System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - has strange chunks " + chunks.size());
+              if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+              {
+                public_key = chunks.get(2).data;
               }
               else
               {
-                System.out.println("STRANGE: " + out.getParentTransaction().getHash() + ":" + idx + " - unparsable");
                 return null;
-
               }
             }
 
+      return public_key; 
+    }
+
+    public String getKeyForOutput(TransactionOutput out, int idx)
+    {
+      byte[] public_key = getPublicKeyForTxOut(out, params);
+      if (public_key == null) return null;
       return getKey(public_key, out.getParentTransaction().getHash(), idx);
     }
 
@@ -656,6 +661,73 @@ public class UtxoTrieMgr
       }
 
     }
+
+
+  }
+
+
+  public static void main(String args[]) throws Exception
+  {
+    String config_path = args[0];
+    int block_number = Integer.parseInt(args[1]);
+
+    Jelectrum jelly = new Jelectrum(new Config(config_path));
+
+
+    
+    Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(block_number);
+    Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
+    System.out.println("Inspecting " + block_number + " - " + block_hash);
+
+
+
+    int tx_count =0;
+    int out_count =0;
+    for(Transaction tx : b.getTransactions())
+    {
+      int idx=0;
+      for(TransactionOutput tx_out : tx.getOutputs())
+      {
+        byte[] pub_key_bytes=getPublicKeyForTxOut(tx_out, jelly.getNetworkParameters());
+
+        String public_key = null;
+        if (pub_key_bytes != null) public_key = Hex.encodeHexString(pub_key_bytes);
+        else public_key = "None";
+        
+        String script_bytes = Hex.encodeHexString(tx_out.getScriptBytes());
+
+        String[] cmd=new String[3];
+        cmd[0]="python";
+        cmd[1]=jelly.getConfig().get("utxo_check_tool");
+        cmd[2]=script_bytes;
+
+        //System.out.println(script_bytes);
+
+        Process p = Runtime.getRuntime().exec(cmd);
+
+        Scanner scan = new Scanner(p.getInputStream());
+        String ele_key = scan.nextLine();
+
+        if (!ele_key.equals(public_key))
+        {
+          System.out.println("Mismatch on " + tx_out.getParentTransaction().getHash() + ":" + idx);
+          System.out.println("  Script: " + script_bytes);
+          System.out.println("  Jelectrum: " + public_key);
+          System.out.println("  Electrum:  " + ele_key);
+
+        }
+
+
+
+
+
+        out_count++;
+        idx++;
+      }
+      tx_count++;
+    }
+    System.out.println("TX Count: " + tx_count);
+    System.out.println("Out Count: " + out_count);
 
 
   }

@@ -11,6 +11,7 @@ import com.google.bitcoin.core.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.DBCollection;
+import com.mongodb.ServerAddress;
 import com.mongodb.DB;
 
 public class JelectrumDBMongo extends JelectrumDB
@@ -61,10 +62,10 @@ public class JelectrumDBMongo extends JelectrumDB
             // However, as I have always said: life is too short to identify every mysterious
             // fluid that you encounter.
             //
-            opts.maxConnectionLifeTime(120000);
-            opts.socketTimeout(120000);
+            //opts.maxConnectionLifeTime(120000);
+            opts.socketTimeout(10000);
 
-            mc = new MongoClient(conf.get("mongo_db_host"), opts.build());
+            mc = new MongoClient(new ServerAddress(conf.get("mongo_db_host")), opts.build());
 
             db = mc.getDB(conf.get("mongo_db_name"));
 

@@ -1,0 +1,20 @@
+import deserialize
+import utils
+import sys
+
+#script="534104c46d6462f67f990211d3a7077f005e67154f5f785b3edc06af3de62649a15bad35905fa7af9f272f80379a41525ad57a2245c2edc4807e3e49f43eb1c1b119794104cc71eb30d653c0c3163990c47b976f3fb3f37cccdcbedb169a1dfef58bbfbfaff7d8a473e7e2e6d317b87bafe8bde97e3cf8f065dec022b51d11fcdd0d348ac4410461cbdcc5409fb4b4d42b51d33381354d80e550078cb532a34bfa2fcfdeb7d76519aecc62770f5b0e4ef8551946d8a540911abe3e7854a26f39f58b25c15342af53ae"
+script="76a91469d28eb9a311256338d281025a7437096149472c88ac61"
+#script="76a9145f8b65a4064ef5c071c382d594b55d94bd31ec3a88ac";
+#script="76a914c6b72811560b8c6ba897580754ba60d99c2094ed88ac";
+
+script=sys.argv[1]
+
+addr=deserialize.get_address_from_output_script(script.decode('hex'))
+#print addr.encode('hex');
+
+if addr == None:
+  print addr
+else:
+  print utils.bc_address_to_hash_160(addr).encode('hex')
+
+
