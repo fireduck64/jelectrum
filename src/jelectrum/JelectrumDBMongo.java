@@ -52,6 +52,7 @@ public class JelectrumDBMongo extends JelectrumDB
 
             MongoClientOptions.Builder opts = MongoClientOptions.builder();
             opts.connectionsPerHost(conf.getInt("mongo_db_connections_per_host"));
+            opts.threadsAllowedToBlockForConnectionMultiplier(100);
 
             // So with regards to https://github.com/fireduck64/jelectrum/issues/1
             // It seems that occasionally connections get into a bad state and just sit there

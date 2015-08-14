@@ -72,10 +72,14 @@ public class Jelectrum
         {
           jelectrum_db = new JelectrumDBLevelDB(config);
         }
+        else if (db_type.equals("lobstack"))
+        {
+          jelectrum_db = new JelectrumDBLobstack(config);
+        }
         else
         {
           System.out.println("Unknown db_type: " + db_type);
-          System.out.println("Try mongo or sql or leveldb");
+          System.out.println("Try mongo or sql or leveldb or lobstack");
           System.exit(-1);
         }
         

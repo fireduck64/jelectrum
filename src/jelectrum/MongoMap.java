@@ -2,6 +2,7 @@ package jelectrum;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedList;
 import java.util.Collection;
 
 import java.io.ObjectInputStream;
@@ -116,9 +117,24 @@ public class MongoMap<K,V> implements Map<K, V>
     }
     public void putAll(Map<? extends K,? extends V> m) 
     {
-      for(Map.Entry<? extends K,? extends V> me : m.entrySet())
+      try
       {
-        put(me.getKey(), me.getValue());
+        LinkedList<MongoEntry> lst = new LinkedList<MongoEntry>();
+    
+        for(Map.Entry<? extends K,? extends V> me : m.entrySet())
+        {
+        
+          lst.add(new MongoEntry(me.getKey().toString(), me.getValue(), compress));
+        }
+        collection.insert(lst, WriteConcern.ACKNOWLEDGED);
+      }
+      catch(com.mongodb.DuplicateKeyException e)
+      {
+        for(Map.Entry<? extends K,? extends V> me : m.entrySet())
+        {
+          put(me.getKey(), me.getValue());
+        }
+
       }
     }
 
