@@ -62,7 +62,7 @@ public class Lobstack
       throw new java.io.IOException("Location is not a directory: " + dir);
     }
 
-    data_files = new LRUCache<Long, FileChannel>(512);
+    data_files = new LRUCache<Long, FileChannel>(MAX_OPEN_FILES);
 
     RandomAccessFile root_file = new RandomAccessFile(new File(dir, name + ".root"), MODE);
 

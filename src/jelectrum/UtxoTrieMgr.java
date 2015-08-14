@@ -427,11 +427,11 @@ public class UtxoTrieMgr
 
               //Remember, java bytes are signed because hate
               if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
-              if (chunks.get(0).data[0] == OP_DUP)
-              if ((int)(chunks.get(1).data[0] & 0xFF) == OP_HASH160)
-              if ((int)(chunks.get(3).data[0] & 0xFF) == OP_EQUALVERIFY)
-              if ((int)(chunks.get(4).data[0] & 0xFF) == OP_CHECKSIG)
-              if (chunks.get(5).data[0] == OP_NOP)
+              if ((chunks.get(0).data.length == 1) && (chunks.get(0).data[0] == OP_DUP))
+              if ((chunks.get(1).data.length == 1) && ((int)(chunks.get(1).data[0] & 0xFF) == OP_HASH160))
+              if ((chunks.get(3).data.length == 1) && ((int)(chunks.get(3).data[0] & 0xFF) == OP_EQUALVERIFY))
+              if ((chunks.get(4).data.length == 1) && ((int)(chunks.get(4).data[0] & 0xFF) == OP_CHECKSIG))
+              if ((chunks.get(5).data.length == 1) && (chunks.get(5).data[0] == OP_NOP))
               {
 
 
