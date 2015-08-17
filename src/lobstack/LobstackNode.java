@@ -10,6 +10,8 @@ import java.nio.ByteBuffer;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.GZIPInputStream;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -20,15 +22,23 @@ import java.util.ArrayList;
 public class LobstackNode implements java.io.Serializable
 {
   public static final int MAX_OPEN_FILES=512;
+  public static final boolean ZIP=false;
 
+  // If anything else is added, serialize and deserialize need to be updated
   private String prefix;
-  private TreeMap<String, NodeEntry> children = new TreeMap<String, NodeEntry>();
+  private TreeMap<String, NodeEntry> children ;
 
 
   public LobstackNode(String prefix)
   {
     this.prefix = prefix;
+    children = new TreeMap<String, NodeEntry>();
 
+  }
+  public LobstackNode(String prefix, TreeMap<String, NodeEntry> children)
+  {
+    this.prefix = prefix;
+    this.children = children;
   }
 
   public void printTree(Lobstack stack)
@@ -45,7 +55,7 @@ public class LobstackNode implements java.io.Serializable
       }
       else
       {
-        System.out.println(key + " data " + ne.location);
+        System.out.println(key + " data @" + ne.location + " - bytes:" + stack.loadAtLocation(ne.location).capacity());
       }
     }
   }
@@ -249,12 +259,23 @@ public class LobstackNode implements java.io.Serializable
     try
     {
       ByteArrayOutputStream b_out = new ByteArrayOutputStream();
-      GZIPOutputStream z_out = new GZIPOutputStream(b_out);
-      ObjectOutputStream o_out = new ObjectOutputStream(z_out);
-  
-      o_out.writeObject(this);
-      o_out.flush();
-      o_out.close();
+      DataOutputStream d_out = new DataOutputStream(b_out);
+
+      writeString(d_out, prefix);
+      d_out.writeInt(children.size());
+      for(Map.Entry<String, NodeEntry> me : children.entrySet())
+      {
+        String sub = me.getKey();
+        NodeEntry ne = me.getValue();
+        String subsub = sub.substring(prefix.length());
+        writeString(d_out, subsub);
+        d_out.writeBoolean(ne.node);
+        d_out.writeLong(ne.location);
+      }
+      
+
+      d_out.flush();
+      d_out.close();
 
       return ByteBuffer.wrap(b_out.toByteArray());
     }
@@ -262,15 +283,45 @@ public class LobstackNode implements java.io.Serializable
     
   }
 
+
+  private static void writeString(DataOutputStream out, String str)
+    throws IOException
+  {
+    byte[] b= str.getBytes();
+    out.writeInt(b.length);
+    out.write(b);
+  }
+  private static String readString(DataInputStream in)
+    throws IOException
+  {
+    int len = in.readInt();
+    byte[] b = new byte[len];
+    in.read(b);
+    return new String(b);
+
+  }
+
   public static LobstackNode deserialize(ByteBuffer buf)
   {
     try
     {
       ByteArrayInputStream b_in = new ByteArrayInputStream(buf.array());
-      GZIPInputStream z_in = new GZIPInputStream(b_in);
-      ObjectInputStream o_in = new ObjectInputStream(z_in);
+      DataInputStream d_in = new DataInputStream(b_in);
 
-      return (LobstackNode) o_in.readObject();
+      String prefix = readString(d_in);
+      int count = d_in.readInt();
+      TreeMap<String, NodeEntry> c = new TreeMap<String, NodeEntry>();
+      for(int i=0; i<count; i++)
+      {
+        String sub = prefix + readString(d_in);
+        NodeEntry ne = new NodeEntry();
+        ne.node = d_in.readBoolean();
+        ne.location = d_in.readLong();
+        c.put(sub, ne);
+      }
+
+      return new LobstackNode(prefix, c);
+
 
     }
     catch(Exception e) { throw new RuntimeException(e);}

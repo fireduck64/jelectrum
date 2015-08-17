@@ -17,15 +17,17 @@ import lobstack.Lobstack;
 
 public class JelectrumDBLobstack extends JelectrumDB
 {
+  private Jelectrum jelly;
     private Config conf;
     protected LobstackMapSet address_to_tx_map;
     protected LobstackMapSet tx_to_block_map;
 
-    public JelectrumDBLobstack(Config config)
+    public JelectrumDBLobstack(Jelectrum jelly, Config config)
         throws Exception
     {
         super(config);
         this.conf = config;
+        this.jelly = jelly;
 
         config.require("lobstack_path");
         open();
@@ -38,12 +40,24 @@ public class JelectrumDBLobstack extends JelectrumDB
         {
             new File(conf.get("lobstack_path")).mkdirs();
 
-            tx_map = new LobstackMap<Sha256Hash, SerializedTransaction>(openStack("tx_map"), ConversionMode.OBJECT);
+
+            /*jelly.getEventLog().alarm("Doing compress");
+            openStack("special_object_map").compress();
+            openStack("special_block_store_map").compress();
+            jelly.getEventLog().alarm("Compress done");*/
+
+            Lobstack special_object_map_stack = openStack("special_object_map");
+
+            Lobstack special_block_store_map_stack = openStack("special_block_store_map");
+
+
+
+            tx_map = new LobstackMap<Sha256Hash, SerializedTransaction>(openStack("tx_map"), ConversionMode.SERIALIZEDTRANSACTION);
             block_store_map = new CacheMap<Sha256Hash, StoredBlock>(25000,new LobstackMap<Sha256Hash, StoredBlock>(openStack("block_store_map"),ConversionMode.OBJECT));
-            special_block_store_map = new LobstackMap<String, StoredBlock>(openStack("special_block_store_map"),ConversionMode.OBJECT);
+            special_block_store_map = new LobstackMap<String, StoredBlock>(special_block_store_map_stack,ConversionMode.OBJECT);
             block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new LobstackMap<Sha256Hash, SerializedBlock>(openStack("block_map"),ConversionMode.OBJECT));
             block_rescan_map = new LobstackMap<Sha256Hash, String>(openStack("block_rescan_map"),ConversionMode.STRING);
-            special_object_map = new LobstackMap<String, Object>(openStack("special_object_map"),ConversionMode.OBJECT);
+            special_object_map = new LobstackMap<String, Object>(special_object_map_stack,ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LobstackMap<Integer, String>(openStack("header_chunk_map"),ConversionMode.STRING));
             utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
 

@@ -143,7 +143,7 @@ public class BlockChainCache implements java.io.Serializable
         }
         catch(Throwable t)
         {
-            //t.printStackTrace();
+            t.printStackTrace();
             System.out.println("Error loading BlockChainCache.  Creating new.");
             return new BlockChainCache();
         }

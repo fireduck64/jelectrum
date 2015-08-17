@@ -22,6 +22,12 @@ public class LobstackTest
     Config c = new Config("jelly.conf");
     return new Lobstack(new File(c.get("lobstack_path")), "test");
   }
+   private Lobstack openStack(String name)
+    throws Exception
+  {
+    Config c = new Config("jelly.conf");
+    return new Lobstack(new File(c.get("lobstack_path")), name);
+  }
   
 
   @Test
@@ -165,11 +171,27 @@ public class LobstackTest
   public void testPrintTree()
     throws Exception
   {
-    Lobstack ls = openStack();
+    Lobstack ls = openStack("test");
 
-    //ls.printTree();
+
+    ls.printTree();
 
   }
+  @Test
+  public void testCompress()
+    throws Exception
+  {
+    Lobstack ls = openStack();
+
+    int size = ls.getByPrefix("").size();
+
+    ls.compress();
+
+    Assert.assertEquals(size, ls.getByPrefix("").size());
+
+
+  }
+
 
   @Test
   public void testSnapshots()
@@ -249,7 +271,7 @@ public class LobstackTest
           for(int i=0; i<25; i++)
           {
             int sz = ls.getByPrefix("").size();
-            System.out.println("Reader read: " + sz);
+            //System.out.println("Reader read: " + sz);
           }
         }
         else if (action.equals("write"))

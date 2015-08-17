@@ -26,7 +26,8 @@ public class LobstackMap<K,V> implements Map<K, V>
   {
     STRING,
     SHA256HASH,
-    OBJECT
+    OBJECT,
+    SERIALIZEDTRANSACTION
   }
 
 
@@ -98,10 +99,11 @@ public class LobstackMap<K,V> implements Map<K, V>
           }
 
         }
-        else
+        if (mode==ConversionMode.SERIALIZEDTRANSACTION)
         {
-          throw new RuntimeException("No conversion found");
+          return (V) new SerializedTransaction(buff.array());
         }
+        throw new RuntimeException("No conversion found");
       }
       catch(java.io.IOException e){throw new RuntimeException(e);}
 
@@ -167,6 +169,11 @@ public class LobstackMap<K,V> implements Map<K, V>
             throw new RuntimeException(e);
           }
 
+        }
+        if (mode==ConversionMode.SERIALIZEDTRANSACTION)
+        {
+          SerializedTransaction stx = (SerializedTransaction)value;
+          b = ByteBuffer.wrap(stx.getBytes());
         }
 
 

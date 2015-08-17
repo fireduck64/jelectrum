@@ -5,6 +5,7 @@ package lobstack;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.Map;
+import java.text.DecimalFormat;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -28,7 +29,11 @@ public class Lobstack
   public long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=512;
+  public static final int MAX_CACHED_DATA=32*1024;
+  public static final int MAX_CACHE_SIZE=65536*4;
 
+  public static final String MODE="rw";
+  public static final boolean DEBUG=false;
 
   private Object ptr_lock = new Object();
   private long current_root;
@@ -43,8 +48,8 @@ public class Lobstack
   private static long ROOT_WRITE_LOCATION = 8;
 
   private LRUCache<Long, FileChannel> data_files;
+  private LRUCache<Long, ByteBuffer> cached_data;
 
-  public static final String MODE="rw";
 
 
   public Lobstack(File dir, String name)
@@ -63,6 +68,7 @@ public class Lobstack
     }
 
     data_files = new LRUCache<Long, FileChannel>(MAX_OPEN_FILES);
+    cached_data = new LRUCache<Long, ByteBuffer>(MAX_CACHED_DATA);
 
     RandomAccessFile root_file = new RandomAccessFile(new File(dir, name + ".root"), MODE);
 
@@ -70,23 +76,8 @@ public class Lobstack
 
     if (root_file.length()==0)
     {
-      synchronized(ptr_lock)
-      {
-        current_root=-1;
-        current_write_location=0;
-
-        root_file.setLength(16);
-
-        LobstackNode root = new LobstackNode("");
-        ByteBuffer serial = root.serialize();
-        long loc = allocateSpace(serial.capacity());
-
-        TreeMap<Long, ByteBuffer> saves = new TreeMap<Long, ByteBuffer> ();
-        saves.put(loc, serial);
-        saveGroup(saves);
-        setRoot(loc);
-      }
-
+      root_file.setLength(16);
+      reset();
     }
     else
     {
@@ -103,8 +94,54 @@ public class Lobstack
  
     synchronized(ptr_lock)
     {
-      System.out.println(stack_name + ": bytes in DB: " + current_write_location);
+      double gb = current_write_location / 1024.0 / 1024.0 / 1024.0;
+      DecimalFormat df = new DecimalFormat("0.000");
+      System.out.println(stack_name + ": GB: " + df.format(gb));
     }
+  }
+
+  private void reset()
+    throws IOException
+  {
+    synchronized(cached_data)
+    {
+      cached_data.clear();
+    }
+    synchronized(ptr_lock)
+    {
+      current_root=-1;
+      current_write_location=0;
+
+
+      LobstackNode root = new LobstackNode("");
+      ByteBuffer serial = root.serialize();
+      long loc = allocateSpace(serial.capacity());
+      TreeMap<Long, ByteBuffer> saves = new TreeMap<Long, ByteBuffer> ();
+      saves.put(loc, serial);
+      saveGroup(saves);
+      setRoot(loc);
+    }
+    synchronized(cached_data)
+    {
+      cached_data.clear();
+    }
+
+
+  }
+
+  /**
+   * Compress the table to the entries that are currently visible.
+   * All entries must fit in memory.
+   * This breaks existing snapshots.
+   * Something breaking during this will absolutely hose the database
+   */ 
+  public synchronized void compress()
+    throws IOException
+  {
+    Map<String, ByteBuffer> all_data = getByPrefix("");
+    reset();
+    putAll(all_data);
+    
   }
 
  
@@ -227,9 +264,17 @@ public class Lobstack
   protected ByteBuffer loadAtLocation(long loc)
     throws IOException
   {
+    synchronized(cached_data)
+    {
+      ByteBuffer bb = cached_data.get(loc);
+      if (bb != null) return bb;
+    }
+
+
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
     FileChannel fc = getDataFile(file_idx);
+    ByteBuffer bb = null;
     synchronized(fc)
     {
       fc.position(in_file_loc);
@@ -242,10 +287,18 @@ public class Lobstack
       int len = lenbb.getInt();
 
       byte[] buff = new byte[len];
-      ByteBuffer bb = ByteBuffer.wrap(buff);
+      bb = ByteBuffer.wrap(buff);
       readBuffer(fc, bb);
-      return bb;
     }
+    
+    if (bb.capacity() < MAX_CACHE_SIZE)
+    {
+      synchronized(cached_data)
+      {
+        cached_data.put(loc, bb);
+      }
+    }
+    return bb;
 
   }
 
@@ -297,18 +350,27 @@ public class Lobstack
       long start_location = me.getKey();
       ByteBuffer data = me.getValue();
       int data_size = data.capacity();
-      //System.out.println(stack_name + " - saving to " + me.getKey() + " sz " + data_size);
+      if (DEBUG) System.out.println(stack_name + " - saving to " + me.getKey() + " sz " + data_size);
+
+      if (data_size < MAX_CACHE_SIZE)
+      {
+        synchronized(cached_data)
+        {
+          cached_data.put(start_location, data);
+        }
+      }
 
       long file_idx = start_location / SEGMENT_FILE_SIZE;
 
       long in_file_loc = start_location % SEGMENT_FILE_SIZE;
 
       FileChannel fc = getDataFile(file_idx);
+
       if ((last_fc != null) && (last_fc != fc))
       {
         synchronized(last_fc)
         {
-          last_fc.force(false);
+          last_fc.force(true);
         }
       }
 
@@ -331,7 +393,7 @@ public class Lobstack
     {
       synchronized(last_fc)
       {
-        last_fc.force(false);
+        last_fc.force(true);
       }
     }
 
@@ -359,7 +421,7 @@ public class Lobstack
     throws IOException
   {
   
-    //System.out.println(stack_name + " - new root at " + loc);
+    if (DEBUG) System.out.println(stack_name + " - new root at " + loc);
     synchronized(ptr_lock)
     {
       synchronized(root_file_channel)
@@ -371,7 +433,7 @@ public class Lobstack
         bb.rewind();
         writeBuffer(root_file_channel, bb);
 
-        root_file_channel.force(false);
+        root_file_channel.force(true);
  
         current_root = loc;
       }
@@ -386,7 +448,9 @@ public class Lobstack
       FileChannel fc = data_files.get(idx);
       if (fc == null)
       {
-        RandomAccessFile f = new RandomAccessFile(new File(dir, stack_name +"." + idx + ".data"), MODE);
+        String num = "" + idx;
+        while(num.length() < 4) num = "0" + num;
+        RandomAccessFile f = new RandomAccessFile(new File(dir, stack_name +"." + num + ".data"), MODE);
 
         f.setLength(SEGMENT_FILE_SIZE);
 

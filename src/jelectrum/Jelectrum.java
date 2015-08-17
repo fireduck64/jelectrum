@@ -74,7 +74,7 @@ public class Jelectrum
         }
         else if (db_type.equals("lobstack"))
         {
-          jelectrum_db = new JelectrumDBLobstack(config);
+          jelectrum_db = new JelectrumDBLobstack(this, config);
         }
         else
         {

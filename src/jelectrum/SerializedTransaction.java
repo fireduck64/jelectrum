@@ -18,6 +18,15 @@ public class SerializedTransaction implements java.io.Serializable
         bytes = tx.bitcoinSerialize();
         saved_time=System.currentTimeMillis();
     }
+    public SerializedTransaction(byte[] bytes)
+    {
+      this.bytes = bytes;
+    }
+
+    public byte[] getBytes()
+    {
+      return bytes;
+    }
 
     public Transaction getTx(NetworkParameters params)
     {
