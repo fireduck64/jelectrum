@@ -30,7 +30,7 @@ public class Lobstack
 
   public static final int MAX_OPEN_FILES=512;
   public static final int MAX_CACHED_DATA=32*1024;
-  public static final int MAX_CACHE_SIZE=65536*4;
+  public static final int MAX_CACHE_SIZE=65536;
 
   public static final String MODE="rw";
   public static final boolean DEBUG=false;
