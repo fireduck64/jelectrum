@@ -261,14 +261,14 @@ public class LobstackNode implements java.io.Serializable
       ByteArrayOutputStream b_out = new ByteArrayOutputStream();
       DataOutputStream d_out = new DataOutputStream(b_out);
 
-      writeString(d_out, prefix);
+      SerialUtil.writeString(d_out, prefix);
       d_out.writeInt(children.size());
       for(Map.Entry<String, NodeEntry> me : children.entrySet())
       {
         String sub = me.getKey();
         NodeEntry ne = me.getValue();
         String subsub = sub.substring(prefix.length());
-        writeString(d_out, subsub);
+        SerialUtil.writeString(d_out, subsub);
         d_out.writeBoolean(ne.node);
         d_out.writeLong(ne.location);
       }
@@ -284,23 +284,6 @@ public class LobstackNode implements java.io.Serializable
   }
 
 
-  private static void writeString(DataOutputStream out, String str)
-    throws IOException
-  {
-    byte[] b= str.getBytes();
-    out.writeInt(b.length);
-    out.write(b);
-  }
-  private static String readString(DataInputStream in)
-    throws IOException
-  {
-    int len = in.readInt();
-    byte[] b = new byte[len];
-    in.read(b);
-    return new String(b);
-
-  }
-
   public static LobstackNode deserialize(ByteBuffer buf)
   {
     try
@@ -308,12 +291,12 @@ public class LobstackNode implements java.io.Serializable
       ByteArrayInputStream b_in = new ByteArrayInputStream(buf.array());
       DataInputStream d_in = new DataInputStream(b_in);
 
-      String prefix = readString(d_in);
+      String prefix = SerialUtil.readString(d_in);
       int count = d_in.readInt();
       TreeMap<String, NodeEntry> c = new TreeMap<String, NodeEntry>();
       for(int i=0; i<count; i++)
       {
-        String sub = prefix + readString(d_in);
+        String sub = prefix + SerialUtil.readString(d_in);
         NodeEntry ne = new NodeEntry();
         ne.node = d_in.readBoolean();
         ne.location = d_in.readLong();

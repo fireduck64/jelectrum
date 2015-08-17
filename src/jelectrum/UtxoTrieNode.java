@@ -30,17 +30,18 @@ import java.io.FileInputStream;
 import java.util.Scanner;
 
 import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
-import java.util.zip.GZIPOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import java.text.DecimalFormat;
 import java.util.Random;
+import lobstack.SerialUtil;
 
   public class UtxoTrieNode implements java.io.Serializable
   {
     private String prefix;
-    private String last_skip=null;
 
     private TreeMap<String, Sha256Hash> springs;
 
@@ -50,6 +51,53 @@ import java.util.Random;
       springs = new TreeMap<String, Sha256Hash>();
       this.prefix = prefix;
     }
+
+    public UtxoTrieNode(ByteBuffer bb)
+      throws java.io.IOException
+    {
+      DataInputStream din=new DataInputStream(new ByteArrayInputStream(bb.array()));
+
+      prefix = SerialUtil.readString(din);
+      int count = din.readInt();
+
+      byte hash_bytes[]=new byte[32];
+      springs = new TreeMap<String, Sha256Hash>();
+
+      for(int i=0; i<count; i++)
+      {
+        String sub = SerialUtil.readString(din);
+        din.readFully(hash_bytes);
+        Sha256Hash hash = new Sha256Hash(hash_bytes);
+        if (hash.toString().equals("0000000000000000000000000000000000000000000000000000000000000000")) hash=null;
+        springs.put(sub, hash);
+
+      }
+      
+    }
+
+    public ByteBuffer serialize()
+      throws java.io.IOException
+    {
+      ByteArrayOutputStream b_out = new ByteArrayOutputStream();
+      DataOutputStream d_out = new DataOutputStream(b_out);
+
+      SerialUtil.writeString(d_out, prefix);
+      d_out.writeInt(springs.size());
+      for(Map.Entry<String, Sha256Hash> me : springs.entrySet())
+      {
+        SerialUtil.writeString(d_out, me.getKey());
+        Sha256Hash hash = me.getValue();
+
+        if (hash == null) hash = new Sha256Hash("0000000000000000000000000000000000000000000000000000000000000000");
+        d_out.write(hash.getBytes());
+      }
+
+      d_out.flush();
+
+
+      return ByteBuffer.wrap(b_out.toByteArray());
+    }
+
 
 
     public void addSpring(String s, UtxoTrieMgr mgr)

@@ -730,7 +730,7 @@ public class Importer
                     }
                     if (name.equals("5-minute"))
                     {
-                        if (tx_rate < 10.0) System.exit(0);
+                        if (tx_rate < 75.0) System.exit(0);
                     }
                     if (name.equals("1-minute"))
                     {

@@ -27,7 +27,8 @@ public class LobstackMap<K,V> implements Map<K, V>
     STRING,
     SHA256HASH,
     OBJECT,
-    SERIALIZEDTRANSACTION
+    SERIALIZEDTRANSACTION,
+    UTXONODE
   }
 
 
@@ -103,6 +104,10 @@ public class LobstackMap<K,V> implements Map<K, V>
         {
           return (V) new SerializedTransaction(buff.array());
         }
+        if (mode==ConversionMode.UTXONODE)
+        {
+          return (V) new UtxoTrieNode(buff);
+        }
         throw new RuntimeException("No conversion found");
       }
       catch(java.io.IOException e){throw new RuntimeException(e);}
@@ -141,6 +146,7 @@ public class LobstackMap<K,V> implements Map<K, V>
     }
 
     private ByteBuffer convertV(V value)
+      throws java.io.IOException
     {
       ByteBuffer b = null;
       if (value != null)
@@ -174,6 +180,11 @@ public class LobstackMap<K,V> implements Map<K, V>
         {
           SerializedTransaction stx = (SerializedTransaction)value;
           b = ByteBuffer.wrap(stx.getBytes());
+        }
+        if (mode==ConversionMode.UTXONODE)
+        {
+          UtxoTrieNode node = (UtxoTrieNode) value;
+          return node.serialize();
         }
 
 
