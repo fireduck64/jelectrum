@@ -45,6 +45,8 @@ import lobstack.SerialUtil;
 
     private TreeMap<String, Sha256Hash> springs;
 
+    private static Sha256Hash hash_null = new Sha256Hash("74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b");
+
 
     public UtxoTrieNode(String prefix)
     {
@@ -68,11 +70,20 @@ import lobstack.SerialUtil;
         String sub = SerialUtil.readString(din);
         din.readFully(hash_bytes);
         Sha256Hash hash = new Sha256Hash(hash_bytes);
-        if (hash.toString().equals("0000000000000000000000000000000000000000000000000000000000000000")) hash=null;
+        if (hash.equals(hash_null)) hash=null;
         springs.put(sub, hash);
 
       }
       
+    }
+
+    public String getPrefix()
+    {
+      return prefix;
+    }
+    public Map<String, Sha256Hash> getSprings()
+    {
+      return springs;
     }
 
     public ByteBuffer serialize()
@@ -81,14 +92,18 @@ import lobstack.SerialUtil;
       ByteArrayOutputStream b_out = new ByteArrayOutputStream();
       DataOutputStream d_out = new DataOutputStream(b_out);
 
+
       SerialUtil.writeString(d_out, prefix);
       d_out.writeInt(springs.size());
       for(Map.Entry<String, Sha256Hash> me : springs.entrySet())
       {
+
         SerialUtil.writeString(d_out, me.getKey());
         Sha256Hash hash = me.getValue();
 
-        if (hash == null) hash = new Sha256Hash("0000000000000000000000000000000000000000000000000000000000000000");
+
+        if (hash == null) hash = hash_null;
+        
         d_out.write(hash.getBytes());
       }
 

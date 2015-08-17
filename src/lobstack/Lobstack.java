@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.Random;
 import java.nio.channels.FileChannel;
 
+import java.util.concurrent.BlockingQueue;
+
 
 /**
  * Limitations: 
@@ -28,7 +30,7 @@ public class Lobstack
   public String DATA_TAG="♥";
   public long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
-  public static final int MAX_OPEN_FILES=512;
+  public static final int MAX_OPEN_FILES=2048;
   public static final int MAX_CACHED_DATA=32*1024;
   public static final int MAX_CACHE_SIZE=65536;
 
@@ -38,6 +40,7 @@ public class Lobstack
   private Object ptr_lock = new Object();
   private long current_root;
   private long current_write_location;
+  
 
   private File dir;
   private String stack_name;
@@ -92,12 +95,18 @@ public class Lobstack
 
     }
  
+    showSize();
+
+  }
+  public void showSize()
+  {
     synchronized(ptr_lock)
     {
       double gb = current_write_location / 1024.0 / 1024.0 / 1024.0;
       DecimalFormat df = new DecimalFormat("0.000");
       System.out.println(stack_name + ": GB: " + df.format(gb));
     }
+
   }
 
   private void reset()
@@ -164,12 +173,38 @@ public class Lobstack
 
   }
 
+  public synchronized void close()
+    throws IOException
+  {
+    root_file_channel.force(true);
+    root_file_channel.close();
+
+
+    synchronized(data_files)
+    {
+      for(FileChannel fc : data_files.values())
+      {
+        fc.force(true);
+        fc.close();
+      }
+    }
+  
+  }
+
   public void printTree()
     throws IOException
   {
     LobstackNode root = loadNodeAt(getCurrentRoot());
     root.printTree(this);
 
+  }
+
+  public void getAll(BlockingQueue<Map.Entry<String, ByteBuffer> > consumer)
+    throws IOException, InterruptedException
+  {
+
+    LobstackNode root = loadNodeAt(getCurrentRoot());
+    root.getAll(this, consumer);
   }
 
   public synchronized void putAll(Map<String, ByteBuffer> put_map)
@@ -253,8 +288,10 @@ public class Lobstack
     for(Map.Entry<String, ByteBuffer> me : data.entrySet())
     {
       String key = me.getKey();
+      ByteBuffer bb = me.getValue();
+      bb.rewind();
 
-      return_map.put( key.substring(0,key.length() - 1), me.getValue());
+      return_map.put( key.substring(0,key.length() - 1), bb);
     }
 
     return return_map;
@@ -267,7 +304,7 @@ public class Lobstack
     synchronized(cached_data)
     {
       ByteBuffer bb = cached_data.get(loc);
-      if (bb != null) return bb;
+      if (bb != null) return ByteBuffer.wrap(bb.array());
     }
 
 
@@ -289,13 +326,14 @@ public class Lobstack
       byte[] buff = new byte[len];
       bb = ByteBuffer.wrap(buff);
       readBuffer(fc, bb);
+      bb.rewind();
     }
     
     if (bb.capacity() < MAX_CACHE_SIZE)
     {
       synchronized(cached_data)
       {
-        cached_data.put(loc, bb);
+        cached_data.put(loc, ByteBuffer.wrap(bb.array()));
       }
     }
     return bb;
@@ -382,6 +420,8 @@ public class Lobstack
         bb.putInt(data_size);
         bb.rewind();
         writeBuffer(fc,bb);
+
+        data.rewind();
         writeBuffer(fc,data);
 
         last_fc = fc;
@@ -403,18 +443,22 @@ public class Lobstack
   private void writeBuffer(FileChannel fc, ByteBuffer bb)
     throws IOException
   {
+    bb.rewind();
     while(bb.remaining()>0)
     {
       fc.write(bb);
     }
+    bb.rewind();
   }
   private void readBuffer(FileChannel fc, ByteBuffer bb)
     throws IOException
   {
+    bb.rewind();
     while(bb.remaining()>0)
     {
       fc.read(bb);
     }
+    bb.rewind();
   }
 
   private void setRoot(long loc)

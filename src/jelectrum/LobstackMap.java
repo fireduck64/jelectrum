@@ -92,6 +92,7 @@ public class LobstackMap<K,V> implements Map<K, V>
           }
           catch(java.io.IOException e)
           {
+            System.out.println("Exception reading key: " + key);
             throw new RuntimeException(e);
           }
           catch(ClassNotFoundException e)

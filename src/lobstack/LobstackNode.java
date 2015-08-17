@@ -18,6 +18,8 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.concurrent.BlockingQueue;
 
 public class LobstackNode implements java.io.Serializable
 {
@@ -58,6 +60,24 @@ public class LobstackNode implements java.io.Serializable
         System.out.println(key + " data @" + ne.location + " - bytes:" + stack.loadAtLocation(ne.location).capacity());
       }
     }
+  }
+  public void getAll(Lobstack stack, BlockingQueue<Map.Entry<String, ByteBuffer> > consumer)
+    throws IOException, InterruptedException
+  {
+    for(String key : children.keySet())
+    {
+      NodeEntry ne = children.get(key);
+      if (ne.node)
+      {
+        stack.loadNodeAt(ne.location).getAll(stack, consumer);
+      }
+      else
+      {
+        String data_key = key.substring(0, key.length()-1);
+        consumer.put(new SimpleEntry<String,ByteBuffer>(data_key, stack.loadAtLocation(ne.location)));
+      }
+    }
+   
   }
 
   public long putAll(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, Map<String, NodeEntry> put_map)

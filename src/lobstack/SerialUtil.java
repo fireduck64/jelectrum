@@ -19,7 +19,7 @@ public class SerialUtil
   {
     int len = in.readInt();
     byte[] b = new byte[len];
-    in.read(b);
+    in.readFully(b);
     return new String(b);
 
   }

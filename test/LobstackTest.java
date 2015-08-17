@@ -13,6 +13,8 @@ import java.util.TreeMap;
 
 import java.util.concurrent.Semaphore;
 import jelectrum.Config;
+import jelectrum.UtxoTrieNode;
+import com.google.bitcoin.core.Sha256Hash;
 
 public class LobstackTest
 {
@@ -307,7 +309,37 @@ public class LobstackTest
   }
 
   
+  @Test
+  public void testUtxoNode()
+    throws Exception
+  {
+    UtxoTrieNode a = new UtxoTrieNode("a");
+    
+    serialTest(a);
 
+    a.getSprings().put("meow", null);
+    serialTest(a);
+    a.getSprings().put("notnull", new Sha256Hash("4608c52cd46a96450a48ae518c7f0c3c874024b54a64d7505d85bf86f9b27277"));
+    serialTest(a);
+
+    UtxoTrieNode b = new UtxoTrieNode("");
+    b.getSprings().put("",null);
+
+    serialTest(b);
+
+  }
+
+  private void serialTest(UtxoTrieNode a)
+    throws Exception
+  {
+    UtxoTrieNode b = new UtxoTrieNode(a.serialize());
+
+    Assert.assertEquals(a.getPrefix(), b.getPrefix());
+    System.out.println(a.getSprings());
+    System.out.println(b.getSprings());
+    Assert.assertEquals(a.getSprings(), b.getSprings());
+
+  }
 
 
 
