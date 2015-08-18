@@ -30,6 +30,7 @@ public class JelectrumDBLobstack extends JelectrumDB
         this.jelly = jelly;
 
         config.require("lobstack_path");
+        config.require("lobstack_minfree_gb");
         open();
     }
 
@@ -38,7 +39,12 @@ public class JelectrumDBLobstack extends JelectrumDB
 
         try
         {
-            new File(conf.get("lobstack_path")).mkdirs();
+          File path = new File(conf.get("lobstack_path"));
+
+          path.mkdirs();
+          long min_space = conf.getInt("lobstack_minfree_gb") * 1024L * 1024L * 1024L;
+
+          new FreeSpaceWatcher(path, jelly, min_space).start();
 
 
             /*jelly.getEventLog().alarm("Doing compress");
