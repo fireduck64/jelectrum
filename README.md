@@ -24,6 +24,19 @@ On startup, jelectrum will create tables as needed.
 PostgreSQL: Install and setup postgresql.
 On startup, jelectrum will create tables and indexes needed.  You'll need to create the database and a user and put it in the config.
 
+Lobstack: Copy the lobstack config entries and modify them.  Lobstack uses a stupid amount of space and needs to occasionally have
+a compress run.  See compressdb.sh.  For initial sync, the pattern is something like:
+
+while true
+do
+  java -Xmx4g -Xss256k -jar jar/Jelectrum.jar jelly.conf
+  ./compressdb.sh
+done
+
+It will exit when space gets low (configurable with 'lobstack_minfree_gb').  Then you run a compress, then run the service again.
+
+
+
 Make your SSL cert:
 ./makekey.sh
 
@@ -45,20 +58,17 @@ Feel free to connect to my instance which should be running the latest version.
 ```
 b.1209k.com 50001 (tcp)
 b.1209k.com 50002 (ssl)
+h.1209k.com 50001 (tcp)
+h.1209k.com 50002 (ssl)
 ```
 
 What Doesn't Work
 -----------------
 
-1) IRC for advertising server.
-
-2) Whatever cleverness is being done for UXTO for Electrum 2.0.  I'll have to wait to see
-how this shakes out and then implement here.
-
-3) HTTP/HTTPS.  I see no strong reason to support those over TCP and SSL+TCP.  I imagine it wouldn't be too hard
+1) HTTP/HTTPS.  I see no strong reason to support those over TCP and SSL+TCP.  I imagine it wouldn't be too hard
 but I don't see the need.  If someone feels otherwise, let me know.
 
-4) The following commands that clients don't seem to issue (yet):
+2) The following commands that clients don't seem to issue (yet):
 ```
 blockchain.address.listunspent
 blockchain.address.get_balance
