@@ -21,6 +21,7 @@ public class LevelNetClient
   public static final int RESULT_GOOD = 1273252631;
   public static final int RESULT_BAD = 9999;
   public static final int RESULT_NOTFOUND = 133133;
+  public static final int SOCKET_TIMEOUT = 15000;
 
 
   private Config config;
@@ -226,7 +227,7 @@ public class LevelNetClient
       {
         sock = new Socket(host, port);
         sock.setTcpNoDelay(true);
-        sock.setSoTimeout(5000);
+        sock.setSoTimeout(SOCKET_TIMEOUT);
 
 
         d_in = new DataInputStream(sock.getInputStream());

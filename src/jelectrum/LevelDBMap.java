@@ -24,7 +24,9 @@ public class LevelDBMap<K,V> implements Map<K, V>
   {
     STRING,
     SHA256HASH,
-    OBJECT
+    OBJECT,
+    SERIALIZEDTRANSACTION,
+    UTXONODE
   }
 
 
@@ -91,10 +93,16 @@ public class LevelDBMap<K,V> implements Map<K, V>
         }
 
       }
-      else
+      if (mode==ConversionMode.SERIALIZEDTRANSACTION)
       {
-        throw new RuntimeException("No conversion found");
+        return (V) new SerializedTransaction(buff.array());
       }
+      if (mode==ConversionMode.UTXONODE)
+      { 
+        return (V) new UtxoTrieNode(buff);
+      }
+ 
+      throw new RuntimeException("No conversion found");
 
     }
     public int hashCode() 
@@ -155,7 +163,16 @@ public class LevelDBMap<K,V> implements Map<K, V>
           }
 
         }
-
+        if (mode==ConversionMode.SERIALIZEDTRANSACTION)
+        { 
+          SerializedTransaction stx = (SerializedTransaction)value;
+          b = ByteBuffer.wrap(stx.getBytes());
+        }
+        if (mode==ConversionMode.UTXONODE)
+        { 
+          UtxoTrieNode node = (UtxoTrieNode) value;
+          return node.serialize();
+        }
 
       }
       return b;

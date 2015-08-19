@@ -295,6 +295,8 @@ int main(int argc, char* argv[])
     return -1;
   }
 
+  cout << "LevelDB version " << leveldb::kMajorVersion << "." << leveldb::kMinorVersion << endl;
+
   
   leveldb::Options options;
   options.create_if_missing = true;

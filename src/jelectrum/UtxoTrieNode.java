@@ -55,24 +55,30 @@ import lobstack.SerialUtil;
     }
 
     public UtxoTrieNode(ByteBuffer bb)
-      throws java.io.IOException
     {
-      DataInputStream din=new DataInputStream(new ByteArrayInputStream(bb.array()));
-
-      prefix = SerialUtil.readString(din);
-      int count = din.readInt();
-
-      byte hash_bytes[]=new byte[32];
-      springs = new TreeMap<String, Sha256Hash>();
-
-      for(int i=0; i<count; i++)
+      try
       {
-        String sub = SerialUtil.readString(din);
-        din.readFully(hash_bytes);
-        Sha256Hash hash = new Sha256Hash(hash_bytes);
-        if (hash.equals(hash_null)) hash=null;
-        springs.put(sub, hash);
+        DataInputStream din=new DataInputStream(new ByteArrayInputStream(bb.array()));
 
+        prefix = SerialUtil.readString(din);
+        int count = din.readInt();
+
+        byte hash_bytes[]=new byte[32];
+        springs = new TreeMap<String, Sha256Hash>();
+
+        for(int i=0; i<count; i++)
+        {
+          String sub = SerialUtil.readString(din);
+          din.readFully(hash_bytes);
+          Sha256Hash hash = new Sha256Hash(hash_bytes);
+          if (hash.equals(hash_null)) hash=null;
+          springs.put(sub, hash);
+
+        }
+      }
+      catch(java.io.IOException e)
+      {
+        throw new RuntimeException(e);
       }
       
     }
@@ -87,30 +93,36 @@ import lobstack.SerialUtil;
     }
 
     public ByteBuffer serialize()
-      throws java.io.IOException
     {
-      ByteArrayOutputStream b_out = new ByteArrayOutputStream();
-      DataOutputStream d_out = new DataOutputStream(b_out);
-
-
-      SerialUtil.writeString(d_out, prefix);
-      d_out.writeInt(springs.size());
-      for(Map.Entry<String, Sha256Hash> me : springs.entrySet())
+      try
       {
+        ByteArrayOutputStream b_out = new ByteArrayOutputStream();
+        DataOutputStream d_out = new DataOutputStream(b_out);
 
-        SerialUtil.writeString(d_out, me.getKey());
-        Sha256Hash hash = me.getValue();
+
+        SerialUtil.writeString(d_out, prefix);
+        d_out.writeInt(springs.size());
+        for(Map.Entry<String, Sha256Hash> me : springs.entrySet())
+        {
+
+          SerialUtil.writeString(d_out, me.getKey());
+          Sha256Hash hash = me.getValue();
 
 
-        if (hash == null) hash = hash_null;
-        
-        d_out.write(hash.getBytes());
+          if (hash == null) hash = hash_null;
+          
+          d_out.write(hash.getBytes());
+        }
+
+        d_out.flush();
+
+
+        return ByteBuffer.wrap(b_out.toByteArray());
       }
-
-      d_out.flush();
-
-
-      return ByteBuffer.wrap(b_out.toByteArray());
+      catch(java.io.IOException e)
+      {
+        throw new RuntimeException(e);
+      }
     }
 
 
