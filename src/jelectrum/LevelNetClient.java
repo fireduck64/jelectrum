@@ -23,6 +23,7 @@ public class LevelNetClient
   public static final int RESULT_NOTFOUND = 133133;
   public static final int SOCKET_TIMEOUT = 15000;
 
+  private Jelectrum jelly;
 
   private Config config;
 
@@ -35,8 +36,9 @@ public class LevelNetClient
 
   public boolean throw_on_error=false;
 
-  public LevelNetClient(Config config) throws Exception
+  public LevelNetClient(Jelectrum jelly, Config config) throws Exception
   {
+    this.jelly = jelly;
     this.config = config;
 
     config.require("leveldb_host");
@@ -69,7 +71,7 @@ public class LevelNetClient
         }
         catch(java.io.IOException e)
         {
-          e.printStackTrace();
+          jelly.getEventLog().alarm("LevelDB connection failure: " + e);
           if (throw_on_error) throw new RuntimeException(e);
           try{ Thread.sleep(2500); } catch(Throwable t){}
         }
@@ -124,7 +126,8 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        e.printStackTrace();
+
+        jelly.getEventLog().log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -151,7 +154,7 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        e.printStackTrace();
+        jelly.getEventLog().log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -178,7 +181,7 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        e.printStackTrace();
+        jelly.getEventLog().log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -204,7 +207,7 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        e.printStackTrace();
+        jelly.getEventLog().log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }

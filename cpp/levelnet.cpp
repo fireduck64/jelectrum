@@ -186,6 +186,7 @@ void* handle_connection(void* arg)
       else
       {
         cout << db_stat.ToString() << endl;
+        if (db_stat.IsCorruption() || db_stat.IsIOError()) exit(10);
       }
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
@@ -228,6 +229,7 @@ void* handle_connection(void* arg)
       else
       {
         cout << db_stat.ToString() << endl;
+        if (db_stat.IsCorruption() || db_stat.IsIOError()) exit(10);
       }
  
       for(list<leveldb::Slice>::iterator I = slices.begin(); I!=slices.end(); I++)

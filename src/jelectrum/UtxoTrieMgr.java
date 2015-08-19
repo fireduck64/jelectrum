@@ -122,9 +122,9 @@ public class UtxoTrieMgr
   {
     DecimalFormat df = new DecimalFormat("0.000");
 
-    get_block_stat.print("get_block", df);
-    add_block_stat.print("add_block", df);
-    get_hash_stat.print("get_hash", df);
+    //get_block_stat.print("get_block", df);
+    //add_block_stat.print("add_block", df);
+    //get_hash_stat.print("get_hash", df);
     jelly.getEventLog().alarm("UTXO Flushing: " + node_map.size() + " height: " + block_height);
     saveState(new UtxoStatus(last_added_block_hash, last_flush_block_hash));
     db_map.putAll(node_map.descendingMap());

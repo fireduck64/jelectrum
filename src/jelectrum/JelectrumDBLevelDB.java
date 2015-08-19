@@ -20,13 +20,13 @@ public class JelectrumDBLevelDB extends JelectrumDB
     protected LevelDBMapSet tx_to_block_map;
     protected LevelNetClient client;
 
-    public JelectrumDBLevelDB(Config config)
+    public JelectrumDBLevelDB(Jelectrum jelly, Config config)
         throws Exception
     {
         super(config);
 
         this.conf = config;
-        client = new LevelNetClient(config);
+        client = new LevelNetClient(jelly, config);
 
         open();
 

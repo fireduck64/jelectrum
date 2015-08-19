@@ -72,7 +72,7 @@ public class Jelectrum
         }
         else if (db_type.equals("leveldb"))
         {
-          jelectrum_db = new JelectrumDBLevelDB(config);
+          jelectrum_db = new JelectrumDBLevelDB(this, config);
         }
         else if (db_type.equals("lobstack"))
         {
