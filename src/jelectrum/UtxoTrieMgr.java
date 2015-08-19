@@ -354,7 +354,7 @@ public class UtxoTrieMgr
         {
           synchronized(block_done_notify)
           {
-            block_done_notify.wait();
+            block_done_notify.wait(15000);
           }
         }
         catch(Throwable t){}
@@ -592,7 +592,12 @@ public class UtxoTrieMgr
        
         Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
         long t1=System.currentTimeMillis();
-        Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(params);
+        SerializedBlock sb = jelly.getDB().getBlockMap().get(block_hash);
+        if (sb == null) 
+        {
+          try{Thread.sleep(250); return true;}catch(Throwable t){}
+        }
+        Block b = sb.getBlock(params);
         long t2=System.currentTimeMillis();
 
         get_block_stat.addDataPoint(t2-t1);

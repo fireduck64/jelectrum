@@ -104,6 +104,7 @@ public class Jelectrum
 
         bitcoin_rpc = new BitcoinRPC(config);
         bitcoin_rpc.testConnection();
+        System.out.println("Fee: " + bitcoin_rpc.getFeeEstimate(2));
 
 
     }

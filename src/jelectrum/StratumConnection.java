@@ -413,10 +413,20 @@ public class StratumConnection
 
                 sendMessage(reply);
             }
+            else if (method.equals("blockchain.estimatefee"))
+            {
+                JSONObject reply = new JSONObject();
+                reply.put("id", id);
+                JSONArray arr = msg.getJSONArray("params");
+                int block = arr.getInt(0);
+
+                reply.put("result", jelectrum.getBitcoinRPC().getFeeEstimate(block));
+                sendMessage(reply);
+            }
             else
             {
-                jelectrum.getEventLog().log(connection_id + " - Unknown electrum method: " + method);
-                System.out.println("Unknown method - " + method);
+                jelectrum.getEventLog().alarm(connection_id + " - Unknown electrum method: " + method);
+                System.out.println(msg);
                 JSONObject reply = new JSONObject();
                 reply.put("id", id);
                 reply.put("error","unknown method - " + method);

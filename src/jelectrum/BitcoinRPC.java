@@ -147,6 +147,23 @@ public class BitcoinRPC
 
     }
 
+    public double getFeeEstimate(int blocks)
+        throws java.io.IOException, org.json.JSONException
+    {
+        Random rnd = new Random();
+        JSONObject msg = new JSONObject();
+        msg.put("id", "" + rnd.nextInt());
+        msg.put("method","estimatefee");
+        JSONArray params = new JSONArray();
+        params.put(blocks);
+        msg.put("params", params);
+        JSONObject reply= sendPost(msg);
+
+        return reply.getDouble("result");
+
+    }
+
+
     public void testConnection()
         throws java.io.IOException, org.json.JSONException
     {
