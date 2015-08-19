@@ -42,6 +42,8 @@ public class Jelectrum
     private BitcoinRPC bitcoin_rpc;
     private UtxoTrieMgr utxo_trie_mgr;
 
+    private volatile boolean caught_up=false;
+
     public Jelectrum(Config conf)
         throws Exception
     {
@@ -153,6 +155,7 @@ public class Jelectrum
 
         System.out.println("Block chain caught up");
         event_log.log("Block chain caught up");
+        caught_up=true;
         new IrcBot(this).start();
 
         importer.setBlockPrintEvery(1);
@@ -177,6 +180,11 @@ public class Jelectrum
         jelectrum_db.commit();
         jelectrum_db.close();*/
 
+    }
+
+    public boolean isUpToDate()
+    {
+      return caught_up;
     }
 
     public Config getConfig()

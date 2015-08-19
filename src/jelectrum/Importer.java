@@ -522,6 +522,16 @@ public class Importer
         file_db.getBlockMap().put(hash, new SerializedBlock(block));
 
         block_wait_sem.release(1024);
+        boolean wait_for_utxo = false;
+        if (jelly.isUpToDate() && jelly.getUtxoTrieMgr().isUpToDate())
+        {
+          wait_for_utxo=true;
+        }
+
+        
+        jelly.getUtxoTrieMgr().notifyBlock(wait_for_utxo);
+        jelly.getEventLog().alarm("UTXO done: " + jelly.getUtxoTrieMgr().getRootHash());
+        jelly.getElectrumNotifier().notifyNewBlock(block);
 
         long t2 = System.currentTimeMillis();
         DecimalFormat df = new DecimalFormat("0.000");
@@ -530,14 +540,13 @@ public class Importer
 
         if (h % block_print_every ==0)
         {
-            System.out.println("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
+            jelly.getEventLog().alarm("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
         }
         jelly.getEventLog().log("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
 
         imported_blocks.incrementAndGet();
 
-        jelly.getElectrumNotifier().notifyNewBlock(block);
-        jelly.getUtxoTrieMgr().notifyBlock();
+
     }
 
     private void waitForBlockStored(Sha256Hash hash)

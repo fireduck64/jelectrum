@@ -71,11 +71,14 @@ public class UtxoTrieMgr
   protected Sha256Hash last_added_block_hash;
 
   protected Object block_notify= new Object();
+  protected Object block_done_notify = new Object();
 
   protected Map<Integer, Sha256Hash> authMap;
 
   //Not to be trusted, only used for logging
   protected int block_height;
+
+  protected boolean caught_up=false;
 
   public UtxoTrieMgr(Jelectrum jelly)
   {
@@ -92,6 +95,11 @@ public class UtxoTrieMgr
       resetEverything();
     }
 
+  }
+
+  public boolean isUpToDate()
+  {
+    return caught_up;
   }
 
   public void start()
@@ -333,12 +341,25 @@ public class UtxoTrieMgr
     }
   }
 
-  public void notifyBlock()
+  public void notifyBlock(boolean wait_for_it)
   {
     synchronized(block_notify)
     {
       block_notify.notifyAll();
     }
+
+      if (wait_for_it)
+      {
+        try
+        {
+          synchronized(block_done_notify)
+          {
+            block_done_notify.wait();
+          }
+        }
+        catch(Throwable t){}
+      }
+    
   }
 
   public static Sha256Hash getHashFromKey(String key)
@@ -560,8 +581,11 @@ public class UtxoTrieMgr
       }
 
       int curr_height = jelly.getDB().getBlockStoreMap().get(last_added_block_hash).getHeight();
-      int head_height = jelly.getElectrumNotifier().getHeadHeight();
+      int head_height = jelly.getDB().getBlockStoreMap().get(
+        jelly.getBlockChainCache().getHead()).getHeight();
 
+      boolean near_caught_up=caught_up;
+      caught_up=false;
 
       for(int i=curr_height+1; i<=head_height; i++)
       {
@@ -583,7 +607,8 @@ public class UtxoTrieMgr
           Sha256Hash root_hash = null;
 
 
-          if ((i % 50 == 0) || (authMap.containsKey(i)))
+          if (near_caught_up || 
+          ((i % 50 == 0) || (authMap.containsKey(i))))
           {
             t1=System.currentTimeMillis();
             root_hash = getRootHash();
@@ -608,7 +633,17 @@ public class UtxoTrieMgr
           }
           else
           {
+            if (near_caught_up)
+            {
+            jelly.getEventLog().alarm("UTXO added block " + i + " - " + root_hash);
+            }
+            else
+            {
             jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash);
+
+            }
+
+
           }
           added_since_flush++;
         }
@@ -664,6 +699,13 @@ public class UtxoTrieMgr
     }
     private void waitForBlocks()
     {
+      caught_up=true;
+
+
+      synchronized(block_done_notify)
+      {
+        block_done_notify.notifyAll();
+      }
       synchronized(block_notify)
       {
         try
@@ -672,6 +714,7 @@ public class UtxoTrieMgr
         }
         catch(InterruptedException e){}
       }
+
 
     }
 
