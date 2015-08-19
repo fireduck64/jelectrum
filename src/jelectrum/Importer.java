@@ -530,7 +530,10 @@ public class Importer
 
         
         jelly.getUtxoTrieMgr().notifyBlock(wait_for_utxo);
-        jelly.getEventLog().alarm("UTXO done: " + jelly.getUtxoTrieMgr().getRootHash());
+        if (wait_for_utxo)
+        {
+          jelly.getEventLog().alarm("UTXO root hash: " + jelly.getUtxoTrieMgr().getRootHash());
+        }
         jelly.getElectrumNotifier().notifyNewBlock(block);
 
         long t2 = System.currentTimeMillis();
