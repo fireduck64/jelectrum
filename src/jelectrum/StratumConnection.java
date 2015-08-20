@@ -29,7 +29,7 @@ import org.apache.commons.codec.binary.Hex;
 
 public class StratumConnection
 {
-    public static final String JELECTRUM_VERSION="2015.08.01";
+    public static final String JELECTRUM_VERSION="ghostbird";
     public static final String PROTO_VERSION="1.0";
 
     private Jelectrum jelectrum;
