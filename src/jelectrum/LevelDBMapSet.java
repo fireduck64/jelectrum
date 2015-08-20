@@ -47,7 +47,6 @@ public class LevelDBMapSet
 
       for(Map.Entry<String, Sha256Hash> me : lst)
       {
-        System.out.println("MapSetList: " + prefix + me.getKey() + "/" + me.getValue());
         write_map.put(prefix + me.getKey() + "/" + me.getValue(), null);
       }
       
@@ -57,7 +56,6 @@ public class LevelDBMapSet
 
     public void put(String p, Sha256Hash v)
     {
-      System.out.println("MapSet: " + prefix + p + "/" + v);
       c.put(prefix + p + "/" + v, null);
     }
 }
