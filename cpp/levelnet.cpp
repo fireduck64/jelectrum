@@ -284,7 +284,7 @@ void* handle_connection(void* arg)
     }
 
   }
-  cout << "Closing socket with problems" << endl;
+  //cout << "Closing socket with problems" << endl;
   close(fd);
 
 }
