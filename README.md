@@ -14,16 +14,60 @@ Reasons to exist
 
 2) It is good to have multiple implementations of things in general
 
-How to run
+
+DB Options
 ----------
 
-DB:
+Not sure what to use?  Use leveldb.  It is fast and has the smallest on disk footprint.
+
+Make sure you are using a revent leveldb version.  1.17 and 1.18 seem to work well.
+
+
+How to LevelDB
+--------------
+
+LevelDB seems cool and the C++ library seems good, so I've made a network layer to call into the C++ leveldb.
+
+This is done because I've found things to be more reliable if the database is a separate process that doesn't
+get restarted.  It is thus less likely to corrupt the datastore and be a problem.
+
+Anyways, to run it, go into:
+cd cpp
+make
+
+while true
+do
+./levelnet /var/ssd/leveldb
+done
+
+(replace that path with where you want the leveldb to live)
+
+This will run th leveldb network server on port 8844.  There is absolutely no security or checking.
+Firewall it.
+
+Then you can run jelectrum with db_type=leveldb and copy the other settings from the sample file
+
+Note: there are a few cases which cause levelnet to exit because that is the only sane thing to do.
+In those cases, just run it again.  Jelectrum will be retying operation till they work and things should
+resume.
+
+
+DB MongoDB
+----------
+
 MongoDB: Install and setup mongodb.  A single node instance is just fine.  Run mongodb on SSD if possible.
 On startup, jelectrum will create tables as needed.
+
+
+PostgreSQL
+----------
 
 PostgreSQL: Install and setup postgresql.
 On startup, jelectrum will create tables and indexes needed.  You'll need to create the database and a user and put it in the config.
 
+
+Lobstack
+--------
 Lobstack: Copy the lobstack config entries and modify them.  Lobstack uses a stupid amount of space and needs to occasionally have
 a compress run.  See compressdb.sh.  For initial sync, the pattern is something like:
 
@@ -36,6 +80,8 @@ done
 It will exit when space gets low (configurable with 'lobstack_minfree_gb').  Then you run a compress, then run the service again.
 
 
+How to run
+----------
 
 Make your SSL cert:
 ./makekey.sh
@@ -79,25 +125,6 @@ blockchain.utxo.get_address
 
 (To check this list compare src/blockchain_processor.py from electrum-server to StratumConnection.java)
 
-
-How to LevelDB
---------------
-
-LevelDB seems cool and the C++ library seems good, so I've made a network layer to call into the C++ leveldb.
-
-This is done because I've found things to be more reliable if the database is a separate process that doesn't
-get restarted.  It is thus less likely to corrupt the datastore and be a problem.
-
-Anyways, to run it, go into:
-cd cpp
-make
-./levelnet /var/ssd/leveldb
-(replace that path with where you want the leveldb to live)
-
-This will run th leveldb network server on port 8844.  There is absolutely no security or checking.
-Firewall it.
-
-Then you can run jelectrum with db_type=leveldb and copy the other settings from the sample file
 
 
 
