@@ -125,6 +125,15 @@ blockchain.utxo.get_address
 
 (To check this list compare src/blockchain_processor.py from electrum-server to StratumConnection.java)
 
+Monitoring
+----------
+
+If you are going to run it, monitor it!
+
+I've made a monitoring tool that anyone to can use to monitor their electrum server (jelectrum or otherwise):
+
+https://1209k.com/bitcoin-eye/ele.php
+
 
 
 
