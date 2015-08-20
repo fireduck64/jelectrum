@@ -10,11 +10,14 @@ import com.google.bitcoin.core.Transaction;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.text.DecimalFormat;
 
-public class BlockRescan
+import java.util.Collection;
+import java.util.Set;
+
+public class BlockMadScan
 {
     public static void main(String args[]) throws Exception
     {
-        new BlockRescan(new Config(args[0]));
+        new BlockMadScan(new Config(args[0]));
 
     }
 
@@ -23,9 +26,11 @@ public class BlockRescan
     private Semaphore sem;
     private AtomicInteger blocks_scanned;
     private AtomicInteger transactions_scanned;
-    private String rescan_operation="oldtx";
+    private String rescan_operation="zing-" + System.currentTimeMillis();
 
-    public BlockRescan(Config config)
+    private LRUCache<String, Set<Sha256Hash> > addr_to_tx_cache;
+
+    public BlockMadScan(Config config)
         throws Exception
     {
         jelly = new Jelectrum(config);
@@ -33,6 +38,8 @@ public class BlockRescan
         sem = new Semaphore(0);
         blocks_scanned = new AtomicInteger(0);
         transactions_scanned = new AtomicInteger(0);
+        addr_to_tx_cache = new LRUCache<String, Set<Sha256Hash> >(250000);
+
 
         BlockStore block_store = jelly.getBlockStore();
 
@@ -99,6 +106,20 @@ public class BlockRescan
 
     }
 
+    public Set<Sha256Hash> getAddressToTxSet(String addr)
+    {
+      /*synchronized(addr_to_tx_cache)
+      {
+        if (addr_to_tx_cache.containsKey(addr)) return addr_to_tx_cache.get(addr);
+      }*/
+      Set<Sha256Hash> set = jelly.getDB().getAddressToTxSet(addr);
+      /*synchronized(addr_to_tx_cache)
+      {
+        addr_to_tx_cache.put(addr, set);
+      }*/
+      return set;
+    }
+
     public class WorkerThread extends Thread
     {
         public WorkerThread()
@@ -120,10 +141,33 @@ public class BlockRescan
                         Block blk = jelly.getDB().getBlockMap().get(blk_hash).getBlock(jelly.getNetworkParameters());
                         for(Transaction tx : blk.getTransactions())
                         {
-                            //jelly.getDB().getTransactionMap().put(tx.getHash(), new SerializedTransaction(tx));
-                            //jelly.getImporter().putTxOutSpents(tx);
-                            jelly.getImporter().putInternal(tx, blk.getHash());
-                            transactions_scanned.incrementAndGet();
+                          SerializedTransaction tx2 = jelly.getDB().getTransactionMap().get(tx.getHash());
+                          if (tx2 == null)
+                          {
+                            System.out.println("Transaction map does not contain " + tx.getHash());
+                            System.exit(-1);
+                          }
+                          Collection<String> addresses = jelly.getImporter().getAllAddresses(tx, true);
+                          for(String addr : addresses)
+                          {
+                            Set<Sha256Hash> tx_set = getAddressToTxSet(addr);
+                            if (!tx_set.contains(tx.getHash()))
+                            {
+                              System.out.println("Address list for " + addr + " does not contain " + tx.getHash());
+                              System.out.println(tx_set);
+                              System.exit(-1);
+                            }
+                          }
+
+                          Set<Sha256Hash> blk_set = jelly.getDB().getTxToBlockMap(tx.getHash());
+                          if (!blk_set.contains(blk.getHash()))
+                          {
+                            System.out.println("TX Block list doesn't contain " + blk.getHash() + " for " + tx.getHash());
+                            System.exit(-1);
+                          }
+
+
+                          transactions_scanned.incrementAndGet();
                         }
                         jelly.getDB().getBlockRescanMap().put(blk_hash, rescan_operation);
                     }
@@ -155,7 +199,7 @@ public class BlockRescan
             this.name = name;
             this.delay = delay;
             setDaemon(true);
-            setName("BlockRescane/RateThread/"+name);
+            setName("BlockMadScane/RateThread/"+name);
 
         }
 

@@ -12,6 +12,8 @@ import java.io.ObjectOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 
+import org.junit.Assert;
+
 import java.nio.ByteBuffer;
 import com.google.bitcoin.core.Sha256Hash;
 
@@ -31,8 +33,9 @@ public class LevelDBMapSet
       HashSet<Sha256Hash> ret = new HashSet<Sha256Hash>();
       String first=prefix + p;
       int len = first.length() + 1;
-      for(String s : c.getByPrefix(prefix + p).keySet())
+      for(String s : c.getByPrefix(first).keySet())
       {
+        Assert.assertEquals(first, s.substring(0, first.length()));
         ret.add(new Sha256Hash(s.substring(len)));
       }
       return ret;
@@ -44,6 +47,7 @@ public class LevelDBMapSet
 
       for(Map.Entry<String, Sha256Hash> me : lst)
       {
+        System.out.println("MapSetList: " + prefix + me.getKey() + "/" + me.getValue());
         write_map.put(prefix + me.getKey() + "/" + me.getValue(), null);
       }
       
@@ -53,6 +57,7 @@ public class LevelDBMapSet
 
     public void put(String p, Sha256Hash v)
     {
+      System.out.println("MapSet: " + prefix + p + "/" + v);
       c.put(prefix + p + "/" + v, null);
     }
 }

@@ -78,7 +78,7 @@ public class UtxoTrieMgr
   //Not to be trusted, only used for logging
   protected int block_height;
 
-  protected boolean caught_up=false;
+  protected volatile boolean caught_up=false;
 
   public UtxoTrieMgr(Jelectrum jelly)
   {
@@ -585,10 +585,10 @@ public class UtxoTrieMgr
         jelly.getBlockChainCache().getHead()).getHeight();
 
       boolean near_caught_up=caught_up;
-      caught_up=false;
 
       for(int i=curr_height+1; i<=head_height; i++)
       {
+        caught_up=false;
        
         Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
         long t1=System.currentTimeMillis();

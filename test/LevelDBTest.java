@@ -14,6 +14,11 @@ import java.util.concurrent.Semaphore;
 
 import com.google.bitcoin.core.Sha256Hash;
 import jelectrum.LevelNetClient;
+import jelectrum.Jelectrum;
+import jelectrum.LevelDBMapSet;
+import java.util.Set;
+import java.util.LinkedList;
+import java.util.AbstractMap.SimpleEntry;
 
 
 public class LevelDBTest
@@ -24,7 +29,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(config);
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
     c.put("test_a", randomBytes(1024));
@@ -39,7 +44,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(config);
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
     ByteBuffer b = c.get("test_doesnotexist");
@@ -52,7 +57,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(config);
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
     c.put("test_zero", randomBytes(0));
@@ -68,7 +73,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(config);
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
 
@@ -92,7 +97,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(config);
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
     Map<String,ByteBuffer> m = new TreeMap<String, ByteBuffer>();
@@ -107,6 +112,84 @@ public class LevelDBTest
     Map<String,ByteBuffer> m2 = c.getByPrefix("test_putall_");
 
     Assert.assertEquals(m.size(), m2.size());
+
+
+
+  }
+
+  @Test
+  public void testMapSet()
+    throws Exception
+  {
+    Config config = new Config("jelly.conf");
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    c.throw_on_error=true;
+
+    Random rnd=new Random();
+
+    LevelDBMapSet ms = new LevelDBMapSet(c, "testmapset");
+
+    String key = "key" + rnd.nextLong();
+
+    Sha256Hash h; 
+    h = new Sha256Hash(randomBytes(32).array());
+    ms.put(key, h);
+
+    Set<Sha256Hash> set;
+    set = ms.getSet(key);
+    Assert.assertEquals(1, set.size());
+    Assert.assertTrue(set.contains(h));
+
+
+    h = new Sha256Hash(randomBytes(32).array());
+    ms.put(key, h);
+
+    set = ms.getSet(key);
+    Assert.assertEquals(2, set.size());
+    Assert.assertTrue(set.contains(h));
+
+
+    LinkedList<Map.Entry<String, Sha256Hash>> lst = new LinkedList<Map.Entry<String, Sha256Hash>>();
+    for(int i=0; i<25; i++)
+    {
+      lst.add(new SimpleEntry<String, Sha256Hash>(key, new Sha256Hash(randomBytes(32).array())));
+    }
+    ms.putList(lst);
+
+    set = ms.getSet(key);
+    Assert.assertEquals(27, set.size());
+
+
+
+
+  }
+
+  @Test
+  public void testMapSetClosePrefix()
+    throws Exception
+  {
+    Config config = new Config("jelly.conf");
+    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    c.throw_on_error=true;
+
+    Random rnd=new Random();
+
+    LevelDBMapSet ms = new LevelDBMapSet(c, "testmapset");
+
+    String key = "key" + rnd.nextLong();
+    String key_a = "key" + rnd.nextLong() + "a";
+    String key_b = "key" + rnd.nextLong() + "b";
+    
+    for(int i=0; i<1024; i++)
+    {
+      ms.put(key_a, new Sha256Hash(randomBytes(32).array()));
+      ms.put(key_b, new Sha256Hash(randomBytes(32).array()));
+    }
+
+    Assert.assertEquals(1024, ms.getSet(key_a).size());
+    Assert.assertEquals(1024, ms.getSet(key_b).size());
+
+
 
 
 

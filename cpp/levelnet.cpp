@@ -103,6 +103,14 @@ int write_slice(int fd, leveldb::Slice &s)
   return 0;
 }
 
+leveldb::Slice cloneSlice(leveldb::Slice a)
+{
+  char* b = new char[a.size()];
+  memcpy(b, a.data(), a.size());
+
+  return leveldb::Slice(b, a.size());
+}
+
 void* handle_connection(void* arg)
 {
   connection_info* info=(connection_info*)arg;
@@ -249,14 +257,16 @@ void* handle_connection(void* arg)
       if (read_slice(fd, prefix) < 0) { problems=true; break;}
 
       list<leveldb::Slice> slices;
+      slices.clear();
 
       leveldb::Iterator* I = db->NewIterator(leveldb::ReadOptions());
 
       int items=0;
       for(I->Seek(prefix); I->Valid() && I->key().starts_with(prefix) ;I->Next())
       {
-        slices.push_back(I->key());
-        slices.push_back(I->value());
+      
+        slices.push_back(cloneSlice(I->key()));
+        slices.push_back(cloneSlice(I->value()));
         items++;
       }
 
@@ -267,10 +277,11 @@ void* handle_connection(void* arg)
       items=htonl(items);
       write_fully(fd, (char*)&items, sizeof(items));
 
-      for(list<leveldb::Slice>::iterator I = slices.begin(); I!=slices.end(); I++)
+      for(list<leveldb::Slice>::iterator it = slices.begin(); it!=slices.end(); it++)
       {
-        leveldb::Slice s=*I;
+        leveldb::Slice s=*it;
         if (write_slice(fd, s) < 0) { problems=true; break;}
+        delete s.data();
       }
 
       delete prefix.data();

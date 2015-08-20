@@ -48,8 +48,8 @@ public class JelectrumDBLevelDB extends JelectrumDB
             header_chunk_map = new CacheMap<Integer, String>(200, new LevelDBMap<Integer, String>(client,"header_chunk_map",ConversionMode.STRING));
             utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new LevelDBMap<String, UtxoTrieNode>(client, "utxo_trie_map",ConversionMode.OBJECT));
 
-            address_to_tx_map = new LevelDBMapSet(client,"address_to_tx_map");
-            tx_to_block_map = new LevelDBMapSet(client,"tx_to_block_map");
+            address_to_tx_map = new LevelDBMapSet(client,"atx");
+            tx_to_block_map = new LevelDBMapSet(client,"txb");
 
         }
         catch(Exception e)
