@@ -151,7 +151,7 @@ void* handle_connection(void* arg)
       string value;
       leveldb::Status db_stat = db->Get(leveldb::ReadOptions(),key, &value);
 
-      delete key.data();
+      delete []key.data();
 
       int status=RESULT_GOOD;
 
@@ -182,8 +182,8 @@ void* handle_connection(void* arg)
 
       leveldb::Status db_stat = db->Put(write_options,key, value);
       
-      delete key.data();
-      delete value.data();
+      delete[] key.data();
+      delete[] value.data();
 
       int status=RESULT_BAD;
 
@@ -242,7 +242,7 @@ void* handle_connection(void* arg)
  
       for(list<leveldb::Slice>::iterator I = slices.begin(); I!=slices.end(); I++)
       {
-        delete I->data();
+        delete[] I->data();
       }
 
       status=htonl(status);
@@ -281,10 +281,10 @@ void* handle_connection(void* arg)
       {
         leveldb::Slice s=*it;
         if (write_slice(fd, s) < 0) { problems=true; break;}
-        delete s.data();
+        delete[] s.data();
       }
 
-      delete prefix.data();
+      delete[] prefix.data();
       delete I;
       
 
