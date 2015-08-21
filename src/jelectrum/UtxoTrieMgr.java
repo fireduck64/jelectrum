@@ -588,7 +588,6 @@ public class UtxoTrieMgr
 
       for(int i=curr_height+1; i<=head_height; i++)
       {
-        caught_up=false;
        
         Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
         long t1=System.currentTimeMillis();
@@ -597,6 +596,7 @@ public class UtxoTrieMgr
         {
           try{Thread.sleep(250); return true;}catch(Throwable t){}
         }
+        caught_up=false;
         Block b = sb.getBlock(params);
         long t2=System.currentTimeMillis();
 
@@ -640,11 +640,11 @@ public class UtxoTrieMgr
           {
             if (near_caught_up)
             {
-            jelly.getEventLog().alarm("UTXO added block " + i + " - " + root_hash);
+              jelly.getEventLog().alarm("UTXO added block " + i + " - " + root_hash);
             }
             else
             {
-            jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash);
+              jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash);
 
             }
 
