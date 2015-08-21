@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
   options.create_if_missing = true;
   leveldb::Status status = leveldb::DB::Open(options, argv[1], &db);
   
-  write_options.sync = true;
+  //write_options.sync = true;
 
   if (!status.ok()) cerr << status.ToString() << endl;
 

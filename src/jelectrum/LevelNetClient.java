@@ -21,7 +21,7 @@ public class LevelNetClient
   public static final int RESULT_GOOD = 1273252631;
   public static final int RESULT_BAD = 9999;
   public static final int RESULT_NOTFOUND = 133133;
-  public static final int SOCKET_TIMEOUT = 15000;
+  public static final int SOCKET_TIMEOUT = 45000;
 
   private Jelectrum jelly;
 
