@@ -346,6 +346,13 @@ int main(int argc, char* argv[])
       (struct sockaddr *) &cli_addr, 
       &clilen);
 
+    struct timeval timeout;      
+      timeout.tv_sec = 3600;
+      timeout.tv_usec = 0;
+
+    setsockopt(newsockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)&timeout,
+                    sizeof(timeout));
+
     pthread_t pt;
     connection_info info;
     info.fd = newsockfd;
