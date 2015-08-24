@@ -10,7 +10,7 @@ cd $lobstack_path
 
 rm -rf compress
 
-for f in utxo_trie_map block_rescan_map special_block_store_map special_object_map header_chunk_map address_to_tx_map tx_map
+for f in utxo_trie_map block_map block_rescan_map block_store_map special_block_store_map special_object_map header_chunk_map address_to_tx_map tx_map tx_to_block_map
 do
   db=$(echo $f|rev|cut -d "." -f 2-100|rev)
   echo "Working $db"

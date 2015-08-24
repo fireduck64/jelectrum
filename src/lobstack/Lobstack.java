@@ -17,6 +17,10 @@ import java.util.Random;
 import java.nio.channels.FileChannel;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -44,6 +48,7 @@ public class Lobstack
 
   private File dir;
   private String stack_name;
+  private boolean compress;
 
   private FileChannel root_file_channel;
 
@@ -54,12 +59,18 @@ public class Lobstack
   private LRUCache<Long, ByteBuffer> cached_data;
 
 
-
   public Lobstack(File dir, String name)
+    throws IOException
+  {
+    this(dir, name, false);
+  }
+
+  public Lobstack(File dir, String name, boolean compress)
     throws IOException
   {
     this.dir = dir;
     this.stack_name = name;
+    this.compress = compress;
 
     if (!dir.exists())
     {
@@ -124,9 +135,10 @@ public class Lobstack
 
       LobstackNode root = new LobstackNode("");
       ByteBuffer serial = root.serialize();
-      long loc = allocateSpace(serial.capacity());
+      ByteBuffer com = compress(serial);
+      long loc = allocateSpace(com.capacity());
       TreeMap<Long, ByteBuffer> saves = new TreeMap<Long, ByteBuffer> ();
-      saves.put(loc, serial);
+      saves.put(loc, com);
       saveGroup(saves);
       setRoot(loc);
     }
@@ -136,21 +148,6 @@ public class Lobstack
     }
 
 
-  }
-
-  /**
-   * Compress the table to the entries that are currently visible.
-   * All entries must fit in memory.
-   * This breaks existing snapshots.
-   * Something breaking during this will absolutely hose the database
-   */ 
-  public synchronized void compress()
-    throws IOException
-  {
-    Map<String, ByteBuffer> all_data = getByPrefix("");
-    reset();
-    putAll(all_data);
-    
   }
 
  
@@ -199,6 +196,21 @@ public class Lobstack
 
   }
 
+  public void printTreeStats()
+    throws IOException, InterruptedException
+
+  {
+    LobstackNode root = loadNodeAt(getCurrentRoot());
+    TreeStat stat = new TreeStat();
+
+    root.getTreeStats(this, stat);
+
+    stat.print();
+
+
+
+  }
+
   public void getAll(BlockingQueue<Map.Entry<String, ByteBuffer> > consumer)
     throws IOException, InterruptedException
   {
@@ -220,8 +232,9 @@ public class Lobstack
       ByteBuffer value = put_map.get(key);
       NodeEntry ne = new NodeEntry();
       ne.node=false;
-      ne.location=allocateSpace(value.capacity());
-      save_entries.put(ne.location, value);
+      ByteBuffer comp = compress(value);
+      ne.location=allocateSpace(comp.capacity());
+      save_entries.put(ne.location, comp);
       new_nodes.put(key + DATA_TAG, ne);
     }
 
@@ -298,13 +311,37 @@ public class Lobstack
 
   }
 
+  protected int loadSizeAtLocation(long loc)
+    throws IOException
+  {
+
+    long file_idx = loc / SEGMENT_FILE_SIZE;
+    long in_file_loc = loc % SEGMENT_FILE_SIZE;
+    FileChannel fc = getDataFile(file_idx);
+    ByteBuffer bb = null;
+    synchronized(fc)
+    {
+      fc.position(in_file_loc);
+      ByteBuffer lenbb = ByteBuffer.allocate(4);
+
+      readBuffer(fc, lenbb);
+      lenbb.rewind();
+
+
+      int len = lenbb.getInt();
+      return len;
+    }
+
+
+  }
+
   protected ByteBuffer loadAtLocation(long loc)
     throws IOException
   {
     synchronized(cached_data)
     {
       ByteBuffer bb = cached_data.get(loc);
-      if (bb != null) return ByteBuffer.wrap(bb.array());
+      if (bb != null) return decompress(bb);
     }
 
 
@@ -328,7 +365,8 @@ public class Lobstack
       readBuffer(fc, bb);
       bb.rewind();
     }
-    
+   
+
     if (bb.capacity() < MAX_CACHE_SIZE)
     {
       synchronized(cached_data)
@@ -336,7 +374,9 @@ public class Lobstack
         cached_data.put(loc, ByteBuffer.wrap(bb.array()));
       }
     }
-    return bb;
+    ByteBuffer de_bb = decompress(bb);
+    if (DEBUG) System.out.println("Decompress");
+    return de_bb;
 
   }
 
@@ -346,6 +386,22 @@ public class Lobstack
     ByteBuffer b = loadAtLocation(loc);
     return LobstackNode.deserialize(b);
 
+  }
+
+  protected ByteBuffer compress(ByteBuffer in)
+  {
+    if (!compress) return in;
+    int sz = in.capacity();
+
+    ByteBuffer c = ByteBuffer.wrap(ZUtil.compress(in.array()));
+    if (DEBUG) System.out.println(" " + sz + " -> " + c.capacity());
+    return c;
+  }
+  protected ByteBuffer decompress(ByteBuffer in)
+  {
+    if (!compress) return in;
+
+    return ByteBuffer.wrap(ZUtil.decompress(in.array()));
   }
 
 

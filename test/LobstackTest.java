@@ -22,7 +22,7 @@ public class LobstackTest
     throws Exception
   {
     Config c = new Config("jelly.conf");
-    return new Lobstack(new File(c.get("lobstack_path")), "test");
+    return new Lobstack(new File(c.get("lobstack_path")), "test",true);
   }
    private Lobstack openStack(String name)
     throws Exception
@@ -48,9 +48,10 @@ public class LobstackTest
     Assert.assertNull(ls.get("meow"));
 
     Assert.assertArrayEquals(buff, ls.get("hello").array());
-    //ls.printTree();
+    ls.printTree();
 
   }
+  
 
   @Test
   public void testPutall()
@@ -71,7 +72,7 @@ public class LobstackTest
       insert_map.put("random_put_all:" + key, ByteBuffer.wrap(buff));
     }
     ls.putAll(insert_map);
-    //ls.printTree();
+    ls.printTree();
 
 
     for(String key : insert_map.keySet())
@@ -81,6 +82,7 @@ public class LobstackTest
 
   }
 
+  
   @Test
   public void testPutHard()
     throws Exception
@@ -173,24 +175,10 @@ public class LobstackTest
   public void testPrintTree()
     throws Exception
   {
-    Lobstack ls = openStack("test");
+    Lobstack ls = openStack();
 
 
     ls.printTree();
-
-  }
-  @Test
-  public void testCompress()
-    throws Exception
-  {
-    Lobstack ls = openStack();
-
-    int size = ls.getByPrefix("").size();
-
-    ls.compress();
-
-    Assert.assertEquals(size, ls.getByPrefix("").size());
-
 
   }
 

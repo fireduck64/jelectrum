@@ -31,6 +31,8 @@ import java.util.Scanner;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
+import java.io.FileOutputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
@@ -80,7 +82,10 @@ public class UtxoTrieMgr
 
   protected volatile boolean caught_up=false;
 
+  protected static PrintStream debug_out;
+
   public UtxoTrieMgr(Jelectrum jelly)
+    throws java.io.FileNotFoundException
   {
     this.jelly = jelly;
     this.params = jelly.getNetworkParameters();
@@ -93,6 +98,12 @@ public class UtxoTrieMgr
     {
       jelly.getEventLog().alarm("UTXO reset");
       resetEverything();
+    }
+
+    if (DEBUG)
+    {
+      
+      debug_out = new PrintStream(new FileOutputStream("utxo-debug.log"));
     }
 
   }
@@ -215,7 +226,7 @@ public class UtxoTrieMgr
     for(TransactionOutput tx_out : tx.getOutputs())
     {
       String key = getKeyForOutput(tx_out, idx);
-      if (DEBUG) System.out.println("Adding key: " + key);
+      if (DEBUG) debug_out.println("Adding key: " + key);
       if (key != null)
       {
         getByKey("").addHash(key, tx.getHash(), this);
@@ -270,8 +281,9 @@ public class UtxoTrieMgr
 
   public synchronized Sha256Hash getRootHash()
   {
-    if (DEBUG) System.out.println(node_map);
-    return getByKey("").getHash("", this);
+    Sha256Hash root = getByKey("").getHash("", this);
+    if (DEBUG) debug_out.println("Root is now: " + root);
+    return root;
 
   }
   
@@ -295,7 +307,7 @@ public class UtxoTrieMgr
     try
     {  
       
-      if (DEBUG) System.out.print("hash(");
+      if (DEBUG) debug_out.print("hash(");
 
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       if ((skip != null) && (skip.length() > 0))
@@ -304,9 +316,9 @@ public class UtxoTrieMgr
         md.update(skipb);
         if (DEBUG) 
         {
-          System.out.print("skip:");
-          System.out.print(skip);
-          System.out.print(' ');
+          debug_out.print("skip:");
+          debug_out.print(skip);
+          debug_out.print(' ');
         }
       }
       for(Sha256Hash h : hash_list)
@@ -314,19 +326,19 @@ public class UtxoTrieMgr
         md.update(h.getBytes());
         if (DEBUG)
         {
-          System.out.print(h);
-          System.out.print(" ");
+          debug_out.print(h);
+          debug_out.print(" ");
         }
 
       }
-      if (DEBUG) System.out.print(") - ");
+      if (DEBUG) debug_out.print(") - ");
 
       byte[] pass = md.digest();
       md = MessageDigest.getInstance("SHA-256");
       md.update(pass);
 
       Sha256Hash out = new Sha256Hash(md.digest());
-      if (DEBUG) System.out.println(out);
+      if (DEBUG) debug_out.println(out);
 
       return out;
 
@@ -633,6 +645,7 @@ public class UtxoTrieMgr
             else
             {
               jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash + " - MATCH");
+              if (DEBUG) debug_out.println("UTXO added block " + i + " - " + root_hash + " - MATCH");
 
             }
           }

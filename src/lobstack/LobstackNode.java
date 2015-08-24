@@ -7,8 +7,6 @@ import java.util.SortedMap;
 
 import java.nio.ByteBuffer;
 
-import java.util.zip.GZIPOutputStream;
-import java.util.zip.GZIPInputStream;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -20,11 +18,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.Executor;
 
 public class LobstackNode implements java.io.Serializable
 {
-  public static final int MAX_OPEN_FILES=512;
-  public static final boolean ZIP=false;
 
   // If anything else is added, serialize and deserialize need to be updated
   private String prefix;
@@ -61,6 +59,41 @@ public class LobstackNode implements java.io.Serializable
       }
     }
   }
+  public void getTreeStats(Lobstack stack, TreeStat stats)
+    throws IOException, InterruptedException
+  {
+    synchronized(stats)
+    {
+      stats.node_count++;
+      stats.node_size += serialize().capacity() + 4;
+      stats.node_children+=children.size();
+      stats.node_children_min = Math.min(stats.node_children_min, children.size());
+      stats.node_children_max = Math.max(stats.node_children_max, children.size());
+    }
+
+    for(String key : children.keySet())
+    {
+      NodeEntry ne = children.get(key);
+      if (ne.node)
+      {
+        LobstackNode n = stack.loadNodeAt(ne.location);
+
+        n.getTreeStats(stack, stats);
+
+      }
+      else
+      {
+        int sz =  stack.loadSizeAtLocation(ne.location);
+        synchronized(stats)
+        {
+          stats.data_count++;
+          stats.data_size+= sz + 4;
+        }
+      }
+    }
+  }
+
+ 
   public void getAll(Lobstack stack, BlockingQueue<Map.Entry<String, ByteBuffer> > consumer)
     throws IOException, InterruptedException
   {
@@ -172,8 +205,9 @@ public class LobstackNode implements java.io.Serializable
     
 
     ByteBuffer self_buffer = serialize();
-    long self_loc = stack.allocateSpace(self_buffer.capacity());
-    save_entries.put(self_loc, self_buffer);
+    ByteBuffer comp = stack.compress(self_buffer);
+    long self_loc = stack.allocateSpace(comp.capacity());
+    save_entries.put(self_loc, comp);
     return self_loc;
   }
 
@@ -183,7 +217,7 @@ public class LobstackNode implements java.io.Serializable
   {
     if (save_entries.containsKey(location))
     {
-      return LobstackNode.deserialize(save_entries.get(location));
+      return LobstackNode.deserialize(stack.decompress(save_entries.get(location)));
     }
     else
     {
@@ -340,7 +374,7 @@ public class LobstackNode implements java.io.Serializable
       if (a.charAt(i) == b.charAt(i)) same++;
       else break;
     }
-    //if (same % 2 == 1) same--;
+    if (same % 2 == 1) same--;
     return same;
 
   }

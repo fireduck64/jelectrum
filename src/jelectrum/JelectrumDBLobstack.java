@@ -21,6 +21,7 @@ public class JelectrumDBLobstack extends JelectrumDB
     private Config conf;
     protected LobstackMapSet address_to_tx_map;
     protected LobstackMapSet tx_to_block_map;
+    protected boolean compress;
 
     public JelectrumDBLobstack(Jelectrum jelly, Config config)
         throws Exception
@@ -28,9 +29,12 @@ public class JelectrumDBLobstack extends JelectrumDB
         super(config);
         this.conf = config;
         this.jelly = jelly;
+        compress=false;
 
         config.require("lobstack_path");
         config.require("lobstack_minfree_gb");
+        if (config.isSet("lobstack_compress")) compress = config.getBoolean("lobstack_compress");
+
         open();
     }
 
@@ -82,7 +86,7 @@ public class JelectrumDBLobstack extends JelectrumDB
     private Lobstack openStack(String name)
       throws java.io.IOException
     {
-      return new Lobstack(new File(conf.get("lobstack_path")), name);
+      return new Lobstack(new File(conf.get("lobstack_path")), name, compress);
     }
 
 

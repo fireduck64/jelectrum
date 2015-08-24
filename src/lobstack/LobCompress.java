@@ -15,6 +15,7 @@ public class LobCompress
   {
     String path = args[0];
     String name = args[1];
+    
 
     new LobCompress(new File(path), name);
 
@@ -37,7 +38,7 @@ public class LobCompress
     com_path.mkdirs();
 
 
-    output = new Lobstack(com_path, name);
+    output = new Lobstack(com_path, name, false);
 
 
     queue = new LinkedBlockingQueue<Map.Entry<String, ByteBuffer> > (10240);
@@ -50,7 +51,7 @@ public class LobCompress
     {
       TreeMap<String, ByteBuffer> map = new TreeMap<String, ByteBuffer>();
 
-      while((queue.size() >0) && (map.size() < 1024))
+      while((queue.size() >0) && (map.size() < 5000))
       {
         Map.Entry<String, ByteBuffer> e = queue.take();
 
@@ -67,10 +68,12 @@ public class LobCompress
       if (map.size() > 0)
       {
         output.putAll(map);
-        System.out.print(".");
+        if (map.size() >= 2500) System.out.print('#');
+        else System.out.print(".");
       }
       else
       {
+        System.out.print('s');
         Thread.sleep(100);
       }
 
