@@ -38,7 +38,7 @@ public class LobCompress
     com_path.mkdirs();
 
 
-    output = new Lobstack(com_path, name, false);
+    output = new Lobstack(com_path, name, true);
 
 
     queue = new LinkedBlockingQueue<Map.Entry<String, ByteBuffer> > (10240);

@@ -26,7 +26,10 @@ public class LobstackNode implements java.io.Serializable
 
   // If anything else is added, serialize and deserialize need to be updated
   private String prefix;
-  private TreeMap<String, NodeEntry> children ;
+  private TreeMap<String, NodeEntry> children;
+
+  public static int NODE_VERSION=-2;
+
 
 
   public LobstackNode(String prefix)
@@ -60,12 +63,10 @@ public class LobstackNode implements java.io.Serializable
     }
   }
   public void getTreeStats(Lobstack stack, TreeStat stats)
-    throws IOException, InterruptedException
+    throws IOException
   {
     synchronized(stats)
     {
-      stats.node_count++;
-      stats.node_size += serialize().capacity() + 4;
       stats.node_children+=children.size();
       stats.node_children_min = Math.min(stats.node_children_min, children.size());
       stats.node_children_max = Math.max(stats.node_children_max, children.size());
@@ -74,16 +75,23 @@ public class LobstackNode implements java.io.Serializable
     for(String key : children.keySet())
     {
       NodeEntry ne = children.get(key);
+      int sz =  stack.loadSizeAtLocation(ne.location);
+      stats.addFileUse(ne.location, sz + 4);
       if (ne.node)
       {
         LobstackNode n = stack.loadNodeAt(ne.location);
+        synchronized(stats)
+        {
+          stats.node_size += sz + 4;
+          stats.node_count++;
+        } 
+
 
         n.getTreeStats(stack, stats);
 
       }
       else
       {
-        int sz =  stack.loadSizeAtLocation(ne.location);
         synchronized(stats)
         {
           stats.data_count++;
@@ -113,7 +121,54 @@ public class LobstackNode implements java.io.Serializable
    
   }
 
-  public long putAll(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, Map<String, NodeEntry> put_map)
+  public NodeEntry reposition(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, int min_file)
+    throws IOException
+  {
+    for(Map.Entry<String, NodeEntry> me : children.entrySet())
+    {
+      String str = me.getKey();
+      NodeEntry ne = me.getValue();
+      if (ne.min_file_number < min_file)
+      {
+        if (ne.node)
+        {
+          LobstackNode n = loadNode(stack, save_entries, ne.location); 
+          ne = n.reposition(stack, save_entries, min_file);
+          children.put(str, ne);
+        }
+        else
+        {
+          ByteBuffer data = stack.loadAtLocation(ne.location);
+          ByteBuffer comp = stack.compress(data);
+
+          ne.location = stack.allocateSpace(comp.capacity());
+          ne.min_file_number = (int)(ne.location / Lobstack.SEGMENT_FILE_SIZE);
+          save_entries.put(ne.location, comp);
+          children.put(str, ne);
+        }
+
+      }
+
+    }
+
+    ByteBuffer self_buffer = serialize();
+    ByteBuffer comp = stack.compress(self_buffer);
+    long self_loc = stack.allocateSpace(comp.capacity());
+    save_entries.put(self_loc, comp);
+
+    NodeEntry my_entry = new NodeEntry();
+    my_entry.node = true;
+    my_entry.location = self_loc;
+    my_entry.min_file_number = (int) (self_loc / Lobstack.SEGMENT_FILE_SIZE);
+    for(NodeEntry ne : children.values())
+    {
+      my_entry.min_file_number = Math.min(my_entry.min_file_number, ne.min_file_number);
+    }
+    return my_entry;
+
+  }
+
+  public NodeEntry putAll(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, Map<String, NodeEntry> put_map)
     throws IOException
   {
 
@@ -152,14 +207,13 @@ public class LobstackNode implements java.io.Serializable
           }
 
           LobstackNode n = loadNode(stack, save_entries, ne_a.location);
-          ne_a.location = n.putAll(stack, save_entries, sub_put_map);
+          ne_a = n.putAll(stack, save_entries, sub_put_map);
+          children.put(a, ne_a);
 
           for(String s : sub_put_map.keySet())
           {
             children.remove(s);
           }
-
-
 
           keep_looking=true;
           break;
@@ -183,9 +237,7 @@ public class LobstackNode implements java.io.Serializable
           }
 
           LobstackNode n = new LobstackNode(common_prefix);
-          NodeEntry ne = new NodeEntry();
-          ne.node = true;
-          ne.location = n.putAll(stack, save_entries, sub_put_map);
+          NodeEntry ne = n.putAll(stack, save_entries, sub_put_map);
 
           for(String s : sub_put_map.keySet())
           {
@@ -201,14 +253,20 @@ public class LobstackNode implements java.io.Serializable
     }
 
 
-
-    
-
     ByteBuffer self_buffer = serialize();
     ByteBuffer comp = stack.compress(self_buffer);
     long self_loc = stack.allocateSpace(comp.capacity());
     save_entries.put(self_loc, comp);
-    return self_loc;
+
+    NodeEntry my_entry = new NodeEntry();
+    my_entry.node = true;
+    my_entry.location = self_loc;
+    my_entry.min_file_number = (int) (self_loc / Lobstack.SEGMENT_FILE_SIZE);
+    for(NodeEntry ne : children.values())
+    {
+      my_entry.min_file_number = Math.min(my_entry.min_file_number, ne.min_file_number);
+    }
+    return my_entry;
   }
 
 
@@ -224,15 +282,6 @@ public class LobstackNode implements java.io.Serializable
       return stack.loadNodeAt(location);
     }
   }
-
-  /*private void removeSetFromMap(TreeMap<String, ByteBuffer> to_add, TreeSet<String> handled)
-  {
-    for(String key : handled)
-    {
-      to_add.remove(key);
-    }
-    handled.clear();
-  }*/
 
   public ByteBuffer get(Lobstack stack, String key)
     throws IOException
@@ -288,22 +337,17 @@ public class LobstackNode implements java.io.Serializable
           ret.putAll(
             stack.loadNodeAt(ne.location).getByPrefix(stack, key_prefix)
              );
-
         }
         else
         {
           ret.put(sub, stack.loadAtLocation(ne.location));
         }
-        
 
       }
 
     }
 
     return ret;
-
-
-
   }
 
 
@@ -316,6 +360,7 @@ public class LobstackNode implements java.io.Serializable
       DataOutputStream d_out = new DataOutputStream(b_out);
 
       SerialUtil.writeString(d_out, prefix);
+      d_out.writeInt(NODE_VERSION);
       d_out.writeInt(children.size());
       for(Map.Entry<String, NodeEntry> me : children.entrySet())
       {
@@ -325,6 +370,7 @@ public class LobstackNode implements java.io.Serializable
         SerialUtil.writeString(d_out, subsub);
         d_out.writeBoolean(ne.node);
         d_out.writeLong(ne.location);
+        d_out.writeInt(ne.min_file_number);
       }
       
 
@@ -346,7 +392,22 @@ public class LobstackNode implements java.io.Serializable
       DataInputStream d_in = new DataInputStream(b_in);
 
       String prefix = SerialUtil.readString(d_in);
-      int count = d_in.readInt();
+      int v = d_in.readInt();
+      int read_version=-1;
+      if (v < 0)
+      {
+        read_version=v;
+      }
+      int count;
+      if (read_version==-1)
+      {
+        count = v;
+      }
+      else
+      {
+        count = d_in.readInt();
+      }
+
       TreeMap<String, NodeEntry> c = new TreeMap<String, NodeEntry>();
       for(int i=0; i<count; i++)
       {
@@ -354,6 +415,10 @@ public class LobstackNode implements java.io.Serializable
         NodeEntry ne = new NodeEntry();
         ne.node = d_in.readBoolean();
         ne.location = d_in.readLong();
+        if (read_version <= -2)
+        {
+          ne.min_file_number = d_in.readInt();
+        }
         c.put(sub, ne);
       }
 

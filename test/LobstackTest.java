@@ -104,7 +104,7 @@ public class LobstackTest
       }
     }
     ls.putAll(insert_map);
-    //ls.printTree();
+    ls.printTree();
 
     for(String key : insert_map.keySet())
     {

@@ -23,6 +23,8 @@ public class JelectrumDBLobstack extends JelectrumDB
     protected LobstackMapSet tx_to_block_map;
     protected boolean compress;
 
+    protected LinkedList<Lobstack> stack_list;
+
     public JelectrumDBLobstack(Jelectrum jelly, Config config)
         throws Exception
     {
@@ -30,6 +32,8 @@ public class JelectrumDBLobstack extends JelectrumDB
         this.conf = config;
         this.jelly = jelly;
         compress=false;
+
+        stack_list = new LinkedList<Lobstack>();
 
         config.require("lobstack_path");
         config.require("lobstack_minfree_gb");
@@ -69,10 +73,13 @@ public class JelectrumDBLobstack extends JelectrumDB
             block_rescan_map = new LobstackMap<Sha256Hash, String>(openStack("block_rescan_map"),ConversionMode.STRING);
             special_object_map = new LobstackMap<String, Object>(special_object_map_stack,ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LobstackMap<Integer, String>(openStack("header_chunk_map"),ConversionMode.STRING));
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(250000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
 
             address_to_tx_map = new LobstackMapSet(openStack("address_to_tx_map"));
             tx_to_block_map = new LobstackMapSet(openStack("tx_to_block_map"));
+
+
+            new LobstackMaintThread().start();
 
         }
         catch(Exception e)
@@ -86,7 +93,13 @@ public class JelectrumDBLobstack extends JelectrumDB
     private Lobstack openStack(String name)
       throws java.io.IOException
     {
-      return new Lobstack(new File(conf.get("lobstack_path")), name, compress);
+      Lobstack l = new Lobstack(new File(conf.get("lobstack_path")), name, compress);
+
+      synchronized(stack_list)
+      {
+        stack_list.add(l);
+      }
+      return l;
     }
 
 
@@ -174,4 +187,35 @@ public class JelectrumDBLobstack extends JelectrumDB
         return header_chunk_map;
     }
 
+
+    public class LobstackMaintThread extends Thread
+    {
+      public LobstackMaintThread()
+      {
+        setName("LobstackMaintThread");
+        setDaemon(true);
+      }
+
+      public void run()
+      {
+        while(true)
+        {
+          try
+          {
+            sleep(1800L * 1000L);
+
+            for(Lobstack ls : stack_list)
+            {
+              ls.cleanup(0.25, 50L * 1024L * 1024L);
+            }
+          }
+          catch(Exception e)
+          {
+            e.printStackTrace();
+          }
+        }
+      }
+  }
 }
+
+          

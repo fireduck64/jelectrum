@@ -46,7 +46,7 @@ public class JelectrumDBLevelDB extends JelectrumDB
             block_rescan_map = new LevelDBMap<Sha256Hash, String>(client, "block_rescan_map",ConversionMode.STRING);
             special_object_map = new LevelDBMap<String, Object>(client, "special_object_map",ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LevelDBMap<Integer, String>(client,"header_chunk_map",ConversionMode.STRING));
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new LevelDBMap<String, UtxoTrieNode>(client, "utxo_trie_map",ConversionMode.OBJECT));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(250000, new LevelDBMap<String, UtxoTrieNode>(client, "utxo_trie_map",ConversionMode.OBJECT));
 
             address_to_tx_map = new LevelDBMapSet(client,"address_to_tx_map");
             tx_to_block_map = new LevelDBMapSet(client,"tx_to_block_map");

@@ -11,17 +11,17 @@ import java.io.File;
 import java.nio.ByteBuffer;
 
 import java.io.RandomAccessFile;
-import jelectrum.LRUCache;
 import java.io.IOException;
 import java.util.Random;
 import java.nio.channels.FileChannel;
+import java.io.PrintStream;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingQueue;
-
+import jelectrum.LRUCache;
 
 /**
  * Limitations: 
@@ -31,8 +31,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class Lobstack
 {
-  public String DATA_TAG="♥";
-  public long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
+  public static String DATA_TAG="♥";
+  public static long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=2048;
   public static final int MAX_CACHED_DATA=32*1024;
@@ -55,9 +55,8 @@ public class Lobstack
   private static long ROOT_ROOT_LOCATION = 0;
   private static long ROOT_WRITE_LOCATION = 8;
 
-  private LRUCache<Long, FileChannel> data_files;
+  private AutoCloseLRUCache<Long, FileChannel> data_files;
   private LRUCache<Long, ByteBuffer> cached_data;
-
 
   public Lobstack(File dir, String name)
     throws IOException
@@ -81,7 +80,7 @@ public class Lobstack
       throw new java.io.IOException("Location is not a directory: " + dir);
     }
 
-    data_files = new LRUCache<Long, FileChannel>(MAX_OPEN_FILES);
+    data_files = new AutoCloseLRUCache<Long, FileChannel>(MAX_OPEN_FILES);
     cached_data = new LRUCache<Long, ByteBuffer>(MAX_CACHED_DATA);
 
     RandomAccessFile root_file = new RandomAccessFile(new File(dir, name + ".root"), MODE);
@@ -102,8 +101,6 @@ public class Lobstack
         root_file.seek(ROOT_WRITE_LOCATION);
         current_write_location = root_file.readLong();
       }
-
-
     }
  
     showSize();
@@ -146,12 +143,7 @@ public class Lobstack
     {
       cached_data.clear();
     }
-
-
   }
-
- 
-
 
   public void put(String key, ByteBuffer data)
     throws IOException
@@ -167,7 +159,6 @@ public class Lobstack
     {
       return current_root;
     }
-
   }
 
   public synchronized void close()
@@ -175,7 +166,6 @@ public class Lobstack
   {
     root_file_channel.force(true);
     root_file_channel.close();
-
 
     synchronized(data_files)
     {
@@ -196,19 +186,107 @@ public class Lobstack
 
   }
 
-  public void printTreeStats()
-    throws IOException, InterruptedException
-
+  public TreeStat getTreeStats()
+    throws IOException
   {
     LobstackNode root = loadNodeAt(getCurrentRoot());
     TreeStat stat = new TreeStat();
-
     root.getTreeStats(this, stat);
+    return stat;
 
-    stat.print();
+  }
+
+  public void cleanup(double utilization, long max_move)
+    throws IOException
+  {
+    cleanup(utilization, max_move, System.out);
+
+  }
+  public void cleanup(double utilization, long max_move, PrintStream out)
+    throws IOException
+  {
+    TreeStat stat = getTreeStats();
+
+    TreeMap<Integer, Long> file_use_map = stat.file_use_map;
+    if (file_use_map.size() == 0) return;
+    int repos = file_use_map.firstKey()-1;
+    long move = 0;
+
+    
+    DecimalFormat df = new DecimalFormat("0.00");
+
+    double found_util = ((stat.node_size + stat.data_size) * 1.0) / (file_use_map.size() * SEGMENT_FILE_SIZE);
+    out.println(stack_name + ": utilization " + df.format(found_util));
+
+    int max_pos = file_use_map.lastKey() - 4;
+
+    if ((found_util < utilization) && (file_use_map.size() > 4))
+    {
+      for(int idx : file_use_map.keySet())
+      {
+        long sz = file_use_map.get(idx);
+        if ((move + sz <= max_move) && (idx < max_pos))
+        {
+          repos = idx+1;
+          move = move + sz;
+        }
+      }
+    }
+
+    double mb = move / 1024.0 / 1024.0;
+    out.println(stack_name + ": repositioning to " + repos + " moving " + df.format(mb) + " mb");
+    reposition(repos);
+    out.println(stack_name + ": repositioning done");
+
+  }
+
+  /**
+   * Reposition all data that is in files less than the given file number.
+   * Will break existing snapshots.
+   */
+  public synchronized void reposition(int min_file)
+    throws IOException
+  {
+    LobstackNode root = loadNodeAt(getCurrentRoot());
+
+    TreeMap<Long, ByteBuffer> save_entries=new TreeMap<Long, ByteBuffer>();
+
+    NodeEntry root_entry = root.reposition(this, save_entries, min_file);
+    long new_root = root_entry.location;
+
+    saveGroup(save_entries);
+
+    setRoot(new_root);
+
+    synchronized(data_files)
+    {
+      for(int idx = 0; idx< min_file; idx++)
+      {
+        FileChannel fc = data_files.get(idx);
+        if (fc != null)
+        {
+          synchronized(fc)
+          {
+            data_files.remove(idx);
+            fc.close();
+          }
+        }
+      
+        File f = getDataFile(idx);
+        f.delete();
+      }
+    }
 
 
 
+ 
+  }
+  
+
+  public void printTreeStats()
+    throws IOException
+  {
+    getTreeStats().print();
   }
 
   public void getAll(BlockingQueue<Map.Entry<String, ByteBuffer> > consumer)
@@ -234,11 +312,13 @@ public class Lobstack
       ne.node=false;
       ByteBuffer comp = compress(value);
       ne.location=allocateSpace(comp.capacity());
+      ne.min_file_number = (int)(ne.location / SEGMENT_FILE_SIZE); 
       save_entries.put(ne.location, comp);
       new_nodes.put(key + DATA_TAG, ne);
     }
 
-    long new_root = root.putAll(this, save_entries, new_nodes);
+    NodeEntry root_entry = root.putAll(this, save_entries, new_nodes);
+    long new_root = root_entry.location;
 
     saveGroup(save_entries);
 
@@ -259,9 +339,7 @@ public class Lobstack
   {
     LobstackNode root = loadNodeAt(snapshot);
     return root.get(this, key + DATA_TAG);
-
   }
-
 
   /**
    * Since this amazing waste of space keeps everything, you can just get a pointer
@@ -317,7 +395,7 @@ public class Lobstack
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
-    FileChannel fc = getDataFile(file_idx);
+    FileChannel fc = getDataFileChannel(file_idx);
     ByteBuffer bb = null;
     synchronized(fc)
     {
@@ -344,10 +422,9 @@ public class Lobstack
       if (bb != null) return decompress(bb);
     }
 
-
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
-    FileChannel fc = getDataFile(file_idx);
+    FileChannel fc = getDataFileChannel(file_idx);
     ByteBuffer bb = null;
     synchronized(fc)
     {
@@ -365,7 +442,6 @@ public class Lobstack
       readBuffer(fc, bb);
       bb.rewind();
     }
-   
 
     if (bb.capacity() < MAX_CACHE_SIZE)
     {
@@ -458,7 +534,7 @@ public class Lobstack
 
       long in_file_loc = start_location % SEGMENT_FILE_SIZE;
 
-      FileChannel fc = getDataFile(file_idx);
+      FileChannel fc = getDataFileChannel(file_idx);
 
       if ((last_fc != null) && (last_fc != fc))
       {
@@ -540,7 +616,7 @@ public class Lobstack
     }
   }
 
-  private FileChannel getDataFile(long idx)
+  private FileChannel getDataFileChannel(long idx)
     throws IOException
   {
     synchronized(data_files)
@@ -548,9 +624,7 @@ public class Lobstack
       FileChannel fc = data_files.get(idx);
       if (fc == null)
       {
-        String num = "" + idx;
-        while(num.length() < 4) num = "0" + num;
-        RandomAccessFile f = new RandomAccessFile(new File(dir, stack_name +"." + num + ".data"), MODE);
+        RandomAccessFile f = new RandomAccessFile(getDataFile(idx), MODE);
 
         f.setLength(SEGMENT_FILE_SIZE);
 
@@ -563,5 +637,13 @@ public class Lobstack
     }
   }
 
+  private File getDataFile(long idx)
+  {
+    String num = "" + idx;
+    while(num.length() < 4) num = "0" + num;
+
+    return new File(dir, stack_name +"." + num + ".data");
+  
+  }
 
 }
