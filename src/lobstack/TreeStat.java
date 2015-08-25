@@ -3,6 +3,7 @@ import java.util.TreeMap;
 
 import java.text.DecimalFormat;
 
+import java.io.PrintStream;
 
 public class TreeStat
 {
@@ -17,20 +18,25 @@ public class TreeStat
 
   public void print()
   {
+    print(System.out);
+  }
+
+  public void print(PrintStream out)
+  {
     DecimalFormat df = new DecimalFormat("0.000");
 
     System.out.println("Nodes: " + node_count);
     System.out.println("Data entires: " + data_count);
 
     double node_gb = node_size / 1024.0 / 1024.0 / 1024.0;
-    System.out.println("Node size: " + df.format(node_gb) + " gb");
+    out.println("Node size: " + df.format(node_gb) + " gb");
     double data_gb = data_size  / 1024.0 / 1024.0 / 1024.0;
-    System.out.println("Data size: " + df.format(data_gb) + " gb");
+    out.println("Data size: " + df.format(data_gb) + " gb");
 
     if (node_count > 0)
     {
       double avg_children = node_children / node_count;
-      System.out.println("Children per node: " + node_children_min + " " + df.format(avg_children) + " " + node_children_max);
+      out.println("Children per node: " + node_children_min + " " + df.format(avg_children) + " " + node_children_max);
     }
     System.out.println("File use: ");
     for(int file : file_use_map.keySet())
@@ -38,7 +44,7 @@ public class TreeStat
       String f = "" + file;
       while(f.length() < 4) f="0" + f;
       double perc = file_use_map.get(file) * 1.0 / Lobstack.SEGMENT_FILE_SIZE;
-      System.out.println("  " + f + ": " + df.format(perc));
+      out.println("  " + f + ": " + df.format(perc));
     }
 
   }

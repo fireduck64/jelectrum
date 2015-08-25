@@ -41,7 +41,7 @@ public class LobCompress
     output = new Lobstack(com_path, name, true);
 
 
-    queue = new LinkedBlockingQueue<Map.Entry<String, ByteBuffer> > (10240);
+    queue = new LinkedBlockingQueue<Map.Entry<String, ByteBuffer> > (1024);
 
     new InputThread().start();
     int items = 0;
@@ -51,7 +51,7 @@ public class LobCompress
     {
       TreeMap<String, ByteBuffer> map = new TreeMap<String, ByteBuffer>();
 
-      while((queue.size() >0) && (map.size() < 5000))
+      while((queue.size() >0) && (map.size() < 512))
       {
         Map.Entry<String, ByteBuffer> e = queue.take();
 
@@ -68,7 +68,7 @@ public class LobCompress
       if (map.size() > 0)
       {
         output.putAll(map);
-        if (map.size() >= 2500) System.out.print('#');
+        if (map.size() >= 512) System.out.print('#');
         else System.out.print(".");
       }
       else

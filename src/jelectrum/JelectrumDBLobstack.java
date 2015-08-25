@@ -12,6 +12,8 @@ import com.google.bitcoin.core.StoredBlock;
 import com.google.bitcoin.core.Block;
 
 import jelectrum.LobstackMap.ConversionMode;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 
 import lobstack.Lobstack;
 
@@ -24,6 +26,7 @@ public class JelectrumDBLobstack extends JelectrumDB
     protected boolean compress;
 
     protected LinkedList<Lobstack> stack_list;
+    protected PrintStream cleanup_log;
 
     public JelectrumDBLobstack(Jelectrum jelly, Config config)
         throws Exception
@@ -38,6 +41,8 @@ public class JelectrumDBLobstack extends JelectrumDB
         config.require("lobstack_path");
         config.require("lobstack_minfree_gb");
         if (config.isSet("lobstack_compress")) compress = config.getBoolean("lobstack_compress");
+
+        cleanup_log = new PrintStream(new FileOutputStream("lobstack.log", true));
 
         open();
     }
@@ -202,12 +207,13 @@ public class JelectrumDBLobstack extends JelectrumDB
         {
           try
           {
-            sleep(1800L * 1000L);
 
             for(Lobstack ls : stack_list)
             {
-              ls.cleanup(0.25, 50L * 1024L * 1024L);
+              ls.cleanup(0.25, 50L * 1024L * 1024L, cleanup_log);
             }
+            cleanup_log.println("Sleeping");
+            sleep(1800L * 1000L);
           }
           catch(Exception e)
           {

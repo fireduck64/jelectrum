@@ -205,7 +205,7 @@ public class Lobstack
   public void cleanup(double utilization, long max_move, PrintStream out)
     throws IOException
   {
-    TreeStat stat = getTreeStats();
+    /*TreeStat stat = getTreeStats();
 
     TreeMap<Integer, Long> file_use_map = stat.file_use_map;
     if (file_use_map.size() == 0) return;
@@ -213,7 +213,6 @@ public class Lobstack
     long move = 0;
 
     
-    DecimalFormat df = new DecimalFormat("0.00");
 
     double found_util = ((stat.node_size + stat.data_size) * 1.0) / (file_use_map.size() * SEGMENT_FILE_SIZE);
     out.println(stack_name + ": utilization " + df.format(found_util));
@@ -231,12 +230,32 @@ public class Lobstack
           move = move + sz;
         }
       }
+    }*/
+
+    DecimalFormat df = new DecimalFormat("0.00");
+    int repos = getMinFileNumber()+1;
+    int end = getMaxFileNumber();
+
+
+    long move = estimateReposition(repos);
+    if ((repos + 4 < end) && (move <= max_move))
+    {
+
+      double mb = move / 1024.0 / 1024.0;
+      out.println(stack_name + ": repositioning to " + repos + " moving " + df.format(mb) + " mb");
+      reposition(repos);
+      out.println(stack_name + ": repositioning done");
+
     }
 
-    double mb = move / 1024.0 / 1024.0;
-    out.println(stack_name + ": repositioning to " + repos + " moving " + df.format(mb) + " mb");
-    reposition(repos);
-    out.println(stack_name + ": repositioning done");
+  }
+
+  public long estimateReposition(int min_file)
+    throws IOException
+  {
+    LobstackNode root = loadNodeAt(getCurrentRoot());
+    return root.estimateReposition(this, min_file);
+
 
   }
 
@@ -276,9 +295,6 @@ public class Lobstack
         f.delete();
       }
     }
-
-
-
  
   }
   
@@ -359,6 +375,15 @@ public class Lobstack
     throws IOException
   {
     setRoot(snapshot);
+  }
+
+  public int getMinFileNumber()
+    throws IOException
+  {
+    long root_loc = getCurrentRoot();
+    LobstackNode root = loadNodeAt(root_loc);
+
+    return root.getMinFileNumber(root_loc);
   }
 
   public SortedMap<String, ByteBuffer> getByPrefix(String prefix)
@@ -480,6 +505,13 @@ public class Lobstack
     return ByteBuffer.wrap(ZUtil.decompress(in.array()));
   }
 
+  protected int getMaxFileNumber()
+  {
+    synchronized(ptr_lock)
+    {
+      return (int)(current_write_location / SEGMENT_FILE_SIZE);
+    }
+  }
 
   protected long allocateSpace(int size)
     throws IOException

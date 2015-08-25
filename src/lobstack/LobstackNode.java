@@ -121,6 +121,31 @@ public class LobstackNode implements java.io.Serializable
    
   }
 
+  public long estimateReposition(Lobstack stack, int min_file)
+    throws IOException
+  {
+    long sz = 0;
+
+    for(Map.Entry<String, NodeEntry> me : children.entrySet())
+    {
+      String str = me.getKey();
+      NodeEntry ne = me.getValue();
+      if (ne.min_file_number < min_file)
+      {
+        sz += stack.loadSizeAtLocation(ne.location) + 4;
+        if (ne.node)
+        {
+          LobstackNode n = stack.loadNodeAt(ne.location); 
+          sz += n.estimateReposition(stack, min_file);
+        }
+      }
+    }
+    sz += serialize().capacity() + 4;
+    return sz;
+
+  }
+
+
   public NodeEntry reposition(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, int min_file)
     throws IOException
   {
@@ -166,6 +191,17 @@ public class LobstackNode implements java.io.Serializable
     }
     return my_entry;
 
+  }
+
+  public int getMinFileNumber(long location)
+  {
+    int min_file_number = (int) (location / Lobstack.SEGMENT_FILE_SIZE);
+    for(NodeEntry ne : children.values())
+    {
+      min_file_number = Math.min(min_file_number, ne.min_file_number);
+    }
+
+    return min_file_number;
   }
 
   public NodeEntry putAll(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, Map<String, NodeEntry> put_map)
