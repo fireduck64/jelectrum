@@ -238,6 +238,7 @@ public class Lobstack
 
 
     long move = estimateReposition(repos);
+
     if ((repos + 4 < end) && (move <= max_move))
     {
 

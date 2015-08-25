@@ -210,10 +210,10 @@ public class JelectrumDBLobstack extends JelectrumDB
 
             for(Lobstack ls : stack_list)
             {
-              ls.cleanup(0.25, 50L * 1024L * 1024L, cleanup_log);
+              ls.cleanup(0.25, 128L * 1024L * 1024L, cleanup_log);
             }
             cleanup_log.println("Sleeping");
-            sleep(1800L * 1000L);
+            sleep(300L * 1000L);
           }
           catch(Exception e)
           {
