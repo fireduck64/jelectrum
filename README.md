@@ -68,16 +68,12 @@ On startup, jelectrum will create tables and indexes needed.  You'll need to cre
 
 Lobstack
 --------
-Lobstack: Copy the lobstack config entries and modify them.  Lobstack uses a stupid amount of space and needs to occasionally have
-a compress run.  See compressdb.sh.  For initial sync, the pattern is something like:
+Lobstack: Copy the lobstack config entries and modify them.  
 
-while true
-do
-  java -Xmx4g -Xss256k -jar jar/Jelectrum.jar jelly.conf
-  ./compressdb.sh
-done
+It will exit when space gets low (configurable with 'lobstack_minfree_gb').
 
-It will exit when space gets low (configurable with 'lobstack_minfree_gb').  Then you run a compress, then run the service again.
+You can observe lobstack pruning as it runs by watching lobstack.log
+
 
 
 How to run

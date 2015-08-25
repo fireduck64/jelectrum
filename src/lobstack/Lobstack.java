@@ -239,10 +239,12 @@ public class Lobstack
 
     long move = estimateReposition(repos);
 
+    double mb = move / 1024.0 / 1024.0;
+    out.println(stack_name + ": move would be " + mb + " mb");
+
     if ((repos + 4 < end) && (move <= max_move))
     {
 
-      double mb = move / 1024.0 / 1024.0;
       out.println(stack_name + ": repositioning to " + repos + " moving " + df.format(mb) + " mb");
       reposition(repos);
       out.println(stack_name + ": repositioning done");
