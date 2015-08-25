@@ -205,50 +205,32 @@ public class Lobstack
   public void cleanup(double utilization, long max_move, PrintStream out)
     throws IOException
   {
-    /*TreeStat stat = getTreeStats();
-
-    TreeMap<Integer, Long> file_use_map = stat.file_use_map;
-    if (file_use_map.size() == 0) return;
-    int repos = file_use_map.firstKey()-1;
-    long move = 0;
-
-    
-
-    double found_util = ((stat.node_size + stat.data_size) * 1.0) / (file_use_map.size() * SEGMENT_FILE_SIZE);
-    out.println(stack_name + ": utilization " + df.format(found_util));
-
-    int max_pos = file_use_map.lastKey() - 4;
-
-    if ((found_util < utilization) && (file_use_map.size() > 4))
-    {
-      for(int idx : file_use_map.keySet())
-      {
-        long sz = file_use_map.get(idx);
-        if ((move + sz <= max_move) && (idx < max_pos))
-        {
-          repos = idx+1;
-          move = move + sz;
-        }
-      }
-    }*/
+    out.println(stack_name + ": cleanup check");
 
     DecimalFormat df = new DecimalFormat("0.00");
-    int repos = getMinFileNumber()+1;
+    int start = getMinFileNumber();
     int end = getMaxFileNumber();
 
+    int check_end = Math.min(start + 4, end - 8);
 
-    long move = estimateReposition(repos);
-
-    double mb = move / 1024.0 / 1024.0;
-    out.println(stack_name + ": move would be " + mb + " mb");
-
-    if ((repos + 4 < end) && (move <= max_move))
+    for(int i=start+1; i<check_end; i++)
     {
+      double freed = (i - start) * Lobstack.SEGMENT_FILE_SIZE;
+      double move = estimateReposition(i);
+      double mb = move / 1024.0 / 1024.0;
+      if (move > max_move) return;
 
-      out.println(stack_name + ": repositioning to " + repos + " moving " + df.format(mb) + " mb");
-      reposition(repos);
-      out.println(stack_name + ": repositioning done");
+      double util = move /freed;
+      out.println(stack_name + ": a move to " + i + " would have utilization " + df.format(util) + " and move " + df.format(mb) + " mb");
 
+      if ((move / freed) < utilization)
+      {
+        out.println(stack_name + ": repositioning to " + i + " moving " + df.format(mb) + " mb");
+        reposition(i);
+        out.println(stack_name + ": repositioning done");
+        return;
+      }
+      
     }
 
   }

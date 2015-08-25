@@ -125,6 +125,7 @@ public class LobstackNode implements java.io.Serializable
     throws IOException
   {
     long sz = 0;
+    long target = (min_file + 1) * Lobstack.SEGMENT_FILE_SIZE;
 
     for(Map.Entry<String, NodeEntry> me : children.entrySet())
     {
@@ -132,15 +133,18 @@ public class LobstackNode implements java.io.Serializable
       NodeEntry ne = me.getValue();
       if (ne.min_file_number < min_file)
       {
-        sz += stack.loadSizeAtLocation(ne.location) + 4;
+        //if (ne.location < target)
+        {
+          sz += stack.loadSizeAtLocation(ne.location) + 4;
+        }
         if (ne.node)
         {
-          LobstackNode n = stack.loadNodeAt(ne.location); 
+          LobstackNode n = stack.loadNodeAt(ne.location);
           sz += n.estimateReposition(stack, min_file);
         }
       }
     }
-    sz += serialize().capacity() + 4;
+    //sz += serialize().capacity() + 4;
     return sz;
 
   }
