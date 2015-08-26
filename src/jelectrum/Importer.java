@@ -47,6 +47,7 @@ public class Importer
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
 
+    public boolean DEBUG=true;
     private NetworkParameters params;
 
     private AtomicInteger imported_blocks= new AtomicInteger(0);
@@ -431,6 +432,7 @@ public class Importer
     }
     private void putInternal(Block block, StatusContext ctx)
     {
+      if (DEBUG) jelly.getEventLog().alarm("Block save started");
         long t1 = System.currentTimeMillis();
         Sha256Hash hash = block.getHash();
 
@@ -442,6 +444,7 @@ public class Importer
         }
         //Mark block as in progress
 
+        if (DEBUG) jelly.getEventLog().alarm("Mark in progress");
 
         Semaphore block_wait_sem;
         synchronized(in_progress)
@@ -454,6 +457,7 @@ public class Importer
             }
         }
 
+        if (DEBUG) jelly.getEventLog().alarm("TX Cache Insert");
         
         //Kick off threaded storage of transactions
         int size=0;
@@ -467,6 +471,7 @@ public class Importer
             }
         }
 
+        if (DEBUG) jelly.getEventLog().alarm("Get Addresses");
         ctx.setStatus("BLOCK_TX_ENQUE");
         LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
 
@@ -488,18 +493,23 @@ public class Importer
           tx_list.add(tx.getHash());
           size++;
         }
+        if (DEBUG) jelly.getEventLog().alarm("TX SAVEALL");
 
         ctx.setStatus("TX_SAVEALL");
         file_db.getTransactionMap().putAll(txs_map);
+        if (DEBUG) jelly.getEventLog().alarm("TX BLOCK MAP");
 
         ctx.setStatus("BLOCK_TX_MAP_ADD");
         file_db.addTxsToBlockMap(tx_list, hash);
 
+        if (DEBUG) jelly.getEventLog().alarm("ADDR SAVEALL");
         ctx.setStatus("ADDR_SAVEALL");
         file_db.addAddressesToTxMap(addrTxLst);
 
+        if (DEBUG) jelly.getEventLog().alarm("Get Height");
         int h = block_store.getHeight(hash);
 
+        if (DEBUG) jelly.getEventLog().alarm("NOTIFY ALL");
         for(Transaction tx : block.getTransactions())
         {
           Collection<String> addrs = getAllAddresses(tx, true);
@@ -510,6 +520,7 @@ public class Importer
 
 
         //Once all transactions are in, check for prev block in this store
+        if (DEBUG) jelly.getEventLog().alarm("WAIT PREV");
 
         ctx.setStatus("BLOCK_WAIT_PREV");
         Sha256Hash prev_hash = block.getPrevBlockHash();
@@ -518,8 +529,10 @@ public class Importer
 
         //System.out.println("Block " + hash + " " + Util.measureSerialization(new SerializedBlock(block)));
 
+        if (DEBUG) jelly.getEventLog().alarm("BLOCK SAVE");
         ctx.setStatus("BLOCK_SAVE");
         file_db.getBlockMap().put(hash, new SerializedBlock(block));
+        jelly.getEventLog().alarm("Block saved, doing UTXO");
 
         block_wait_sem.release(1024);
         boolean wait_for_utxo = false;

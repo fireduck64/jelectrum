@@ -28,7 +28,7 @@ public class LobstackTest
     throws Exception
   {
     Config c = new Config("jelly.conf");
-    return new Lobstack(new File(c.get("lobstack_path")), name);
+    return new Lobstack(new File(c.get("lobstack_path")), name, true);
   }
   
 
@@ -216,6 +216,44 @@ public class LobstackTest
 
 
   }
+
+  
+  @Test
+  public void testPutAllLarge()
+    throws Exception
+  {
+    Lobstack ls = openStack("test_large"); 
+
+    Random rnd = new Random();
+
+    TreeMap<String, ByteBuffer> insert_map = new TreeMap<String, ByteBuffer>();
+
+    for(int j=0; j<10; j++)
+    {
+    for(int i=0; i<2048; i++)
+    {
+      String key = "" + rnd.nextInt(10000000);
+      while(key.length() < 8) key = "0" + key;
+      byte[] buff = new byte[2048];
+      rnd.nextBytes(buff);
+      insert_map.put("random_put_all:" + key, ByteBuffer.wrap(buff));
+    }
+    ls.putAll(insert_map);
+
+    }
+  }
+  
+  @Test
+  public void testCleanup()
+    throws Exception
+  {
+    Lobstack ls = openStack("test_large"); 
+    ls.cleanup(0.75, 256L * 1024L * 1024L);
+
+  }
+
+
+
 
   @Test
   public void testMultithreaded()

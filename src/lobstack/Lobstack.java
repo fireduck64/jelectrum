@@ -22,6 +22,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingQueue;
 import jelectrum.LRUCache;
+import jelectrum.TimeRecord;
 
 /**
  * Limitations: 
@@ -35,15 +36,19 @@ public class Lobstack
   public static long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=2048;
-  public static final int MAX_CACHED_DATA=32*1024;
+  public static final int MAX_CACHE_ENTRIES=128*1024;
   public static final int MAX_CACHE_SIZE=65536;
 
   public static final String MODE="rw";
   public static final boolean DEBUG=false;
 
+  public final int key_step_size;
+
   private Object ptr_lock = new Object();
   private long current_root;
   private long current_write_location;
+
+  private TimeRecord time_record=new TimeRecord();
   
 
   private File dir;
@@ -61,12 +66,20 @@ public class Lobstack
   public Lobstack(File dir, String name)
     throws IOException
   {
-    this(dir, name, false);
+    this(dir, name, false, 2);
   }
 
   public Lobstack(File dir, String name, boolean compress)
     throws IOException
   {
+    this(dir, name, compress, 2);
+  }
+
+
+  public Lobstack(File dir, String name, boolean compress, int key_step_size)
+    throws IOException
+  {
+    this.key_step_size  = key_step_size;
     this.dir = dir;
     this.stack_name = name;
     this.compress = compress;
@@ -81,7 +94,7 @@ public class Lobstack
     }
 
     data_files = new AutoCloseLRUCache<Long, FileChannel>(MAX_OPEN_FILES);
-    cached_data = new LRUCache<Long, ByteBuffer>(MAX_CACHED_DATA);
+    cached_data = new LRUCache<Long, ByteBuffer>(MAX_CACHE_ENTRIES);
 
     RandomAccessFile root_file = new RandomAccessFile(new File(dir, name + ".root"), MODE);
 
@@ -290,6 +303,17 @@ public class Lobstack
     getTreeStats().print();
   }
 
+  public void printTimeReport(PrintStream out)
+  {
+    out.println(stack_name + " - time report");
+    time_record.printReport(out);
+    time_record.reset();
+  }
+  public TimeRecord getTimeReport()
+  {
+    return time_record;
+  }
+
   public void getAll(BlockingQueue<Map.Entry<String, ByteBuffer> > consumer)
     throws IOException, InterruptedException
   {
@@ -301,7 +325,10 @@ public class Lobstack
   public synchronized void putAll(Map<String, ByteBuffer> put_map)
     throws IOException
   {
+    long t1_put = System.nanoTime();
     LobstackNode root = loadNodeAt(getCurrentRoot());
+
+    long t1_setup = System.nanoTime();
     TreeMap<Long, ByteBuffer> save_entries=new TreeMap<Long, ByteBuffer>();
 
     TreeMap<String, NodeEntry> new_nodes = new TreeMap<String, NodeEntry>();
@@ -318,12 +345,20 @@ public class Lobstack
       new_nodes.put(key + DATA_TAG, ne);
     }
 
+    time_record.addTime(System.nanoTime() - t1_setup, "putSetup");
+    long t1_dbput = System.nanoTime();
     NodeEntry root_entry = root.putAll(this, save_entries, new_nodes);
+    time_record.addTime(System.nanoTime() - t1_dbput, "putTreeWork");
+
     long new_root = root_entry.location;
 
+    long t1_save = System.nanoTime();
     saveGroup(save_entries);
 
     setRoot(new_root);
+    time_record.addTime(System.nanoTime() - t1_save, "putSave");
+
+    time_record.addTime(System.nanoTime() - t1_put, "putAll");
 
   }
   public ByteBuffer get(String key)

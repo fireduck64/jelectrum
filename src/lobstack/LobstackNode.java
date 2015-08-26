@@ -20,6 +20,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.Executor;
+import jelectrum.TimeRecord;
 
 public class LobstackNode implements java.io.Serializable
 {
@@ -71,6 +72,10 @@ public class LobstackNode implements java.io.Serializable
       stats.node_children_min = Math.min(stats.node_children_min, children.size());
       stats.node_children_max = Math.max(stats.node_children_max, children.size());
     }
+    /*if (children.size() > 256)
+    {
+      System.out.println("" + children.size() + " - " + prefix + ": " + children.keySet());
+    }*/
 
     for(String key : children.keySet())
     {
@@ -211,6 +216,7 @@ public class LobstackNode implements java.io.Serializable
   public NodeEntry putAll(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, Map<String, NodeEntry> put_map)
     throws IOException
   {
+    TimeRecord tr = stack.getTimeReport();
 
     // Add all as direct children
 
@@ -261,7 +267,7 @@ public class LobstackNode implements java.io.Serializable
 
         }
 
-        int common = commonLength(a,b) - prefix.length();
+        int common = commonLength(stack, a,b) - prefix.length();
         if (common > 0)
         {
           String common_prefix = a.substring(0, common + prefix.length());
@@ -293,6 +299,8 @@ public class LobstackNode implements java.io.Serializable
     }
 
 
+    long t1_serialize = System.nanoTime();
+
     ByteBuffer self_buffer = serialize();
     ByteBuffer comp = stack.compress(self_buffer);
     long self_loc = stack.allocateSpace(comp.capacity());
@@ -306,6 +314,8 @@ public class LobstackNode implements java.io.Serializable
     {
       my_entry.min_file_number = Math.min(my_entry.min_file_number, ne.min_file_number);
     }
+    tr.addTime(System.nanoTime() - t1_serialize, "serialize");
+
     return my_entry;
   }
 
@@ -313,14 +323,21 @@ public class LobstackNode implements java.io.Serializable
   private LobstackNode loadNode(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, long location)
     throws IOException
   {
+    long t1 = System.nanoTime();
+    LobstackNode n = null;
     if (save_entries.containsKey(location))
     {
-      return LobstackNode.deserialize(stack.decompress(save_entries.get(location)));
+      n = LobstackNode.deserialize(stack.decompress(save_entries.get(location)));
     }
     else
     {
-      return stack.loadNodeAt(location);
+      n = stack.loadNodeAt(location);
     }
+
+    stack.getTimeReport().addTime(System.nanoTime() - t1, "loadnode");
+    return n;
+
+
   }
 
   public ByteBuffer get(Lobstack stack, String key)
@@ -469,7 +486,7 @@ public class LobstackNode implements java.io.Serializable
     catch(Exception e) { throw new RuntimeException(e);}
   }
 
-  public static int commonLength(String a, String b)
+  public static int commonLength(Lobstack stack, String a, String b)
   {
     int max = Math.min(a.length(), b.length());
 
@@ -479,7 +496,10 @@ public class LobstackNode implements java.io.Serializable
       if (a.charAt(i) == b.charAt(i)) same++;
       else break;
     }
-    if (same % 2 == 1) same--;
+    if (stack.key_step_size > 1)
+    {
+      same -= (same % stack.key_step_size);
+    }
     return same;
 
   }

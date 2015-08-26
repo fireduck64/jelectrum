@@ -664,6 +664,7 @@ public class UtxoTrieMgr
 
           }
           added_since_flush++;
+
         }
         else
         {

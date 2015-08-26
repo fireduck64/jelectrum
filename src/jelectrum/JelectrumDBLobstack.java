@@ -78,9 +78,9 @@ public class JelectrumDBLobstack extends JelectrumDB
             block_rescan_map = new LobstackMap<Sha256Hash, String>(openStack("block_rescan_map"),ConversionMode.STRING);
             special_object_map = new LobstackMap<String, Object>(special_object_map_stack,ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LobstackMap<Integer, String>(openStack("header_chunk_map"),ConversionMode.STRING));
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(250000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(750000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
 
-            address_to_tx_map = new LobstackMapSet(openStack("address_to_tx_map"));
+            address_to_tx_map = new LobstackMapSet(openStack("address_to_tx_map", 1));
             tx_to_block_map = new LobstackMapSet(openStack("tx_to_block_map"));
 
 
@@ -94,11 +94,16 @@ public class JelectrumDBLobstack extends JelectrumDB
 
 
     }
-
     private Lobstack openStack(String name)
       throws java.io.IOException
     {
-      Lobstack l = new Lobstack(new File(conf.get("lobstack_path")), name, compress);
+      return openStack(name, 2);
+    }
+ 
+    private Lobstack openStack(String name, int key_step_size)
+      throws java.io.IOException
+    {
+      Lobstack l = new Lobstack(new File(conf.get("lobstack_path")), name, compress, key_step_size);
 
       synchronized(stack_list)
       {
@@ -210,6 +215,7 @@ public class JelectrumDBLobstack extends JelectrumDB
 
             for(Lobstack ls : stack_list)
             {
+              ls.printTimeReport(cleanup_log);
               ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log);
             }
             cleanup_log.println("Sleeping");
