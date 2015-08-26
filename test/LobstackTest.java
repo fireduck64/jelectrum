@@ -228,7 +228,7 @@ public class LobstackTest
 
     TreeMap<String, ByteBuffer> insert_map = new TreeMap<String, ByteBuffer>();
 
-    for(int j=0; j<200; j++)
+    for(int j=0; j<10; j++)
     {
       insert_map.clear();
       for(int i=0; i<8192; i++)

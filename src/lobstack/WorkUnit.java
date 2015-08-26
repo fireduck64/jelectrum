@@ -19,6 +19,7 @@ public class WorkUnit
   {
     this.stack = stack;
     this.ne = new NodeEntry();
+    this.node = new LobstackNode(prefix);
     this.ne.node = true;
     this.save_entries = save_entries;
   }
@@ -38,7 +39,11 @@ public class WorkUnit
     if (node==null) Assert.assertTrue("Don't have a node, we must have a loaction", ne.location >= 0);
     for(NodeEntry ne : put_map.values())
     {
-      Assert.assertFalse("Should not add nodes to node", ne.node);
+      if (ne.node)
+      {
+        Assert.assertTrue("Only existing nodes added to a node", ne.location>=0);
+      }
+      //Assert.assertFalse("Should not add nodes to node", ne.node);
     }
 
   }

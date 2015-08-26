@@ -7,7 +7,7 @@ import java.util.SortedMap;
 
 import java.nio.ByteBuffer;
 
-
+import org.junit.Assert;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.ByteArrayInputStream;
@@ -218,11 +218,20 @@ public class LobstackNode implements java.io.Serializable
   {
     TimeRecord tr = stack.getTimeReport();
 
+   
     // Add all as direct children
 
     children.putAll(put_map);
 
-    // Make new subchildren as needed
+    TreeMap<String, WorkUnit> working_map = new TreeMap<String, WorkUnit>();
+    for(Map.Entry<String, NodeEntry> me : children.entrySet())
+    {
+      working_map.put(me.getKey(), new WorkUnit(stack, me.getValue(), save_entries));
+    }
+
+    //Just to make sure they are all from new entries 
+    children.clear();
+
 
     boolean keep_looking=true;
     while(keep_looking)
@@ -230,35 +239,59 @@ public class LobstackNode implements java.io.Serializable
       keep_looking=false;
 
       ArrayList<String> lst = new ArrayList<String>();
-      lst.addAll(children.keySet());
+      lst.addAll(working_map.keySet());
       for(int i=0; i<lst.size()-1; i++)
       {
         String a = lst.get(i);
         String b = lst.get(i+1);
-        NodeEntry ne_a = children.get(a);
-        NodeEntry ne_b = children.get(b);
+        NodeEntry ne_a = working_map.get(a).ne;
+        NodeEntry ne_b = working_map.get(b).ne;
+        WorkUnit wu_a = working_map.get(a);
+        WorkUnit wu_b = working_map.get(b);
 
         // If b should go into a, and a is a node
         // just add it
         if ((b.startsWith(a)) && (ne_a.node))
         {
-          TreeMap<String, NodeEntry> sub_put_map = new TreeMap<String, NodeEntry>();
+          TreeSet<String> rm_lst = new TreeSet<String>();
+          
           for(int j=i+1; j<lst.size(); j++)
           {
             String c = lst.get(j);
+            WorkUnit wu_c = working_map.get(c);
+            NodeEntry ne_c = wu_c.ne;
             if (c.startsWith(a))
             {
-              sub_put_map.put(c, children.get(c));
+              rm_lst.add(c);
+
+              if (ne_c.node)
+              { 
+                if (ne_c.location == -1)
+                {
+                  //C must be a node we just added
+                  Assert.assertEquals("C must be just added node", -1,ne_c.location);
+                  wu_a.put_map.putAll(wu_c.put_map);
+                }
+                else
+                { // C must be existing, add it as a sub
+                  wu_a.put_map.put(c, ne_c);
+
+                  // Anything we want to add to C should be added to this new common instead
+                  wu_a.put_map.putAll(wu_c.put_map);
+                }
+
+              }
+              else
+              {
+                wu_a.put_map.put(c, ne_c);
+              }
             }
+ 
           }
 
-          LobstackNode n = loadNode(stack, save_entries, ne_a.location);
-          ne_a = n.putAll(stack, save_entries, sub_put_map);
-          children.put(a, ne_a);
-
-          for(String s : sub_put_map.keySet())
+          for(String s : rm_lst)
           {
-            children.remove(s);
+            working_map.remove(s);
           }
 
           keep_looking=true;
@@ -267,29 +300,52 @@ public class LobstackNode implements java.io.Serializable
 
         }
 
-        int common = commonLength(stack, a,b) - prefix.length();
+        int common = commonLength(stack, a, b) - prefix.length();
         if (common > 0)
         {
           String common_prefix = a.substring(0, common + prefix.length());
 
-          TreeMap<String, NodeEntry> sub_put_map = new TreeMap<String, NodeEntry>();
+          TreeSet<String> rm_lst = new TreeSet<String>();
+
+          WorkUnit wu_common = new WorkUnit(stack, common_prefix, save_entries);
+
           for(int j=i+1; j<lst.size(); j++)
           {
             String c = lst.get(j);
             if (c.startsWith(common_prefix))
             {
-              sub_put_map.put(c, children.get(c));
+              WorkUnit wu_c = working_map.get(c);
+              NodeEntry ne_c = wu_c.ne;
+              if (ne_c.node)
+              {
+                if (ne_c.location == -1)
+                {
+                  //C must be a node we just added
+                  Assert.assertEquals("C must be just added node", -1,ne_c.location);
+                  wu_common.put_map.putAll(wu_c.put_map);
+                }
+                else
+                { // C must be existing, add it as a sub
+                  wu_common.put_map.put(c, ne_c);
+
+                  // Anything we want to add to C should be added to this new common instead
+                  wu_common.put_map.putAll(wu_c.put_map);
+                }
+              }
+              else
+              {
+                wu_common.put_map.put(c, ne_c);
+              }
+ 
+              rm_lst.add(c);
             }
           }
 
-          LobstackNode n = new LobstackNode(common_prefix);
-          NodeEntry ne = n.putAll(stack, save_entries, sub_put_map);
-
-          for(String s : sub_put_map.keySet())
+          for(String s : rm_lst)
           {
-            children.remove(s);
+            working_map.remove(s);
           }
-          children.put(common_prefix, ne);
+          working_map.put(common_prefix, wu_common);
 
           keep_looking=true;
           break;
@@ -297,14 +353,48 @@ public class LobstackNode implements java.io.Serializable
 
       }
     }
+  
+    for(Map.Entry<String, WorkUnit> me : working_map.entrySet())
+    {
+      WorkUnit wu = me.getValue();
+      wu.assertConsistent();
+      //Load node as needed
+      if ((wu.ne.node) && (wu.put_map.size() > 0) && (wu.node==null))
+      {
+        wu.node = loadNode(stack, save_entries, wu.ne.location);
+      }
+      if (wu.put_map.size() > 0)
+      {
+        if (!stack.getQueue().offer(wu))
+        {
+          NodeEntry ne = wu.node.putAll(stack, wu.save_entries, wu.put_map);
+          wu.return_entry.setResult(ne);
+        }
+      }
+    }
 
-
+    for(Map.Entry<String, WorkUnit> me : working_map.entrySet())
+    {
+      WorkUnit wu = me.getValue();
+      if (wu.put_map.size() > 0)
+      {
+        children.put(me.getKey(), wu.return_entry.get());
+      }
+      else
+      {
+        children.put(me.getKey(), wu.ne);
+      }
+    }
     long t1_serialize = System.nanoTime();
+
 
     ByteBuffer self_buffer = serialize();
     ByteBuffer comp = stack.compress(self_buffer);
     long self_loc = stack.allocateSpace(comp.capacity());
-    save_entries.put(self_loc, comp);
+    synchronized(save_entries)
+    {
+      save_entries.put(self_loc, comp);
+    }
 
     NodeEntry my_entry = new NodeEntry();
     my_entry.node = true;
@@ -325,11 +415,15 @@ public class LobstackNode implements java.io.Serializable
   {
     long t1 = System.nanoTime();
     LobstackNode n = null;
-    if (save_entries.containsKey(location))
+    synchronized(save_entries)
     {
-      n = LobstackNode.deserialize(stack.decompress(save_entries.get(location)));
+      if (save_entries.containsKey(location))
+      {
+        n = LobstackNode.deserialize(stack.decompress(save_entries.get(location)));
+        throw new RuntimeException("whatfuck");
+      }
     }
-    else
+    if (n == null)
     {
       n = stack.loadNodeAt(location);
     }

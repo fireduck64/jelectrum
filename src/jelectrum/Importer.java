@@ -47,7 +47,7 @@ public class Importer
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
 
-    public boolean DEBUG=true;
+    public boolean DEBUG=false;
     private NetworkParameters params;
 
     private AtomicInteger imported_blocks= new AtomicInteger(0);

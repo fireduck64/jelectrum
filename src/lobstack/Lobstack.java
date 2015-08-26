@@ -60,7 +60,7 @@ public class Lobstack
 
   private static final long ROOT_ROOT_LOCATION = 0;
   private static final long ROOT_WRITE_LOCATION = 8;
-  public static final long WORKER_THREAD=32; 
+  public static final long WORKER_THREAD=128; 
 
   private AutoCloseLRUCache<Long, FileChannel> data_files;
   private ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>  read_data_files=new ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>();
@@ -244,7 +244,7 @@ public class Lobstack
 
     int check_end = Math.min(start + 4, end - 8);
 
-    for(int i=start+1; i<check_end; i++)
+    for(int i=check_end; i>start; i--)
     {
       double freed = (i - start) * Lobstack.SEGMENT_FILE_SIZE;
       double move = estimateReposition(i);
