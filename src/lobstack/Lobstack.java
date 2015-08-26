@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingQueue;
 import jelectrum.LRUCache;
 import jelectrum.TimeRecord;
+import java.util.concurrent.SynchronousQueue;
 
 /**
  * Limitations: 
@@ -57,11 +58,23 @@ public class Lobstack
 
   private FileChannel root_file_channel;
 
-  private static long ROOT_ROOT_LOCATION = 0;
-  private static long ROOT_WRITE_LOCATION = 8;
+  private static final long ROOT_ROOT_LOCATION = 0;
+  private static final long ROOT_WRITE_LOCATION = 8;
+  public static final long WORKER_THREAD=32; 
 
   private AutoCloseLRUCache<Long, FileChannel> data_files;
+  private ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>  read_data_files=new ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>();
   private LRUCache<Long, ByteBuffer> cached_data;
+
+  private static SynchronousQueue<WorkUnit> queue;
+
+  static {
+    queue = new SynchronousQueue<WorkUnit>();
+    for(int i=0; i<WORKER_THREAD; i++)
+    {
+      new LobstackWorkThread(queue).start();
+    }
+  }
 
   public Lobstack(File dir, String name)
     throws IOException
@@ -128,6 +141,11 @@ public class Lobstack
       System.out.println(stack_name + ": GB: " + df.format(gb));
     }
 
+  }
+
+  protected SynchronousQueue<WorkUnit> getQueue()
+  {
+    return queue;
   }
 
   private void reset()
@@ -440,7 +458,7 @@ public class Lobstack
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
-    FileChannel fc = getDataFileChannel(file_idx);
+    FileChannel fc = getDataFileChannelRead(file_idx);
     ByteBuffer bb = null;
     synchronized(fc)
     {
@@ -469,7 +487,7 @@ public class Lobstack
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
-    FileChannel fc = getDataFileChannel(file_idx);
+    FileChannel fc = getDataFileChannelRead(file_idx);
     ByteBuffer bb = null;
     synchronized(fc)
     {
@@ -688,6 +706,29 @@ public class Lobstack
       return fc;
     }
   }
+  private FileChannel getDataFileChannelRead(long idx)
+    throws IOException
+  {
+    AutoCloseLRUCache<Long, FileChannel> cache= read_data_files.get();
+    if (cache == null)
+    {
+      cache = new AutoCloseLRUCache<Long, FileChannel>(8);
+      read_data_files.set(cache);
+    }
+      FileChannel fc = cache.get(idx);
+      if (fc == null)
+      {
+        RandomAccessFile f = new RandomAccessFile(getDataFile(idx), "r");
+
+        fc = f.getChannel();
+
+        cache.put(idx,fc);
+      }
+
+      return fc;
+    
+  }
+
 
   private File getDataFile(long idx)
   {
