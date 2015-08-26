@@ -532,7 +532,7 @@ public class Importer
         if (DEBUG) jelly.getEventLog().alarm("BLOCK SAVE");
         ctx.setStatus("BLOCK_SAVE");
         file_db.getBlockMap().put(hash, new SerializedBlock(block));
-        jelly.getEventLog().alarm("Block saved, doing UTXO");
+        if (DEBUG) jelly.getEventLog().alarm("Block saved, doing UTXO");
 
         block_wait_sem.release(1024);
         boolean wait_for_utxo = false;
