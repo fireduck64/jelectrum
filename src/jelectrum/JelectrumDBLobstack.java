@@ -216,7 +216,7 @@ public class JelectrumDBLobstack extends JelectrumDB
 
             for(Lobstack ls : stack_list)
             {
-              ls.printTimeReport(cleanup_log);
+              //ls.printTimeReport(cleanup_log);
               if (ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
               {
                 done_something=true;

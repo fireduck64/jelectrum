@@ -712,7 +712,7 @@ public class Lobstack
     AutoCloseLRUCache<Long, FileChannel> cache= read_data_files.get();
     if (cache == null)
     {
-      cache = new AutoCloseLRUCache<Long, FileChannel>(8);
+      cache = new AutoCloseLRUCache<Long, FileChannel>(4);
       read_data_files.set(cache);
     }
       FileChannel fc = cache.get(idx);

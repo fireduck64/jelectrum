@@ -682,6 +682,12 @@ public class UtxoTrieMgr
         }
       
       }
+
+      synchronized(block_done_notify)
+      {
+        block_done_notify.notifyAll();
+      }
+
       if ((added_since_flush > 0) && (last_flush +15000L < System.currentTimeMillis()))
       {
         flush();
