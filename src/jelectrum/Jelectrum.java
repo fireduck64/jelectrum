@@ -53,6 +53,8 @@ public class Jelectrum
 
         config.require("bitcoin_network_use_peers");
         config.require("db_type");
+        config.require("bitcoin_peer_host");
+        config.require("bitcoin_peer_port");
 
         event_log = new EventLog(config);
 
@@ -131,14 +133,12 @@ public class Jelectrum
         peer_group = new PeerGroup(network_params, block_chain);
 
         peer_group.setMaxConnections(16);
-        peer_group.addAddress(new PeerAddress(InetAddress.getByName(config.get("bitcoind_host")),8333));
+        peer_group.addAddress(new PeerAddress(InetAddress.getByName(config.get("bitcoin_peer_host")),config.getInt("bitcoin_peer_port")));
 
         if (config.getBoolean("bitcoin_network_use_peers"))
         {
             peer_group.addPeerDiscovery(new DnsDiscovery(MainNetParams.get()));
-
             peer_group.addPeerDiscovery(new IrcDiscovery("#bitcoin"));
-
         }
         peer_group.addEventListener(new DownloadListener());
         peer_group.addEventListener(new ImportEventListener(jelectrum_db, importer));
@@ -146,6 +146,12 @@ public class Jelectrum
 
         peer_group.start();
         peer_group.downloadBlockChain();
+        //Thread.sleep(250);
+        while (peer_group.numConnectedPeers() == 0)
+        {
+          event_log.alarm("No connected peers - can't get new blocks or transactions");
+          Thread.sleep(5000);
+        }
 
 
         while(bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight())

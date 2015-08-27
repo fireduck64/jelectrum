@@ -768,6 +768,10 @@ public class Importer
 
                     System.out.println(status_report);
                     jelly.getEventLog().log(status_report);
+                    if (jelly.getPeerGroup().numConnectedPeers() == 0)
+                    {
+                      jelly.getEventLog().alarm("No connected peers - can't get new blocks or transactions");
+                    }
 
                 }
 
