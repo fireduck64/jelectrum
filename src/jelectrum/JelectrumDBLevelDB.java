@@ -42,7 +42,7 @@ public class JelectrumDBLevelDB extends JelectrumDB
             tx_map = new LevelDBMap<Sha256Hash, SerializedTransaction>(client, "tx_map", ConversionMode.SERIALIZEDTRANSACTION);
             block_store_map = new CacheMap<Sha256Hash, StoredBlock>(25000,new LevelDBMap<Sha256Hash, StoredBlock>(client,"block_store_map",ConversionMode.OBJECT));
             special_block_store_map = new LevelDBMap<String, StoredBlock>(client, "special_block_store_map",ConversionMode.OBJECT);
-            block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new LevelDBMap<Sha256Hash, SerializedBlock>(client,"block_map",ConversionMode.OBJECT));
+            block_map = new CacheMap<Sha256Hash, SerializedBlock>(80,new LevelDBMap<Sha256Hash, SerializedBlock>(client,"block_map",ConversionMode.OBJECT));
             block_rescan_map = new LevelDBMap<Sha256Hash, String>(client, "block_rescan_map",ConversionMode.STRING);
             special_object_map = new LevelDBMap<String, Object>(client, "special_object_map",ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LevelDBMap<Integer, String>(client,"header_chunk_map",ConversionMode.STRING));

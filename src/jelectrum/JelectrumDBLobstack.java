@@ -75,11 +75,11 @@ public class JelectrumDBLobstack extends JelectrumDB
             tx_map = new LobstackMap<Sha256Hash, SerializedTransaction>(openStack("tx_map"), ConversionMode.SERIALIZEDTRANSACTION);
             block_store_map = new CacheMap<Sha256Hash, StoredBlock>(25000,new LobstackMap<Sha256Hash, StoredBlock>(openStack("block_store_map"),ConversionMode.OBJECT));
             special_block_store_map = new LobstackMap<String, StoredBlock>(special_block_store_map_stack,ConversionMode.OBJECT);
-            block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new LobstackMap<Sha256Hash, SerializedBlock>(openStack("block_map"),ConversionMode.OBJECT));
+            block_map = new CacheMap<Sha256Hash, SerializedBlock>(80,new LobstackMap<Sha256Hash, SerializedBlock>(openStack("block_map"),ConversionMode.OBJECT));
             block_rescan_map = new LobstackMap<Sha256Hash, String>(openStack("block_rescan_map"),ConversionMode.STRING);
             special_object_map = new LobstackMap<String, Object>(special_object_map_stack,ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LobstackMap<Integer, String>(openStack("header_chunk_map"),ConversionMode.STRING));
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(750000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(250000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
 
             address_to_tx_map = new LobstackMapSet(openStack("address_to_tx_map", 1));
             tx_to_block_map = new LobstackMapSet(openStack("tx_to_block_map"));
