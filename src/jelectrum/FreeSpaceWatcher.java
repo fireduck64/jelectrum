@@ -20,12 +20,12 @@ public class FreeSpaceWatcher extends Thread
 
   public void run()
   {
+    boolean limited=false;
     while(true)
     {
       try
       {
         long space = location.getUsableSpace();
-        boolean limited=false;
         if (space < min_space)
         {
           if (!limited)
