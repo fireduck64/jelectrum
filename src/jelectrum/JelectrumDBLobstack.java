@@ -222,7 +222,7 @@ public class JelectrumDBLobstack extends JelectrumDB
                 done_something=true;
               }
             }
-            if (done_something)
+            if (!done_something)
             {
               cleanup_log.println("Sleeping");
               sleep(300L * 1000L);
