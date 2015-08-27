@@ -600,6 +600,14 @@ public class UtxoTrieMgr
 
       for(int i=curr_height+1; i<=head_height; i++)
       {
+        while(jelly.getSpaceLimited())
+        {
+          try
+          {
+            Thread.sleep(5000);
+          }
+          catch(Throwable t){}
+        }
        
         Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
         long t1=System.currentTimeMillis();
