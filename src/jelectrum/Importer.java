@@ -227,6 +227,11 @@ public class Importer
                 
                 try
                 {
+                    while (jelly.getSpaceLimited())
+                    {
+                      setStatus("SPACE_LIMIT_WAIT");
+                      Thread.sleep(5000);
+                    }
                     setStatus("BLK_QUEUE_WAIT");
                     Block blk = block_queue.take();
                     setStatus("BLK_WORK_START");

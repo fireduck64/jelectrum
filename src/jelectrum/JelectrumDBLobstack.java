@@ -28,6 +28,7 @@ public class JelectrumDBLobstack extends JelectrumDB
     protected LinkedList<Lobstack> stack_list;
     protected PrintStream cleanup_log;
 
+
     public JelectrumDBLobstack(Jelectrum jelly, Config config)
         throws Exception
     {
@@ -217,9 +218,20 @@ public class JelectrumDBLobstack extends JelectrumDB
             for(Lobstack ls : stack_list)
             {
               //ls.printTimeReport(cleanup_log);
-              if (ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
+              if (jelly.getSpaceLimited())
               {
-                done_something=true;
+                while(ls.cleanup(0.80, 2L * 1024L * 1024L * 1024L, cleanup_log))
+                {
+                  done_something=true;
+                }
+
+              }
+              else
+              {
+                if (ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
+                {
+                  done_something=true;
+                }
               }
             }
             if (!done_something)

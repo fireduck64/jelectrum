@@ -25,11 +25,25 @@ public class FreeSpaceWatcher extends Thread
       try
       {
         long space = location.getUsableSpace();
+        boolean limited=false;
         if (space < min_space)
         {
-          jelly.getEventLog().alarm("FreeSpaceWacher: low on space in " + location);
-          System.exit(10);
+          if (!limited)
+          {
+            jelly.getEventLog().alarm("FreeSpaceWacher: low on space in " + location);
+            jelly.setSpaceLimited(true);
+            limited=true;
+          }
          
+        }
+        else
+        {
+          if (limited)
+          {
+            jelly.setSpaceLimited(false);
+            jelly.getEventLog().alarm("FreeSpaceWacher: ok space in " + location);
+            limited=false;
+          }
         }
         sleep(20000);
 

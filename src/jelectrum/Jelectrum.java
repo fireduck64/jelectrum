@@ -249,6 +249,25 @@ public class Jelectrum
     {
       return utxo_trie_mgr;
     }
+
+    private volatile boolean space_limited;
+    public void setSpaceLimited(boolean limited)
+    {
+      if (limited)
+      {
+        event_log.alarm("Going into space limited mode");
+      }
+      else
+      {
+        event_log.alarm("Returning from space limited mode");
+      }
+      space_limited = limited;
+    }
+
+    public boolean getSpaceLimited()
+    {
+      return space_limited;
+    }
     
 
 }
