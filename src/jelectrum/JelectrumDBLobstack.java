@@ -212,14 +212,21 @@ public class JelectrumDBLobstack extends JelectrumDB
         {
           try
           {
+            boolean done_something = false;
 
             for(Lobstack ls : stack_list)
             {
               ls.printTimeReport(cleanup_log);
-              ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log);
+              if (ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
+              {
+                done_something=true;
+              }
             }
-            cleanup_log.println("Sleeping");
-            sleep(300L * 1000L);
+            if (done_something)
+            {
+              cleanup_log.println("Sleeping");
+              sleep(300L * 1000L);
+            }
           }
           catch(Exception e)
           {

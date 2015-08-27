@@ -227,13 +227,13 @@ public class Lobstack
 
   }
 
-  public void cleanup(double utilization, long max_move)
+  public boolean cleanup(double utilization, long max_move)
     throws IOException
   {
-    cleanup(utilization, max_move, System.out);
+    return cleanup(utilization, max_move, System.out);
 
   }
-  public void cleanup(double utilization, long max_move, PrintStream out)
+  public boolean cleanup(double utilization, long max_move, PrintStream out)
     throws IOException
   {
     out.println(stack_name + ": cleanup check");
@@ -249,7 +249,6 @@ public class Lobstack
       double freed = (i - start) * Lobstack.SEGMENT_FILE_SIZE;
       double move = estimateReposition(i);
       double mb = move / 1024.0 / 1024.0;
-      if (move > max_move) return;
 
       double util = move /freed;
       out.println(stack_name + ": a move to " + i + " would have utilization " + df.format(util) + " and move " + df.format(mb) + " mb");
@@ -259,10 +258,11 @@ public class Lobstack
         out.println(stack_name + ": repositioning to " + i + " moving " + df.format(mb) + " mb");
         reposition(i);
         out.println(stack_name + ": repositioning done");
-        return;
+        return true;
       }
       
     }
+    return false;
 
   }
 
