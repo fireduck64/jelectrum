@@ -131,6 +131,7 @@ public class LobstackNode implements java.io.Serializable
   {
     long sz = 0;
     long target = (min_file + 1) * Lobstack.SEGMENT_FILE_SIZE;
+    TreeMap<String, WorkUnit> work_map = new TreeMap<String, WorkUnit>();
 
     for(Map.Entry<String, NodeEntry> me : children.entrySet())
     {
@@ -138,18 +139,30 @@ public class LobstackNode implements java.io.Serializable
       NodeEntry ne = me.getValue();
       if (ne.min_file_number < min_file)
       {
-        //if (ne.location < target)
         {
           sz += stack.loadSizeAtLocation(ne.location) + 4;
         }
         if (ne.node)
         {
           LobstackNode n = stack.loadNodeAt(ne.location);
-          sz += n.estimateReposition(stack, min_file);
+          WorkUnit wu = new WorkUnit(stack,n, min_file);
+          if (stack.getQueue().offer(wu))
+          {
+            work_map.put(str, wu);
+          }
+          else
+          {
+            sz += n.estimateReposition(stack, min_file);
+          }
         }
       }
     }
-    //sz += serialize().capacity() + 4;
+
+    for(Map.Entry<String, WorkUnit> me : work_map.entrySet())
+    {
+      sz += me.getValue().estimate.get();
+    }
+
     return sz;
 
   }

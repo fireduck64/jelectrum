@@ -40,6 +40,13 @@ public class LobstackWorkThread extends Thread
           NodeEntry ne = wu.node.reposition(wu.stack, wu.save_entries, wu.min_file);
           return_node.setResult(ne);
         }
+        else if (wu.mode.equals("ESTIMATE_REPOSITION"))
+        {
+          long sz = wu.node.estimateReposition(wu.stack, wu.min_file);
+
+          wu.estimate.setResult(sz);
+
+        }
 
       }
       catch(Throwable t)
