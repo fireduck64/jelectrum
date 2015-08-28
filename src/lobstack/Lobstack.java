@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import jelectrum.LRUCache;
 import jelectrum.TimeRecord;
 import java.util.concurrent.SynchronousQueue;
+import java.text.SimpleDateFormat;
 
 /**
  * Limitations: 
@@ -43,6 +44,8 @@ public class Lobstack
   public static final String MODE="rw";
   public static final boolean DEBUG=false;
 
+  public static final long MAGIC_LOCATION_ZERO=Long.MAX_VALUE;
+
   public final int key_step_size;
 
   private Object ptr_lock = new Object();
@@ -60,13 +63,15 @@ public class Lobstack
 
   private static final long ROOT_ROOT_LOCATION = 0;
   private static final long ROOT_WRITE_LOCATION = 8;
-  public static final long WORKER_THREAD=128; 
+  public static final long WORKER_THREAD=64; 
 
   private AutoCloseLRUCache<Long, FileChannel> data_files;
   //private ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>  read_data_files=new ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>();
   private LRUCache<Long, ByteBuffer> cached_data;
 
   private static SynchronousQueue<WorkUnit> queue;
+
+  private ByteBuffer BB_ZERO = ByteBuffer.wrap(new byte[0]);
 
   static {
     queue = new SynchronousQueue<WorkUnit>();
@@ -246,7 +251,8 @@ public class Lobstack
   public boolean cleanup(double utilization, long max_move, PrintStream out)
     throws IOException
   {
-    out.println(stack_name + ": cleanup check");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    out.println( sdf.format(new java.util.Date()) + " - " + stack_name + ": cleanup check");
 
     DecimalFormat df = new DecimalFormat("0.00");
     int start = getMinFileNumber();
@@ -261,13 +267,13 @@ public class Lobstack
       double mb = move / 1024.0 / 1024.0;
 
       double util = move /freed;
-      out.println(stack_name + ": a move to " + i + " would have utilization " + df.format(util) + " and move " + df.format(mb) + " mb");
+      out.println(sdf.format(new java.util.Date()) + " - " + stack_name + ": a move to " + i + " would have utilization " + df.format(util) + " and move " + df.format(mb) + " mb");
 
       if ((move / freed) < utilization)
       {
-        out.println(stack_name + ": repositioning to " + i + " moving " + df.format(mb) + " mb");
+        out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning to " + i + " moving " + df.format(mb) + " mb");
         reposition(i);
-        out.println(stack_name + ": repositioning done");
+        out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning done");
         return true;
       }
       
@@ -366,10 +372,18 @@ public class Lobstack
       ByteBuffer value = put_map.get(key);
       NodeEntry ne = new NodeEntry();
       ne.node=false;
-      ByteBuffer comp = compress(value);
-      ne.location=allocateSpace(comp.capacity());
-      ne.min_file_number = (int)(ne.location / SEGMENT_FILE_SIZE); 
-      save_entries.put(ne.location, comp);
+      if (value.capacity() == 0)
+      {
+        ne.min_file_number = Integer.MAX_VALUE;
+        ne.location = MAGIC_LOCATION_ZERO;
+      }
+      else
+      {
+        ByteBuffer comp = compress(value);
+        ne.location=allocateSpace(comp.capacity());
+        ne.min_file_number = (int)(ne.location / SEGMENT_FILE_SIZE); 
+        save_entries.put(ne.location, comp);
+      }
       new_nodes.put(key + DATA_TAG, ne);
     }
 
@@ -465,6 +479,7 @@ public class Lobstack
   protected int loadSizeAtLocation(long loc)
     throws IOException
   {
+    if (loc == MAGIC_LOCATION_ZERO) return 0;
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
@@ -490,6 +505,8 @@ public class Lobstack
   protected ByteBuffer loadAtLocation(long loc)
     throws IOException
   {
+    if (loc == MAGIC_LOCATION_ZERO) return BB_ZERO;
+
     synchronized(cached_data)
     {
       ByteBuffer bb = cached_data.get(loc);
@@ -566,6 +583,8 @@ public class Lobstack
   protected long allocateSpace(int size)
     throws IOException
   {
+    if (size==0) return MAGIC_LOCATION_ZERO;
+
     synchronized(ptr_lock)
     {
       synchronized(root_file_channel)

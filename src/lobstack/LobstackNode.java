@@ -158,6 +158,8 @@ public class LobstackNode implements java.io.Serializable
   public NodeEntry reposition(Lobstack stack, TreeMap<Long, ByteBuffer> save_entries, int min_file)
     throws IOException
   {
+    TreeMap<String, WorkUnit> work_map = new TreeMap<String, WorkUnit>();
+
     for(Map.Entry<String, NodeEntry> me : children.entrySet())
     {
       String str = me.getKey();
@@ -167,8 +169,16 @@ public class LobstackNode implements java.io.Serializable
         if (ne.node)
         {
           LobstackNode n = loadNode(stack, save_entries, ne.location); 
-          ne = n.reposition(stack, save_entries, min_file);
-          children.put(str, ne);
+          WorkUnit wu = new WorkUnit(stack, n, min_file, save_entries);
+          if (stack.getQueue().offer(wu))
+          {
+            work_map.put(str, wu);
+          }
+          else
+          {
+            ne = n.reposition(stack, save_entries, min_file);
+            children.put(str, ne);
+          }
         }
         else
         {
@@ -177,18 +187,29 @@ public class LobstackNode implements java.io.Serializable
 
           ne.location = stack.allocateSpace(comp.capacity());
           ne.min_file_number = (int)(ne.location / Lobstack.SEGMENT_FILE_SIZE);
-          save_entries.put(ne.location, comp);
+          synchronized(save_entries)
+          {
+            save_entries.put(ne.location, comp);
+          }
           children.put(str, ne);
         }
-
       }
 
+    }
+
+    for(Map.Entry<String, WorkUnit> me : work_map.entrySet())
+    {
+      NodeEntry ne = me.getValue().return_entry.get();
+      children.put(me.getKey(), ne);
     }
 
     ByteBuffer self_buffer = serialize();
     ByteBuffer comp = stack.compress(self_buffer);
     long self_loc = stack.allocateSpace(comp.capacity());
-    save_entries.put(self_loc, comp);
+    synchronized(save_entries)
+    {
+      save_entries.put(self_loc, comp);
+    }
 
     NodeEntry my_entry = new NodeEntry();
     my_entry.node = true;
@@ -357,7 +378,7 @@ public class LobstackNode implements java.io.Serializable
     for(Map.Entry<String, WorkUnit> me : working_map.entrySet())
     {
       WorkUnit wu = me.getValue();
-      wu.assertConsistent();
+      wu.assertConsistentForPut();
       //Load node as needed
       if ((wu.ne.node) && (wu.put_map.size() > 0) && (wu.node==null))
       {

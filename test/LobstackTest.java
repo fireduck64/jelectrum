@@ -51,6 +51,25 @@ public class LobstackTest
     //ls.printTree();
 
   }
+
+  @Test
+  public void testSimpleEmpty()
+    throws Exception
+  {
+    Lobstack ls = openStack();
+
+    Random rnd = new Random();
+    byte[] buff = new byte[0];
+
+
+    ls.put("empty", ByteBuffer.wrap(buff));
+
+    Assert.assertNull(ls.get("meow"));
+
+    Assert.assertArrayEquals(buff, ls.get("empty").array());
+    //ls.printTree();
+
+  }
   
 
   @Test
@@ -230,30 +249,30 @@ public class LobstackTest
 
     for(int j=0; j<10; j++)
     {
-      insert_map.clear();
       for(int i=0; i<8192; i++)
       {
         String key = "" + rnd.nextInt(10000000);
         while(key.length() < 8) key = "0" + key;
-        byte[] buff = new byte[4];
+        byte[] buff = new byte[1024];
         rnd.nextBytes(buff);
         insert_map.put("random_put_all:" + key, ByteBuffer.wrap(buff));
       }
       ls.putAll(insert_map);
+      insert_map.clear();
     }
 
     ls.printTimeReport(System.out);
 
   }
   
-  /*@Test
+  @Test
   public void testCleanup()
     throws Exception
   {
     Lobstack ls = openStack("test_large"); 
     ls.cleanup(0.75, 256L * 1024L * 1024L);
 
-  }*/
+  }
 
 
 

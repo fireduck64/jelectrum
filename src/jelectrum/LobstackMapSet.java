@@ -47,7 +47,7 @@ public class LobstackMapSet
       {
         Map<String, ByteBuffer> write_map = new TreeMap<String, ByteBuffer>();
 
-        byte[] buff=new byte[1];
+        byte[] buff=new byte[0];
         ByteBuffer bb = ByteBuffer.wrap(buff);
 
         for(Map.Entry<String, Sha256Hash> me : lst)
@@ -65,7 +65,7 @@ public class LobstackMapSet
     {
       try
       {
-        byte[] buff=new byte[1];
+        byte[] buff=new byte[0];
         ByteBuffer bb = ByteBuffer.wrap(buff);
         stack.put(p + "/" + v, bb);
 

@@ -26,17 +26,27 @@ public class LobstackWorkThread extends Thread
       try
       {
         WorkUnit wu = queue.take();
-        return_node = wu.return_entry;
+        if (wu.mode.equals("PUT"))
+        {
+          return_node = wu.return_entry;
 
-        NodeEntry ne = wu.node.putAll(wu.stack, wu.save_entries, wu.put_map);
+          NodeEntry ne = wu.node.putAll(wu.stack, wu.save_entries, wu.put_map);
 
-        return_node.setResult(ne);
+          return_node.setResult(ne);
+        }
+        else if (wu.mode.equals("REPOSITION"))
+        {
+          return_node = wu.return_entry;
+          NodeEntry ne = wu.node.reposition(wu.stack, wu.save_entries, wu.min_file);
+          return_node.setResult(ne);
+        }
 
       }
       catch(Throwable t)
       {
         if (return_node != null)
         {
+          t.printStackTrace();
           return_node.setException(new RuntimeException(t));
         }
         else

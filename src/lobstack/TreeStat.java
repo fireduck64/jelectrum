@@ -51,6 +51,8 @@ public class TreeStat
 
   public synchronized void addFileUse(long location, long size)
   {
+    if (location == Lobstack.MAGIC_LOCATION_ZERO) return;
+
     int file = (int)(location / Lobstack.SEGMENT_FILE_SIZE);
     if (!file_use_map.containsKey(file))
     {
