@@ -63,7 +63,7 @@ public class Lobstack
   public static final long WORKER_THREAD=128; 
 
   private AutoCloseLRUCache<Long, FileChannel> data_files;
-  private ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>  read_data_files=new ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>();
+  //private ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>  read_data_files=new ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>();
   private LRUCache<Long, ByteBuffer> cached_data;
 
   private static SynchronousQueue<WorkUnit> queue;
@@ -134,12 +134,22 @@ public class Lobstack
   }
   public void showSize()
   {
+    long file_loc = 0;
     synchronized(ptr_lock)
     {
-      double gb = current_write_location / 1024.0 / 1024.0 / 1024.0;
+      file_loc = current_write_location / SEGMENT_FILE_SIZE;
+    }
+    int count =0;
+    for(long i=0; i<=file_loc; i++)
+    {
+      File f = getDataFile(i);
+      if (f.exists()) count++;
+    }
+    double sz = SEGMENT_FILE_SIZE * 1.0 * count;
+    double gb = sz / 1024.0 / 1024.0 / 1024.0;
+
       DecimalFormat df = new DecimalFormat("0.000");
       System.out.println(stack_name + ": GB: " + df.format(gb));
-    }
 
   }
 
@@ -460,7 +470,7 @@ public class Lobstack
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
     FileChannel fc = getDataFileChannelRead(file_idx);
     ByteBuffer bb = null;
-    synchronized(fc)
+    //synchronized(fc)
     {
       fc.position(in_file_loc);
       ByteBuffer lenbb = ByteBuffer.allocate(4);
@@ -470,6 +480,7 @@ public class Lobstack
 
 
       int len = lenbb.getInt();
+      fc.close();
       return len;
     }
 
@@ -505,6 +516,7 @@ public class Lobstack
       readBuffer(fc, bb);
       bb.rewind();
     }
+    fc.close();
 
     if (bb.capacity() < MAX_CACHE_SIZE)
     {
@@ -709,21 +721,21 @@ public class Lobstack
   private FileChannel getDataFileChannelRead(long idx)
     throws IOException
   {
-    AutoCloseLRUCache<Long, FileChannel> cache= read_data_files.get();
+    /*AutoCloseLRUCache<Long, FileChannel> cache= read_data_files.get();
     if (cache == null)
     {
       cache = new AutoCloseLRUCache<Long, FileChannel>(4);
       read_data_files.set(cache);
-    }
-      FileChannel fc = cache.get(idx);
-      if (fc == null)
-      {
+    }*/
+      FileChannel fc;// = cache.get(idx);
+      //if (fc == null)
+      //{
         RandomAccessFile f = new RandomAccessFile(getDataFile(idx), "r");
 
         fc = f.getChannel();
 
-        cache.put(idx,fc);
-      }
+        //cache.put(idx,fc);
+      //}
 
       return fc;
     
