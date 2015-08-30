@@ -220,7 +220,7 @@ public class JelectrumDBLobstack extends JelectrumDB
               //ls.printTimeReport(cleanup_log);
               if (jelly.getSpaceLimited())
               {
-                while(ls.cleanup(0.80, 2L * 1024L * 1024L * 1024L, cleanup_log))
+                while(ls.cleanup(16, 0.95, 4L * 1024L * 1024L * 1024L, cleanup_log))
                 {
                   done_something=true;
                 }
@@ -228,7 +228,7 @@ public class JelectrumDBLobstack extends JelectrumDB
               }
               else
               {
-                if (ls.cleanup(0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
+                if (ls.cleanup(6, 0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
                 {
                   done_something=true;
                 }

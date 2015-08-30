@@ -242,13 +242,13 @@ public class Lobstack
 
   }
 
-  public boolean cleanup(double utilization, long max_move)
+  public boolean cleanup(int max_back, double utilization, long max_move)
     throws IOException
   {
-    return cleanup(utilization, max_move, System.out);
+    return cleanup(max_back, utilization, max_move, System.out);
 
   }
-  public boolean cleanup(double utilization, long max_move, PrintStream out)
+  public boolean cleanup(int max_back, double utilization, long max_move, PrintStream out)
     throws IOException
   {
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
@@ -258,7 +258,7 @@ public class Lobstack
     int start = getMinFileNumber();
     int end = getMaxFileNumber();
 
-    int check_end = Math.min(start + 4, end - 8);
+    int check_end = Math.min(start + max_back, end - 8);
 
     for(int i=check_end; i>start; i--)
     {
