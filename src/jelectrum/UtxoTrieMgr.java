@@ -125,8 +125,14 @@ public class UtxoTrieMgr
     new UtxoMgrThread().start();
     new UtxoCheckThread().start();
 
-    //saveAuthMap("check/utxo-root-file");
-    //System.exit(-1);
+  }
+
+  public void saveCheckFile()
+  {
+    UtxoCheckThread uct = new UtxoCheckThread();
+    uct.client_name="check_file";
+    uct.start();
+    saveAuthMap("check/utxo-root-file");
   }
 
   public void resetEverything()
@@ -875,8 +881,11 @@ public class UtxoTrieMgr
             else
             {
               jelly.getEventLog().log("UTXO check at " + e.height + " - " + concur_root + " - matching " + matching + " of " + total);
-
             }
+          }
+          else
+          {
+              jelly.getEventLog().log("UTXO check at " + e.height + " - " + root_str);
           }
 
         }
@@ -897,9 +906,17 @@ public class UtxoTrieMgr
   public static void main(String args[]) throws Exception
   {
     String config_path = args[0];
+    Jelectrum jelly = new Jelectrum(new Config(config_path));
+
+    //jelly.getUtxoTrieMgr().saveCheckFile();
+    //System.exit(8);
+
     int block_number = Integer.parseInt(args[1]);
 
-    Jelectrum jelly = new Jelectrum(new Config(config_path));
+
+
+
+
 
 
     
