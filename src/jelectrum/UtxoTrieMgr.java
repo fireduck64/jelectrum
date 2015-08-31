@@ -97,7 +97,9 @@ public class UtxoTrieMgr
 
     db_map = jelly.getDB().getUtxoTrieMap();
 
+
     authMap = loadAuthMap("check/utxo-root-file");
+
 
     if (jelly.getConfig().isSet("utxo_reset") && jelly.getConfig().getBoolean("utxo_reset"))
     {
@@ -123,6 +125,8 @@ public class UtxoTrieMgr
     new UtxoMgrThread().start();
     new UtxoCheckThread().start();
 
+    //saveAuthMap("check/utxo-root-file");
+    //System.exit(-1);
   }
 
   public void resetEverything()
@@ -494,6 +498,40 @@ public class UtxoTrieMgr
       return getKey(public_key, out.getParentTransaction().getHash(), idx);
     }
 
+  public void saveAuthMap(String location)
+  {
+    try
+    {
+    Scanner scan =new Scanner(new FileInputStream(location));
+
+
+    while(scan.hasNext())
+    {
+      int height = scan.nextInt();
+      String hash = scan.next();
+      try
+      {
+        Sha256Hash utxo = new Sha256Hash(hash);
+
+        {
+          Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(height);
+          UtxoCheckEntry check_entry = new UtxoCheckEntry(height, block_hash, utxo);
+          check_queue.put(check_entry);
+        }
+
+
+      }
+      catch(Throwable t)
+      {}
+    }
+    }
+    catch(java.io.IOException e)
+    {
+      e.printStackTrace();
+    }
+
+
+  }
 
   public static Map<Integer, Sha256Hash> loadAuthMap(String location)
   {
@@ -509,7 +547,10 @@ public class UtxoTrieMgr
       String hash = scan.next();
       try
       {
-      map.put(height, new Sha256Hash(hash));
+        Sha256Hash utxo = new Sha256Hash(hash);
+        map.put(height, utxo);
+
+
       }
       catch(Throwable t)
       {}
@@ -798,6 +839,7 @@ public class UtxoTrieMgr
       {
         client_name += new java.util.Random().nextInt();
       }
+      //client_name = "check_file";
 
     }
     public void run()
@@ -816,22 +858,26 @@ public class UtxoTrieMgr
           String line = scan.nextLine();
           scan.close();
 
+
+
           StringTokenizer stok = new StringTokenizer(line, ",");
-          Sha256Hash concur_root = new Sha256Hash(stok.nextToken());
-          int matching = Integer.parseInt(stok.nextToken());
-          int total = Integer.parseInt(stok.nextToken());
-          if (!concur_root.equals(e.utxo_root))
+          String root_str = stok.nextToken();
+          if (!root_str.equals("undetermined"))
           {
-            jelly.getEventLog().alarm("UTXO check mismatch at " + e.height + " - me:" + e.utxo_root + " others:" + concur_root + " agreement " + + matching + " of " + total);  
-            
-          }
-          else
-          {
-            jelly.getEventLog().log("UTXO check at " + e.height + " - " + concur_root + " - matching " + matching + " of " + total);
+            Sha256Hash concur_root = new Sha256Hash(root_str);
+            int matching = Integer.parseInt(stok.nextToken());
+            int total = Integer.parseInt(stok.nextToken());
+            if (!concur_root.equals(e.utxo_root))
+            {
+              jelly.getEventLog().alarm("UTXO check mismatch at " + e.height + " - me:" + e.utxo_root + " others:" + concur_root + " agreement " + + matching + " of " + total);  
+              
+            }
+            else
+            {
+              jelly.getEventLog().log("UTXO check at " + e.height + " - " + concur_root + " - matching " + matching + " of " + total);
 
+            }
           }
-
-          System.out.println(line);
 
         }
         catch(Throwable t)
