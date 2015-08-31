@@ -405,7 +405,7 @@ public class Importer
         boolean confirmed = (block_hash != null);
 
         ctx.setStatus("TX_GET_ADDR");
-        Collection<String> addrs = getAllAddresses(tx, confirmed);
+        Collection<String> addrs = getAllAddresses(tx, confirmed, null);
 
         Random rnd = new Random();
 
@@ -437,9 +437,9 @@ public class Importer
     }
     private void putInternal(Block block, StatusContext ctx)
     {
-      if (DEBUG) jelly.getEventLog().alarm("Block save started");
-        long t1 = System.currentTimeMillis();
         Sha256Hash hash = block.getHash();
+        int h = block_store.getHeight(hash);
+        long t1 = System.currentTimeMillis();
 
         ctx.setStatus("BLOCK_CHECK_EXIST");
         if (file_db.getBlockMap().containsKey(hash)) 
@@ -447,9 +447,10 @@ public class Importer
             imported_blocks.incrementAndGet();
             return;
         }
+        if (DEBUG) jelly.getEventLog().alarm("Block save started " + h + " - " + hash );
         //Mark block as in progress
 
-        if (DEBUG) jelly.getEventLog().alarm("Mark in progress");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - Mark in progress");
 
         Semaphore block_wait_sem;
         synchronized(in_progress)
@@ -462,7 +463,7 @@ public class Importer
             }
         }
 
-        if (DEBUG) jelly.getEventLog().alarm("TX Cache Insert");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - TX Cache Insert");
         
         //Kick off threaded storage of transactions
         int size=0;
@@ -476,17 +477,30 @@ public class Importer
             }
         }
 
-        if (DEBUG) jelly.getEventLog().alarm("Get Addresses");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - Get Addresses");
         ctx.setStatus("BLOCK_TX_ENQUE");
         LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
 
         Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
         Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
 
+        Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
+
         for(Transaction tx : block.getTransactions())
         {
+          block_tx_map.put(tx.getHash(), tx);
+
+        }
+
+        for(Transaction tx : block.getTransactions())
+        {
+          if ((h == 333902) && DEBUG)
+          {
+            jelly.getEventLog().alarm("" + h + " - " + tx.getHash());
+          
+          }
           imported_transactions.incrementAndGet();
-          Collection<String> addrs = getAllAddresses(tx, true);
+          Collection<String> addrs = getAllAddresses(tx, true, block_tx_map);
 
           for(String addr : addrs)
           {
@@ -498,26 +512,26 @@ public class Importer
           tx_list.add(tx.getHash());
           size++;
         }
-        if (DEBUG) jelly.getEventLog().alarm("TX SAVEALL");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - TX SAVEALL");
 
         ctx.setStatus("TX_SAVEALL");
         file_db.getTransactionMap().putAll(txs_map);
-        if (DEBUG) jelly.getEventLog().alarm("TX BLOCK MAP");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - TX BLOCK MAP");
 
         ctx.setStatus("BLOCK_TX_MAP_ADD");
         file_db.addTxsToBlockMap(tx_list, hash);
 
-        if (DEBUG) jelly.getEventLog().alarm("ADDR SAVEALL");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - ADDR SAVEALL");
         ctx.setStatus("ADDR_SAVEALL");
         file_db.addAddressesToTxMap(addrTxLst);
 
-        if (DEBUG) jelly.getEventLog().alarm("Get Height");
-        int h = block_store.getHeight(hash);
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - Get Height");
+        //int h = block_store.getHeight(hash);
 
-        if (DEBUG) jelly.getEventLog().alarm("NOTIFY ALL");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - NOTIFY ALL");
         for(Transaction tx : block.getTransactions())
         {
-          Collection<String> addrs = getAllAddresses(tx, true);
+          Collection<String> addrs = getAllAddresses(tx, true, block_tx_map);
           ctx.setStatus("TX_NOTIFY");
           jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
           ctx.setStatus("TX_DONE");
@@ -525,7 +539,7 @@ public class Importer
 
 
         //Once all transactions are in, check for prev block in this store
-        if (DEBUG) jelly.getEventLog().alarm("WAIT PREV");
+        if (DEBUG) jelly.getEventLog().alarm("" + h + " - WAIT PREV");
 
         ctx.setStatus("BLOCK_WAIT_PREV");
         Sha256Hash prev_hash = block.getPrevBlockHash();
@@ -618,7 +632,7 @@ public class Importer
         run_rates=false;
     }
  
-    public Address getAddressForInput(TransactionInput in, boolean confirmed)
+    public Address getAddressForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
         if (in.isCoinBase()) return null;
 
@@ -639,6 +653,12 @@ public class Importer
                         Transaction src_tx = null;
                         while(src_tx == null)
                         { 
+                          if (block_tx_map != null)
+                          {
+                            src_tx = block_tx_map.get(out_p.getHash());
+                          }
+                          if (src_tx == null)
+                          {
                             src_tx = getTransaction(out_p.getHash());
                             if (src_tx == null)
                             {
@@ -649,6 +669,7 @@ public class Importer
                                 System.out.println("Unable to get source transaction: " + out_p.getHash());
                                 try{Thread.sleep(500);}catch(Exception e7){}
                             }
+                          }
                         }
                         TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
                         Address a = getAddressForOutput(out);
@@ -692,13 +713,14 @@ public class Importer
  
     }
 
-    public Collection<String> getAllAddresses(Transaction tx, boolean confirmed)
+    public Collection<String> getAllAddresses(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
         HashSet<String> lst = new HashSet<String>();
+        boolean detail = false;
 
         for(TransactionInput in : tx.getInputs())
         {
-            Address a = getAddressForInput(in, confirmed);
+            Address a = getAddressForInput(in, confirmed, block_tx_map);
             if (a!=null) lst.add(a.toString());
         }
 
@@ -708,6 +730,7 @@ public class Importer
             if (a!=null) lst.add(a.toString());
 
         }
+
 
         return lst;
 

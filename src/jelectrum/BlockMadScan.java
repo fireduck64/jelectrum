@@ -147,7 +147,7 @@ public class BlockMadScan
                             System.out.println("Transaction map does not contain " + tx.getHash());
                             System.exit(-1);
                           }
-                          Collection<String> addresses = jelly.getImporter().getAllAddresses(tx, true);
+                          Collection<String> addresses = jelly.getImporter().getAllAddresses(tx, true, null);
                           for(String addr : addresses)
                           {
                             Set<Sha256Hash> tx_set = getAddressToTxSet(addr);

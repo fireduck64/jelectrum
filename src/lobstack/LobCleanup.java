@@ -39,7 +39,7 @@ public class LobCleanup
   {
     input = new Lobstack(path, name, comp);
 
-    input.cleanup(0.25,50*1024*1024);
+    input.cleanup(24,0.90,8L*1024L*1024L*1024L);
     input.printTreeStats();   
     //input.printTreeStats();   
 
