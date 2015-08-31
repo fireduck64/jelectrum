@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.nio.ByteBuffer;
+import java.util.Scanner;
+import java.net.URL;
 
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.Transaction;
@@ -39,6 +41,8 @@ import org.apache.commons.codec.binary.Hex;
 import java.sql.*;
 import java.text.DecimalFormat;
 import java.util.Random;
+
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.google.bitcoin.script.ScriptOpCodes.*;
 
@@ -116,6 +120,7 @@ public class UtxoTrieMgr
   public void start()
   {
     new UtxoMgrThread().start();
+    new UtxoCheckThread().start();
 
   }
 
@@ -217,7 +222,13 @@ public class UtxoTrieMgr
     return n;
   }
 
-  
+  private void checkUtxoHash(Sha256Hash block, Sha256Hash utxo_hash)
+  {
+    UtxoCheckEntry check_entry = new UtxoCheckEntry(block, utxo_hash);
+
+    check_queue.offer(check_entry);
+
+  }
 
   private void addTransaction(Transaction tx)
   {
@@ -629,19 +640,20 @@ public class UtxoTrieMgr
           t2=System.currentTimeMillis();
 
           add_block_stat.addDataPoint(t2-t1);
-          Sha256Hash root_hash = null;
+          Sha256Hash root_hash = getRootHash();
 
 
           if (near_caught_up || 
           ((i % 50 == 0) || (authMap.containsKey(i))))
           {
             t1=System.currentTimeMillis();
-            root_hash = getRootHash();
             t2=System.currentTimeMillis();
             get_hash_stat.addDataPoint(t2-t1);
           }
 
           block_height=i;
+
+          checkUtxoHash(block_hash, root_hash);
 
           if (authMap.containsKey(i))
           {
@@ -751,6 +763,68 @@ public class UtxoTrieMgr
 
     }
 
+
+  }
+
+  private LinkedBlockingQueue<UtxoCheckEntry> check_queue = new LinkedBlockingQueue<UtxoCheckEntry>(8);
+
+  public class UtxoCheckEntry
+  {
+    Sha256Hash block;
+    Sha256Hash utxo_root;
+    public UtxoCheckEntry(Sha256Hash block, Sha256Hash utxo_root)
+    {
+      this.block = block;
+      this.utxo_root = utxo_root;
+    }
+  }
+
+  public class UtxoCheckThread extends Thread
+  {
+    String client_name;
+    public UtxoCheckThread()
+    {
+      setName("UtxoCheckThread");
+      setDaemon(true);
+      client_name = "j_" + StratumConnection.JELECTRUM_VERSION + "_";
+      if (jelly.getConfig().isSet("irc_advertise_host"))
+      {
+        client_name += jelly.getConfig().get("irc_advertise_host");
+      }
+      else
+      {
+        client_name += new java.util.Random().nextInt();
+      }
+
+    }
+    public void run()
+    {
+      while(true)
+      {
+        try
+        {
+          UtxoCheckEntry e = check_queue.take();
+          String url = "https://jelectrum-1022.appspot.com/utxo?" 
+            + "block=" + e.block.toString()
+            + "&utxo=" + e.utxo_root.toString()
+            + "&client="+ client_name;
+          URL u = new URL(url);
+          Scanner scan =new Scanner(u.openStream());
+          String line = scan.nextLine();
+          scan.close();
+          System.out.println(line);
+
+        }
+        catch(Throwable t)
+        {
+          jelly.getEventLog().alarm("UtxoCheckThread: " + t);
+          t.printStackTrace();
+        }
+
+      }
+
+
+    }
 
   }
 
