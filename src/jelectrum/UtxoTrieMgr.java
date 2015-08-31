@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import java.util.Set;
 import java.util.List;
 
+import java.util.StringTokenizer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -222,9 +223,9 @@ public class UtxoTrieMgr
     return n;
   }
 
-  private void checkUtxoHash(Sha256Hash block, Sha256Hash utxo_hash)
+  private void checkUtxoHash(int height, Sha256Hash block, Sha256Hash utxo_hash)
   {
-    UtxoCheckEntry check_entry = new UtxoCheckEntry(block, utxo_hash);
+    UtxoCheckEntry check_entry = new UtxoCheckEntry(height, block, utxo_hash);
 
     check_queue.offer(check_entry);
 
@@ -653,7 +654,7 @@ public class UtxoTrieMgr
 
           block_height=i;
 
-          checkUtxoHash(block_hash, root_hash);
+          checkUtxoHash(i, block_hash, root_hash);
 
           if (authMap.containsKey(i))
           {
@@ -770,10 +771,12 @@ public class UtxoTrieMgr
 
   public class UtxoCheckEntry
   {
+    int height;
     Sha256Hash block;
     Sha256Hash utxo_root;
-    public UtxoCheckEntry(Sha256Hash block, Sha256Hash utxo_root)
+    public UtxoCheckEntry(int height, Sha256Hash block, Sha256Hash utxo_root)
     {
+      this.height = height;
       this.block = block;
       this.utxo_root = utxo_root;
     }
@@ -812,6 +815,22 @@ public class UtxoTrieMgr
           Scanner scan =new Scanner(u.openStream());
           String line = scan.nextLine();
           scan.close();
+
+          StringTokenizer stok = new StringTokenizer(line, ",");
+          Sha256Hash concur_root = new Sha256Hash(stok.nextToken());
+          int matching = Integer.parseInt(stok.nextToken());
+          int total = Integer.parseInt(stok.nextToken());
+          if (!concur_root.equals(e.utxo_root))
+          {
+            jelly.getEventLog().alarm("UTXO check mismatch at " + e.height + " - me:" + e.utxo_root + " others:" + concur_root + " agreement " + + matching + " of " + total);  
+            
+          }
+          else
+          {
+            jelly.getEventLog().log("UTXO check at " + e.height + " - " + concur_root + " - matching " + matching + " of " + total);
+
+          }
+
           System.out.println(line);
 
         }
