@@ -246,8 +246,10 @@ public class Lobstack
     throws IOException
   {
     return cleanup(max_back, utilization, max_move, System.out);
-
   }
+
+  
+
   public boolean cleanup(int max_back, double utilization, long max_move, PrintStream out)
     throws IOException
   {
@@ -260,10 +262,13 @@ public class Lobstack
 
     int check_end = Math.min(start + max_back, end - 8);
 
-    for(int i=check_end; i>start; i--)
+    TreeMap<Integer, Long> estimate_map = estimateReposition(check_end);
+
+    for(int i : estimate_map.descendingKeySet())
     {
+      
       double freed = (i - start) * Lobstack.SEGMENT_FILE_SIZE;
-      double move = estimateReposition(i);
+      double move = estimate_map.get(i);
       double mb = move / 1024.0 / 1024.0;
 
       double util = move /freed;
@@ -276,17 +281,18 @@ public class Lobstack
         out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning done");
         return true;
       }
-      
-    }
-    return false;
+ 
 
+    }
+
+    return false;
   }
 
-  public long estimateReposition(int min_file)
+  public TreeMap<Integer, Long> estimateReposition(int max_file)
     throws IOException
   {
     LobstackNode root = loadNodeAt(getCurrentRoot());
-    return root.estimateReposition(this, min_file);
+    return root.estimateReposition(this, max_file);
 
 
   }

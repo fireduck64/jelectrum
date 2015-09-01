@@ -35,12 +35,12 @@ public class WorkUnit
     this.min_file = min_file;
     this.save_entries = save_entries;
   }
-  public WorkUnit(Lobstack stack, LobstackNode node, int min_file)
+  public WorkUnit(Lobstack stack, LobstackNode node, int max_file)
   {
     this.mode = "ESTIMATE_REPOSITION";
     this.stack = stack;
     this.node = node;
-    this.min_file = min_file;
+    this.max_file = max_file;
   }
 
 
@@ -54,8 +54,9 @@ public class WorkUnit
 
   //For reposition
   public int min_file;
+  public int max_file;
 
-  public SimpleFuture<Long> estimate=new SimpleFuture<Long>();
+  public SimpleFuture<TreeMap<Integer, Long>> estimate=new SimpleFuture<>();
 
 
   public void assertConsistentForPut()

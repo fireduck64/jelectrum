@@ -126,33 +126,38 @@ public class LobstackNode implements java.io.Serializable
    
   }
 
-  public long estimateReposition(Lobstack stack, int min_file)
+  /**
+   * Consider all repositions of files less than or equal to max_file
+   */
+  public TreeMap<Integer, Long> estimateReposition(Lobstack stack, int max_file)
     throws IOException
   {
-    long sz = 0;
-    long target = (min_file + 1) * Lobstack.SEGMENT_FILE_SIZE;
+    TreeMap<Integer, Long> sz_map = new TreeMap<Integer, Long>();
+
     TreeMap<String, WorkUnit> work_map = new TreeMap<String, WorkUnit>();
 
     for(Map.Entry<String, NodeEntry> me : children.entrySet())
     {
       String str = me.getKey();
       NodeEntry ne = me.getValue();
-      if (ne.min_file_number < min_file)
+      if (ne.min_file_number < max_file)
       {
+        long sz = stack.loadSizeAtLocation(ne.location) + 4;
+        for(int idx = (int) (ne.location / Lobstack.SEGMENT_FILE_SIZE); idx<=max_file; idx++)
         {
-          sz += stack.loadSizeAtLocation(ne.location) + 4;
+          TreeUtil.addItem(sz_map, idx, sz);
         }
         if (ne.node)
         {
           LobstackNode n = stack.loadNodeAt(ne.location);
-          WorkUnit wu = new WorkUnit(stack,n, min_file);
+          WorkUnit wu = new WorkUnit(stack,n, max_file);
           if (stack.getQueue().offer(wu))
           {
             work_map.put(str, wu);
           }
           else
           {
-            sz += n.estimateReposition(stack, min_file);
+            TreeUtil.addTree(sz_map, n.estimateReposition(stack, max_file));
           }
         }
       }
@@ -160,10 +165,10 @@ public class LobstackNode implements java.io.Serializable
 
     for(Map.Entry<String, WorkUnit> me : work_map.entrySet())
     {
-      sz += me.getValue().estimate.get();
+      TreeUtil.addTree(sz_map, me.getValue().estimate.get());
     }
 
-    return sz;
+    return sz_map;
 
   }
 

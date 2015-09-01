@@ -1,5 +1,5 @@
 package lobstack;
-
+import java.util.TreeMap;
 
 import java.util.concurrent.SynchronousQueue;
 
@@ -42,9 +42,9 @@ public class LobstackWorkThread extends Thread
         }
         else if (wu.mode.equals("ESTIMATE_REPOSITION"))
         {
-          long sz = wu.node.estimateReposition(wu.stack, wu.min_file);
+          TreeMap<Integer, Long> sz_map = wu.node.estimateReposition(wu.stack, wu.max_file);
 
-          wu.estimate.setResult(sz);
+          wu.estimate.setResult(sz_map);
 
         }
 
