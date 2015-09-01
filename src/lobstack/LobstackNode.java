@@ -143,7 +143,7 @@ public class LobstackNode implements java.io.Serializable
       if (ne.min_file_number < max_file)
       {
         long sz = stack.loadSizeAtLocation(ne.location) + 4;
-        for(int idx = (int) (ne.location / Lobstack.SEGMENT_FILE_SIZE); idx<=max_file; idx++)
+        for(int idx = (int) (ne.location / Lobstack.SEGMENT_FILE_SIZE) + 1; idx<=max_file; idx++)
         {
           TreeUtil.addItem(sz_map, idx, sz);
         }

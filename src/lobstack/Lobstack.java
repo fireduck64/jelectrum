@@ -271,20 +271,23 @@ public class Lobstack
 
     for(int i : estimate_map.descendingKeySet())
     {
-      
-      double freed = (i - start) * Lobstack.SEGMENT_FILE_SIZE;
-      double move = estimate_map.get(i);
-      double mb = move / 1024.0 / 1024.0;
-
-      double util = move /freed;
-      out.println(sdf.format(new java.util.Date()) + " - " + stack_name + ": a move to " + i + " would have utilization " + df.format(util) + " and move " + df.format(mb) + " mb");
-
-      if ((move / freed) < utilization)
+      if (i > start)
       {
-        out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning to " + i + " moving " + df.format(mb) + " mb");
-        reposition(i);
-        out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning done");
-        return true;
+      
+        double freed = (i - start) * Lobstack.SEGMENT_FILE_SIZE;
+        double move = estimate_map.get(i);
+        double mb = move / 1024.0 / 1024.0;
+
+        double util = move /freed;
+        out.println(sdf.format(new java.util.Date()) + " - " + stack_name + ": a move to " + i + " would have utilization " + df.format(util) + " and move " + df.format(mb) + " mb");
+
+        if ((move / freed) < utilization)
+        {
+          out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning to " + i + " moving " + df.format(mb) + " mb");
+          reposition(i);
+          out.println(sdf.format(new java.util.Date()) + " - " +stack_name + ": repositioning done");
+          return true;
+        }
       }
  
 
