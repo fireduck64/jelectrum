@@ -455,15 +455,19 @@ public class Lobstack
   {
     int idx = 0;
 
+    long root_loc = getCurrentRoot();
+    LobstackNode root = loadNodeAt(root_loc);
+    int root_min = root.getMinFileNumber(root_loc);
+
     while(true)
     { 
       File f = getDataFile(idx);
       if (f.exists()) return idx;
+      idx++;
+
+      if (idx >= root_min) return root_min;
     }
 
-    /*long root_loc = getCurrentRoot();
-    LobstackNode root = loadNodeAt(root_loc);
-    return root.getMinFileNumber(root_loc);*/
   }
 
   public SortedMap<String, ByteBuffer> getByPrefix(String prefix)
