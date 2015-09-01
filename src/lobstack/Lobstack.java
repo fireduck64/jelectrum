@@ -448,10 +448,17 @@ public class Lobstack
   public int getMinFileNumber()
     throws IOException
   {
-    long root_loc = getCurrentRoot();
-    LobstackNode root = loadNodeAt(root_loc);
+    int idx = 0;
 
-    return root.getMinFileNumber(root_loc);
+    while(true)
+    { 
+      File f = getDataFile(idx);
+      if (f.exists()) return idx;
+    }
+
+    /*long root_loc = getCurrentRoot();
+    LobstackNode root = loadNodeAt(root_loc);
+    return root.getMinFileNumber(root_loc);*/
   }
 
   public SortedMap<String, ByteBuffer> getByPrefix(String prefix)
