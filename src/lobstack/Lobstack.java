@@ -264,6 +264,11 @@ public class Lobstack
 
     TreeMap<Integer, Long> estimate_map = estimateReposition(check_end);
 
+    for(int i=start; i<=check_end; i++)
+    {
+      if (!estimate_map.containsKey(i)) estimate_map.put(i, 0L);
+    }
+
     for(int i : estimate_map.descendingKeySet())
     {
       
