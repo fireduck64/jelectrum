@@ -3,6 +3,7 @@ package jelectrum;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Collection;
 import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.StoredBlock;
@@ -74,13 +75,13 @@ public class JelectrumDBMongo extends JelectrumDB
             address_to_tx_map = new MongoMapSet<String, Sha256Hash>(getCollection("address_to_tx_map"), compress);
             block_store_map = new CacheMap<Sha256Hash, StoredBlock>(25000,new MongoMap<Sha256Hash, StoredBlock>(getCollection("block_store_map"),compress));
             special_block_store_map = new MongoMap<String, StoredBlock>(getCollection("special_block_store_map"),compress);
-            block_map = new CacheMap<Sha256Hash, SerializedBlock>(240,new MongoMap<Sha256Hash, SerializedBlock>(getCollection("block_map"),compress));
+            block_map = new CacheMap<Sha256Hash, SerializedBlock>(80,new MongoMap<Sha256Hash, SerializedBlock>(getCollection("block_map"),compress));
             tx_to_block_map = new MongoMapSet<Sha256Hash, Sha256Hash>(getCollection("tx_to_block_map"),compress);
             block_rescan_map = new MongoMap<Sha256Hash, String>(getCollection("block_rescan_map"),compress);
             special_object_map = new MongoMap<String, Object>(getCollection("special_object_map"),true);
             header_chunk_map = new CacheMap<Integer, String>(200, new MongoMap<Integer, String>(getCollection("header_chunk_map"),compress));
 
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new MongoMap<String, UtxoTrieNode>(getCollection("utxo_trie_map"),compress));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(250000, new MongoMap<String, UtxoTrieNode>(getCollection("utxo_trie_map"),compress));
 
         }
         catch(Exception e)
@@ -125,6 +126,12 @@ public class JelectrumDBMongo extends JelectrumDB
     {
         getAddressToTxMap().add(address, hash);
     }
+
+    @Override
+    public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst)
+    {
+      getAddressToTxMap().putList(lst);
+    }
     public Set<Sha256Hash> getAddressToTxSet(String address)
     {
         return getAddressToTxMap().getSet(address);
@@ -140,6 +147,12 @@ public class JelectrumDBMongo extends JelectrumDB
     public void addTxToBlockMap(Sha256Hash tx, Sha256Hash block)
     {
         getTxToBlockMap().add(tx, block);
+    }
+    
+    @Override
+    public void addTxsToBlockMap(Collection<Map.Entry<Sha256Hash, Sha256Hash> > lst)
+    {
+      getTxToBlockMap().putList(lst);
     }
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
     {

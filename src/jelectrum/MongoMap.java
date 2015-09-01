@@ -123,7 +123,6 @@ public class MongoMap<K,V> implements Map<K, V>
     
         for(Map.Entry<? extends K,? extends V> me : m.entrySet())
         {
-        
           lst.add(new MongoEntry(me.getKey().toString(), me.getValue(), compress));
         }
         collection.insert(lst, WriteConcern.ACKNOWLEDGED);

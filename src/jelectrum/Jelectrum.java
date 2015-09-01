@@ -135,6 +135,16 @@ public class Jelectrum
         peer_group.setMaxConnections(16);
         peer_group.addAddress(new PeerAddress(InetAddress.getByName(config.get("bitcoin_peer_host")),config.getInt("bitcoin_peer_port")));
 
+        if (config.isSet("bitcoin_peer_list"))
+        {
+          for(String peer : config.getList("bitcoin_peer_list"))
+          {
+            event_log.log("Adding additional peer: " + peer);
+            peer_group.addAddress(new PeerAddress(InetAddress.getByName(peer),8333));
+          
+          }
+        }
+
         if (config.getBoolean("bitcoin_network_use_peers"))
         {
             peer_group.addPeerDiscovery(new DnsDiscovery(MainNetParams.get()));

@@ -58,6 +58,7 @@ import lobstack.SerialUtil;
     {
       try
       {
+        bb.rewind();
         DataInputStream din=new DataInputStream(new ByteArrayInputStream(bb.array()));
 
         prefix = SerialUtil.readString(din);

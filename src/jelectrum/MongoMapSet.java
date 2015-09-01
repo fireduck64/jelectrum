@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -104,6 +105,29 @@ public class MongoMapSet<K,V>
         long t2 = System.currentTimeMillis();
         put_stats.addDataPoint(t2-t1);
         //return old;
+    }
+    public void putList(Collection<Map.Entry<K, V> > in_lst)
+    {
+      LinkedList<MongoEntry> lst = new LinkedList<MongoEntry>();
+
+      for(Map.Entry<K, V> me : in_lst)
+      {
+        lst.add(new MongoEntry(me.getKey().toString(), me.getValue(), compress, KEY));
+      }
+
+      try
+      { 
+
+        collection.insert(lst, WriteConcern.ACKNOWLEDGED);
+      }
+      catch(com.mongodb.DuplicateKeyException e)
+      { 
+        for(MongoEntry entry : lst)
+        {
+          collection.save(entry, WriteConcern.ACKNOWLEDGED);
+        }
+      }
+
     }
 
     public static void printStats()

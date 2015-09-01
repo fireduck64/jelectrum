@@ -34,7 +34,7 @@ public class AddressTest
         Transaction tx = jelly.getImporter().getTransaction(tx_hash);
 
 
-        Collection<String> lst = jelly.getImporter().getAllAddresses(tx, true);
+        Collection<String> lst = jelly.getImporter().getAllAddresses(tx, true, null);
 
         Assert.assertEquals(1, lst.size());
         Assert.assertEquals("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4", lst.iterator().next());
@@ -48,7 +48,7 @@ public class AddressTest
 
         Transaction tx = jelly.getImporter().getTransaction(tx_hash);
 
-        Collection<String> lst = jelly.getImporter().getAllAddresses(tx, true);
+        Collection<String> lst = jelly.getImporter().getAllAddresses(tx, true, null);
 
         Assert.assertEquals(2, lst.size());
         Assert.assertEquals("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4", lst.iterator().next());
@@ -63,7 +63,7 @@ public class AddressTest
 
         Transaction tx = jelly.getImporter().getTransaction(tx_hash);
 
-        Collection<String> lst = jelly.getImporter().getAllAddresses(tx, true);
+        Collection<String> lst = jelly.getImporter().getAllAddresses(tx, true, null);
 
         Assert.assertEquals(1, lst.size());
     }

@@ -483,10 +483,10 @@ public class Lobstack
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
-    FileChannel fc = getDataFileChannelRead(file_idx);
-    ByteBuffer bb = null;
-    //synchronized(fc)
+    try(FileChannel fc = getDataFileChannelRead(file_idx))
     {
+      ByteBuffer bb = null;
+    
       fc.position(in_file_loc);
       ByteBuffer lenbb = ByteBuffer.allocate(4);
 
@@ -495,8 +495,9 @@ public class Lobstack
 
 
       int len = lenbb.getInt();
-      fc.close();
       return len;
+    
+
     }
 
 
@@ -515,9 +516,8 @@ public class Lobstack
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
-    FileChannel fc = getDataFileChannelRead(file_idx);
     ByteBuffer bb = null;
-    synchronized(fc)
+    try(FileChannel fc = getDataFileChannelRead(file_idx))
     {
       fc.position(in_file_loc);
       ByteBuffer lenbb = ByteBuffer.allocate(4);
@@ -533,7 +533,6 @@ public class Lobstack
       readBuffer(fc, bb);
       bb.rewind();
     }
-    fc.close();
 
     if (bb.capacity() < MAX_CACHE_SIZE)
     {
@@ -740,24 +739,10 @@ public class Lobstack
   private FileChannel getDataFileChannelRead(long idx)
     throws IOException
   {
-    /*AutoCloseLRUCache<Long, FileChannel> cache= read_data_files.get();
-    if (cache == null)
-    {
-      cache = new AutoCloseLRUCache<Long, FileChannel>(4);
-      read_data_files.set(cache);
-    }*/
-      FileChannel fc;// = cache.get(idx);
-      //if (fc == null)
-      //{
-        RandomAccessFile f = new RandomAccessFile(getDataFile(idx), "r");
-
-        fc = f.getChannel();
-
-        //cache.put(idx,fc);
-      //}
-
+      FileChannel fc;
+      RandomAccessFile f = new RandomAccessFile(getDataFile(idx), "r");
+      fc = f.getChannel();
       return fc;
-    
   }
 
 

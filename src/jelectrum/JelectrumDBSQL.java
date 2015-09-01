@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Collection;
+import java.util.LinkedList;
 import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.StoredBlock;
@@ -105,11 +106,6 @@ public class JelectrumDBSQL extends JelectrumDB
         getAddressToTxMap().add(address, hash);
     }
     @Override
-    public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash)
-    {
-      address_to_tx_map.addAll(addresses, hash);
-    }
-    @Override
     public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst)
     {
       address_to_tx_map.addAll(lst);
@@ -131,9 +127,14 @@ public class JelectrumDBSQL extends JelectrumDB
         getTxToBlockMap().add(tx, block);
     }
     @Override
-    public void addTxsToBlockMap(Collection<Sha256Hash> txs, Sha256Hash block)
+    public void addTxsToBlockMap(Collection<Map.Entry<Sha256Hash, Sha256Hash> > in_lst)
     {
-      tx_to_block_map.addAll(txs, block);
+      /*LinkedList<Map.Entry<String, Sha256Hash> > lst = new LinkedList<Map.Entry<String, Sha256Hash> >();
+      for(Map.Entry<Sha256Hash, Sha256Hash> me : in_lst)
+      { 
+        lst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(me.getKey().toString(), me.getValue()));
+      }*/
+      tx_to_block_map.addAll(in_lst);
     }
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
     {

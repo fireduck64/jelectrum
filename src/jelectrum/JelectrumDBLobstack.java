@@ -138,17 +138,7 @@ public class JelectrumDBLobstack extends JelectrumDB
     {
       address_to_tx_map.put(address, hash);
     }
-    @Override
-    public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash)
-    {
-      LinkedList<Map.Entry<String, Sha256Hash> > lst = new LinkedList<Map.Entry<String, Sha256Hash> >();
-      for(String a : addresses)
-      {
-        lst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(a, hash));
-      }
-      addAddressesToTxMap(lst);
-      
-    }
+    
     @Override
     public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst)
     {
@@ -166,13 +156,13 @@ public class JelectrumDBLobstack extends JelectrumDB
       tx_to_block_map.put(tx.toString(), block);
     }
     @Override
-    public void addTxsToBlockMap(Collection<Sha256Hash> txs, Sha256Hash block)
+    public void addTxsToBlockMap(Collection<Map.Entry<Sha256Hash, Sha256Hash> > in_lst)
     {
 
       LinkedList<Map.Entry<String, Sha256Hash> > lst = new LinkedList<Map.Entry<String, Sha256Hash> >();
-      for(Sha256Hash a : txs)
+      for(Map.Entry<Sha256Hash, Sha256Hash> me : in_lst)
       {
-        lst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(a.toString(), block));
+        lst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(me.getKey().toString(), me.getValue()));
       }
  
       tx_to_block_map.putList(lst);

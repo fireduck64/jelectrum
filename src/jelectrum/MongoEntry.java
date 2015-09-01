@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.nio.ByteBuffer;
 
 public class MongoEntry extends BasicDBObject
 {
@@ -87,6 +88,18 @@ public class MongoEntry extends BasicDBObject
             {
                 append("sha256hash", value.toString());
             }
+            else if (value instanceof SerializedTransaction)
+            {
+              SerializedTransaction stx = (SerializedTransaction) value;
+              Binary b = new Binary(org.bson.BSON.B_GENERAL, stx.getBytes());
+              append("tx", b);
+            }
+            /*else if (value instanceof UtxoTrieNode)
+            {
+              UtxoTrieNode n = (UtxoTrieNode) value;
+              Binary b = new Binary(org.bson.BSON.B_GENERAL, n.serialize().array());
+              append("utxo_node", b);
+            }*/
             else
             {
 
@@ -164,6 +177,15 @@ public class MongoEntry extends BasicDBObject
             {
                 return new Sha256Hash((String)o.get("sha256hash"));
             }
+            else if (o.containsField("tx"))
+            {
+              return new SerializedTransaction((byte[])o.get("tx"));
+            }
+            /*else if (o.containsField("utxo_node"))
+            {
+              byte[] b = (byte[]) o.get("utxo_node");
+              return new UtxoTrieNode(ByteBuffer.wrap(b));
+            }*/
             else
             {
                 byte[]b = (byte[])o.get("data");

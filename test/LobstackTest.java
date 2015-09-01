@@ -247,7 +247,7 @@ public class LobstackTest
 
     TreeMap<String, ByteBuffer> insert_map = new TreeMap<String, ByteBuffer>();
 
-    for(int j=0; j<10; j++)
+    for(int j=0; j<1; j++)
     {
       for(int i=0; i<8192; i++)
       {
@@ -270,7 +270,7 @@ public class LobstackTest
     throws Exception
   {
     Lobstack ls = openStack("test_large"); 
-    ls.cleanup(0.75, 256L * 1024L * 1024L);
+    ls.cleanup(16, 0.75, 256L * 1024L * 1024L);
 
   }
 

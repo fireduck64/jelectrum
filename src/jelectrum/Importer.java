@@ -491,16 +491,13 @@ public class Importer
           block_tx_map.put(tx.getHash(), tx);
 
         }
+        TreeMap<Sha256Hash, Collection<String>> addr_map = new TreeMap<>();
 
         for(Transaction tx : block.getTransactions())
         {
-          if ((h == 333902) && DEBUG)
-          {
-            jelly.getEventLog().alarm("" + h + " - " + tx.getHash());
-          
-          }
           imported_transactions.incrementAndGet();
           Collection<String> addrs = getAllAddresses(tx, true, block_tx_map);
+          addr_map.put(tx.getHash(), addrs);
 
           for(String addr : addrs)
           {
@@ -531,7 +528,7 @@ public class Importer
         if (DEBUG) jelly.getEventLog().alarm("" + h + " - NOTIFY ALL");
         for(Transaction tx : block.getTransactions())
         {
-          Collection<String> addrs = getAllAddresses(tx, true, block_tx_map);
+          Collection<String> addrs = addr_map.get(tx.getHash());
           ctx.setStatus("TX_NOTIFY");
           jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
           ctx.setStatus("TX_DONE");

@@ -91,14 +91,14 @@
 
   <target name="build">
     <mkdir dir="${build}"/>
-    <javac srcdir="${src}" destdir="${build}" source="1.5" debug="true" debuglevel="lines,vars,source">
+    <javac srcdir="${src}" destdir="${build}" source="1.7" debug="true" debuglevel="lines,vars,source">
       <classpath refid="build.classpath" />
     </javac>
   </target>
 
   <target name="build_test" depends="build">
     <mkdir dir="${build_test}"/>
-    <javac srcdir="${test}" destdir="${build_test}" source="1.5" debug="true" debuglevel="lines,vars,source">
+    <javac srcdir="${test}" destdir="${build_test}" source="1.7" debug="true" debuglevel="lines,vars,source">
       <classpath refid="test.classpath" />
     </javac>
   </target>
