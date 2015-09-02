@@ -137,6 +137,11 @@ public class Lobstack
     showSize();
 
   }
+
+  public String getName()
+  {
+    return stack_name;
+  }
   public void showSize()
   {
     long file_loc = 0;

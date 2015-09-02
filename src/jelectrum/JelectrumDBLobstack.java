@@ -3,6 +3,7 @@ package jelectrum;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.io.File;
@@ -199,6 +200,8 @@ public class JelectrumDBLobstack extends JelectrumDB
 
       public void run()
       {
+        TreeMap<String, Long> check_delay_map = new TreeMap<String, Long>();
+
         while(true)
         {
           try
@@ -207,27 +210,34 @@ public class JelectrumDBLobstack extends JelectrumDB
 
             for(Lobstack ls : stack_list)
             {
-              //ls.printTimeReport(cleanup_log);
+              String name = ls.getName();
+              int depth=6;
+              double target=0.75;
+              long max_size = 2L * 1024L * 1024L * 1024L;
               if (jelly.getSpaceLimited())
               {
-                while(ls.cleanup(16, 0.95, 4L * 1024L * 1024L * 1024L, cleanup_log))
+                name = "limited-" + name;
+                depth=16;
+                target=0.95;
+                max_size=4L * 1024L * 1024L * 1024L;
+              }
+              if ((!check_delay_map.containsKey(name)) || (check_delay_map.get(name) < System.currentTimeMillis()))
+              {
+                if (ls.cleanup(depth, target, max_size, cleanup_log))
                 {
                   done_something=true;
+                }
+                else
+                {
+                  check_delay_map.put(name, 30L * 60L * 1000L + System.currentTimeMillis());
                 }
 
-              }
-              else
-              {
-                if (ls.cleanup(6, 0.75, 2L * 1024L * 1024L * 1024L, cleanup_log))
-                {
-                  done_something=true;
-                }
               }
             }
             if (!done_something)
             {
-              cleanup_log.println("Sleeping");
-              sleep(300L * 1000L);
+              //cleanup_log.println("Sleeping");
+              sleep(5L * 1000L);
             }
           }
           catch(Exception e)
