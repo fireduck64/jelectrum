@@ -40,9 +40,6 @@ public class Importer
     private JelectrumDB file_db;
     private MapBlockStore block_store;
     
-    //private LRUCache<String, Object> address_locks;
-    //private LRUCache<Sha256Hash, Object> tx_locks;
-    //private LRUCache<String, Object> tx_out_locks;
     private LRUCache<Sha256Hash, Transaction> transaction_cache;
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
@@ -390,6 +387,7 @@ public class Importer
     }
     public void putInternal(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
     {
+      if (DEBUG) jelly.getEventLog().log("Put TX: " + tx.getHash());
 
 
         if (block_hash == null)
@@ -397,22 +395,20 @@ public class Importer
           ctx.setStatus("TX_SERIALIZE");
           SerializedTransaction s_tx = new SerializedTransaction(tx);
           ctx.setStatus("TX_PUT");
-          //System.out.println("Transaction " + tx.getHash() + " " + Util.measureSerialization(s_tx));
           file_db.getTransactionMap().put(tx.getHash(), s_tx);
+          if (DEBUG) jelly.getEventLog().log("TX: " + Hex.encodeHexString(s_tx.getBytes()));
         }
 
-        //putTxOutSpents(tx);
         boolean confirmed = (block_hash != null);
 
         ctx.setStatus("TX_GET_ADDR");
         Collection<String> addrs = getAllAddresses(tx, confirmed, null);
+        if (DEBUG) jelly.getEventLog().log("Put TX: " + tx.getHash() + " - " + addrs);
 
         Random rnd = new Random();
 
         ctx.setStatus("TX_SAVE_ADDRESS");
         file_db.addAddressesToTxMap(addrs, tx.getHash());
-
-
 
         imported_transactions.incrementAndGet();
         int h = -1;
@@ -422,12 +418,9 @@ public class Importer
             h = block_store.getHeight(block_hash);
         }
 
-
-
         ctx.setStatus("TX_NOTIFY");
         jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
         ctx.setStatus("TX_DONE");
-        
 
     }
 
