@@ -580,8 +580,8 @@ public class ElectrumNotifier
 
         public int compareTo(SortedTransaction o)
         {
-            /*if (getEffectiveHeight() > o.getEffectiveHeight()) return -1;
-            if (getEffectiveHeight() < o.getEffectiveHeight()) return 1;*/
+            if (getEffectiveHeight() < o.getEffectiveHeight()) return -1;
+            if (getEffectiveHeight() > o.getEffectiveHeight()) return 1;
 
             return tx.getHash().toString().compareTo(o.tx.getHash().toString());
 
