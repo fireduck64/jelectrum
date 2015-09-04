@@ -162,6 +162,11 @@ public class Importer
 
     public void saveTransaction(Transaction tx)
     {
+      //Only bother saving lose transactions if we are otherwise up to date
+      //otherwise this is just going to waste time importing transactions
+      //that will either come with blocks or not at all later
+      if (jelly.isUpToDate())
+      {
         try
         {
             tx_queue.put(new TransactionWork(tx));
@@ -170,6 +175,7 @@ public class Importer
         {
             throw new RuntimeException(e);
         }
+      }
 
     }
 

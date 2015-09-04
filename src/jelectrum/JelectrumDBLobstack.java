@@ -211,9 +211,9 @@ public class JelectrumDBLobstack extends JelectrumDB
             for(Lobstack ls : stack_list)
             {
               String name = ls.getName();
-              int depth=6;
-              double target=0.75;
-              long max_size = 2L * 1024L * 1024L * 1024L;
+              int depth=4;
+              double target=0.50;
+              long max_size = 1024L * 1024L * 1024L;
               if (jelly.getSpaceLimited())
               {
                 name = "limited-" + name;
@@ -229,7 +229,7 @@ public class JelectrumDBLobstack extends JelectrumDB
                 }
                 else
                 {
-                  check_delay_map.put(name, 30L * 60L * 1000L + System.currentTimeMillis());
+                  check_delay_map.put(name, 60L * 60L * 1000L + System.currentTimeMillis());
                 }
 
               }
