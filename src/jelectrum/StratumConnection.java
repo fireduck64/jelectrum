@@ -291,6 +291,12 @@ public class StratumConnection
                 jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address);
 
             }
+            else if (method.equals("blockchain.address.get_balance"))
+            {
+                JSONArray params = msg.getJSONArray("params");
+                String address = params.getString(0);
+                jelectrum.getElectrumNotifier().sendAddressBalance(this, id, address);
+            }
             else if (method.equals("blockchain.address.subscribe"))
             {
                 //the result is

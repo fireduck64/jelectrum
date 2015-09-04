@@ -14,7 +14,12 @@ import java.util.ArrayList;
 import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.StoredBlock;
+import com.google.bitcoin.core.Address;
+import com.google.bitcoin.core.TransactionInput;
+import com.google.bitcoin.core.TransactionOutput;
+import com.google.bitcoin.core.TransactionOutPoint;
 import com.google.bitcoin.core.Block;
+import com.google.bitcoin.core.AddressFormatException;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -355,6 +360,105 @@ public class ElectrumNotifier
 
 
     }
+    public void sendAddressBalance(StratumConnection conn, Object request_id, String address)
+      throws AddressFormatException
+    {
+      Address target = new Address(jelly.getNetworkParameters(), address);
+
+      Subscriber sub = new Subscriber(conn, request_id);
+        try
+        {
+            JSONObject reply = sub.startReply();
+
+            List<SortedTransaction> lst = getTransactionsForAddress(address);
+
+            TreeMap<String, Long> confirmed_outs = new TreeMap<>();
+            TreeMap<String, Long> unconfirmed_outs = new TreeMap<>();
+
+
+            // Add all outputs
+            for(SortedTransaction stx : lst)
+            {
+              Transaction tx = stx.tx;
+              int idx=0;
+              for(TransactionOutput tx_out : tx.getOutputs())
+              {
+                Address a = jelly.getImporter().getAddressForOutput(tx_out);
+                if (target.equals(a))
+                {
+                  String k = tx.getHash().toString() + ":" + idx;
+                  if (stx.height > 0)
+                  {
+                    confirmed_outs.put(k, tx_out.getValue().longValue());
+                  }
+                  else
+                  {
+                    unconfirmed_outs.put(k, tx_out.getValue().longValue());
+                  }
+                }
+                idx++;
+              }
+            }
+
+            // Remove all inputs
+            for(SortedTransaction stx : lst)
+            {
+              Transaction tx = stx.tx;
+              boolean confirmed = (stx.height > 0);
+              for(TransactionInput tx_in : tx.getInputs())
+              {
+                if (!tx_in.isCoinBase())
+                {
+                  TransactionOutPoint tx_op = tx_in.getOutpoint();
+                  String k = tx_op.getHash().toString() + ":" + tx_op.getIndex();
+
+                  if (confirmed)
+                  {
+                    confirmed_outs.remove(k);
+                    unconfirmed_outs.remove(k);
+                  }
+                  else
+                  {
+                    unconfirmed_outs.remove(k);
+                    if (confirmed_outs.containsKey(k))
+                    {
+                      unconfirmed_outs.put(k, -confirmed_outs.get(k));
+                    }
+
+                  }
+                }
+              }
+              
+            }
+
+            long balance_confirmed=0;
+            long balance_unconfirmed=0;
+            for(long x : confirmed_outs.values()) balance_confirmed+=x;
+            for(long x : unconfirmed_outs.values()) balance_unconfirmed+=x;
+
+
+            JSONObject arr = new JSONObject();
+            //JSONObject b_c = new JSONObject();
+            //JSONObject b_u = new JSONObject();
+            arr.put("confirmed", balance_confirmed);
+            arr.put("unconfirmed", balance_unconfirmed);
+            arr.put("transactions", lst.size());
+            //arr.put(b_c);
+            //arr.put(b_u);
+            reply.put("result", arr);
+            sub.sendReply(reply);
+
+
+        }
+        catch(org.json.JSONException e)
+        {   
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+
 
     public Object getAddressHistory(String address)
     {
