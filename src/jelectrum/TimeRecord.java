@@ -8,14 +8,27 @@ import java.io.PrintStream;
 public class TimeRecord
 {
   private TreeMap<String, Long> times=new TreeMap<String, Long>();
+  private TreeMap<String, Long> counts=new TreeMap<String, Long>();
 
   public synchronized void addTime(long tm, String name)
   {
-    Long prev = times.get(name);
-    long p = 0;
-    if (prev != null) p = prev;
+    {
+      Long prev = times.get(name);
+      long p = 0;
+      if (prev != null) p = prev;
 
-    times.put(name, p + tm);
+      times.put(name, p + tm);
+    }
+    {
+      Long prev = counts.get(name);
+      long p = 0;
+      if (prev != null) p = prev;
+
+      counts.put(name, p + 1);
+
+
+    }
+
   }
 
   public synchronized void printReport(PrintStream out)
@@ -27,7 +40,7 @@ public class TimeRecord
       String name = me.getKey();
       long nanosec = me.getValue();
       double seconds = nanosec / 1e9;
-      out.println("  " + name + " - " + df.format(seconds) + " seconds");
+      out.println("  " + name + " - " + df.format(seconds) + " seconds " + counts.get(name) + " calls");
     }
 
   }
@@ -35,6 +48,7 @@ public class TimeRecord
   public synchronized void reset()
   {
     times.clear();
+    counts.clear();
   }
 
 

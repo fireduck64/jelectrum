@@ -38,8 +38,8 @@ public class Lobstack
   public static long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=2048;
-  public static final int MAX_CACHE_ENTRIES=128*1024;
-  public static final int MAX_CACHE_SIZE=65536;
+  public static final int MAX_CACHE_ENTRIES=128*1024*4;
+  public static final int MAX_CACHE_SIZE=65536*4;
 
   public static final String MODE="rw";
   public static final boolean DEBUG=false;
@@ -538,11 +538,26 @@ public class Lobstack
   {
     if (loc == MAGIC_LOCATION_ZERO) return BB_ZERO;
 
+    long t1_cache = System.nanoTime();
+
+    ByteBuffer bb_cache = null;
+
     synchronized(cached_data)
     {
-      ByteBuffer bb = cached_data.get(loc);
-      if (bb != null) return decompress(bb);
+      bb_cache = cached_data.get(loc);
     }
+    getTimeReport().addTime(System.nanoTime() - t1_cache, "cachecheck");
+
+    if (bb_cache != null)
+    {
+      long t1 = System.nanoTime(); 
+      ByteBuffer dbb = decompress(bb_cache);
+      getTimeReport().addTime(System.nanoTime() - t1, "decompress");
+      return dbb;
+    }
+    
+
+    long file_t1 = System.nanoTime();
 
     long file_idx = loc / SEGMENT_FILE_SIZE;
     long in_file_loc = loc % SEGMENT_FILE_SIZE;
@@ -571,8 +586,12 @@ public class Lobstack
         cached_data.put(loc, ByteBuffer.wrap(bb.array()));
       }
     }
+    getTimeReport().addTime(System.nanoTime() - file_t1, "load_file");
+
+    long t1 = System.nanoTime();
     ByteBuffer de_bb = decompress(bb);
     if (DEBUG) System.out.println("Decompress");
+    getTimeReport().addTime(System.nanoTime() - t1, "decompress");
     return de_bb;
 
   }
@@ -580,8 +599,13 @@ public class Lobstack
   protected LobstackNode loadNodeAt(long loc)
     throws IOException
   {
+    long t1=System.nanoTime();
     ByteBuffer b = loadAtLocation(loc);
-    return LobstackNode.deserialize(b);
+    getTimeReport().addTime(System.nanoTime() - t1, "loadatlocation");
+    t1=System.nanoTime();
+    LobstackNode n = LobstackNode.deserialize(b);
+    getTimeReport().addTime(System.nanoTime() - t1, "deserialize");
+    return n;
 
   }
 
@@ -616,8 +640,6 @@ public class Lobstack
 
     synchronized(ptr_lock)
     {
-      synchronized(root_file_channel)
-      {
         long loc = current_write_location;
 
         long new_end = loc + size + 4;
@@ -628,14 +650,10 @@ public class Lobstack
         }
 
         current_write_location = loc + size + 4;
-        root_file_channel.position(ROOT_WRITE_LOCATION);
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        bb.putLong(current_write_location);
-        bb.rewind();
-        writeBuffer(root_file_channel, bb);
-    
+
+
+   
         return loc;
-      }
     }
 
   }
@@ -732,16 +750,28 @@ public class Lobstack
     {
       synchronized(root_file_channel)
       {
-        root_file_channel.position(ROOT_ROOT_LOCATION);
+        {
+          root_file_channel.position(ROOT_WRITE_LOCATION);
+          ByteBuffer bb = ByteBuffer.allocate(8);
+          bb.putLong(current_write_location);
+          bb.rewind();
+          writeBuffer(root_file_channel, bb);
+        }
 
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        bb.putLong(loc);
-        bb.rewind();
-        writeBuffer(root_file_channel, bb);
+ 
+        {
+          root_file_channel.position(ROOT_ROOT_LOCATION);
+          ByteBuffer bb = ByteBuffer.allocate(8);
+          bb.putLong(loc);
+          bb.rewind();
+          writeBuffer(root_file_channel, bb);
+        }
 
         root_file_channel.force(true);
  
         current_root = loc;
+
+
       }
     }
   }
