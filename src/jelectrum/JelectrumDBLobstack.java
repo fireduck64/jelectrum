@@ -99,7 +99,7 @@ public class JelectrumDBLobstack extends JelectrumDB
     private Lobstack openStack(String name)
       throws java.io.IOException
     {
-      return openStack(name, 2);
+      return openStack(name, 1);
     }
  
     private Lobstack openStack(String name, int key_step_size)
