@@ -259,6 +259,10 @@ public class Jelectrum
     {
       return utxo_trie_mgr;
     }
+    public StratumServer getStratumServer()
+    {
+      return stratum_server;
+    }
 
     private volatile boolean space_limited;
     public void setSpaceLimited(boolean limited)

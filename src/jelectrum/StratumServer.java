@@ -139,6 +139,14 @@ public class StratumServer
         return event_log;
     }
 
+    public int getConnectionCount()
+    {
+      synchronized(conn_map)
+      {
+        return conn_map.size();
+      }
+    }
+
     public NetworkParameters getNetworkParameters(){return network_params;}
 
     public void setNetworkParameters(NetworkParameters network_params)

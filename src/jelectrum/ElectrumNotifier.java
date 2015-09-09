@@ -545,6 +545,35 @@ public class ElectrumNotifier
 
     }
 
+
+    private void printSubscriptionSummary()
+    {
+      int conn_count = jelly.getStratumServer().getConnectionCount();
+      int block_subscriber_count = 0;
+      int blocknum_subscriber_count = 0;
+      int address_subscriptions = 0;
+      synchronized(block_subscribers)
+      {
+        block_subscriber_count = block_subscribers.size();
+      }
+      synchronized(blocknum_subscribers)
+      {
+        blocknum_subscriber_count = blocknum_subscribers.size();
+      }
+      synchronized(address_subscribers)
+      {
+        for(Map.Entry<String, Map<String, Subscriber>> me : address_subscribers.entrySet())
+        {
+          address_subscriptions += me.getValue().size();
+        }
+
+      }
+
+      jelly.getEventLog().log("USERS Connections: " + conn_count + " Block subs: " + block_subscriber_count + " Block num subs: " + blocknum_subscriber_count + " Address subs: " + address_subscriptions);
+
+    
+    }
+
     public class PruneThread extends Thread
     {
         public PruneThread()
@@ -558,34 +587,42 @@ public class ElectrumNotifier
             {
                 try{Thread.sleep(60000);}catch(Exception e){}
 
-                TreeSet<String> to_delete =new TreeSet<String>();
 
                 synchronized(block_subscribers)
                 {
-                    for(Subscriber sub : block_subscribers.values())
-                    {
-                        if (!sub.isOpen())
-                        {
-                            to_delete.add(sub.getId());
-                        }
-                    }
-
-                    for(String id : to_delete)
-                    {
-                        block_subscribers.remove(id);
-                    }
+                  pruneMap(block_subscribers);
                 }
-                //TODO - finish this monster
-                /*synchronized(address_subscribers)
+                synchronized(blocknum_subscribers)
                 {
-                    for(String address : address_subscribers.keySet())
-                    {
-                        
-                    }
-                }*/
+                  pruneMap(blocknum_subscribers);
+                }
+
+                synchronized(address_subscribers)
+                {
+                  for(Map.Entry<String, Map<String, Subscriber>> me : address_subscribers.entrySet())
+                  {
+                    pruneMap(me.getValue());
+                  }
+                }
+                printSubscriptionSummary();
             }
 
 
+        }
+        private void pruneMap(Map<String, Subscriber> input_map)
+        {
+          TreeSet<String> to_delete =new TreeSet<String>();
+          for(Subscriber sub : input_map.values())
+          {
+            if (!sub.isOpen())
+            {
+              to_delete.add(sub.getId());
+            }
+          }
+          for(String id : to_delete)
+          {
+            input_map.remove(id);
+          }
         }
     }
 
