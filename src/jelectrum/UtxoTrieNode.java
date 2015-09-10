@@ -46,6 +46,7 @@ import lobstack.SerialUtil;
     private TreeMap<String, Sha256Hash> springs;
 
     private static Sha256Hash hash_null = new Sha256Hash("74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b");
+    private static final long serialVersionUID = 2675325841660230241L;
 
 
     public UtxoTrieNode(String prefix)
@@ -132,6 +133,30 @@ import lobstack.SerialUtil;
     {
       springs.put(s, null);
       mgr.putSaveSet(prefix, this);
+    }
+
+    public Collection<String> getKeysByPrefix(String start, UtxoTrieMgr mgr)
+    {
+      LinkedList<String> lst = new LinkedList<>();
+      for(String sub : springs.keySet())
+      {
+        String name = prefix+sub;
+        if (name.startsWith(start) || start.startsWith(name))
+        {
+          if (name.length() == UtxoTrieMgr.ADDR_SPACE*2)
+          {
+            lst.add(name);
+          }
+          else
+          {
+            UtxoTrieNode n = mgr.getByKey(name);
+            if (n == null) System.out.println("Missing: " + name + " from " + prefix);
+            lst.addAll(n.getKeysByPrefix(start, mgr));
+          }
+        }
+      }
+      return lst;
+
     }
     public void addHash(String key, Sha256Hash tx_hash, UtxoTrieMgr mgr)
     {

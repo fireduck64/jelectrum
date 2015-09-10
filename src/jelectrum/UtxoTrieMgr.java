@@ -51,8 +51,6 @@ import static com.google.bitcoin.script.ScriptOpCodes.*;
  * Blocks have to be loaded in order
  * 
  * @todo - Add shutdown hook to avoid exit during flush
- * @todo - Add way for importer to know if we are near head and to wait before notifying clients
- *         so that clients get the correct utxo hash
  * 
  */
 public class UtxoTrieMgr
@@ -288,6 +286,41 @@ public class UtxoTrieMgr
     }
   }
 
+  public synchronized Collection<TransactionOutPoint> getUnspentForAddress(Address a)
+  { 
+    String prefix = getPrefixForAddress(a);
+
+    Collection<String> keys = getByKey("").getKeysByPrefix(prefix, this);
+
+    LinkedList<TransactionOutPoint> outs = new LinkedList<TransactionOutPoint>();
+
+    try
+    {
+      for(String key : keys)
+      {
+        byte[] key_data=Hex.decodeHex(key.toCharArray());
+        ByteBuffer bb = ByteBuffer.wrap(key_data);
+        bb.order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        bb.position(20);
+        byte[] tx_data = new byte[32];
+        bb.get(tx_data);
+        int idx=bb.getInt();
+        Sha256Hash tx_id = new Sha256Hash(tx_data);
+        TransactionOutPoint o = new TransactionOutPoint(jelly.getNetworkParameters(), idx, tx_id);
+        outs.add(o);
+       
+      }
+    }
+    catch(org.apache.commons.codec.DecoderException e)
+    { 
+      throw new RuntimeException(e);
+    }
+
+
+
+    return outs;
+  }
+
 
   public synchronized Sha256Hash getRootHash()
   {
@@ -432,6 +465,12 @@ public class UtxoTrieMgr
       }
 
  
+    }
+
+    public static String getPrefixForAddress(Address a)
+    {
+      byte[] public_key=a.getHash160();
+      return Hex.encodeHexString(public_key);
     }
 
     public static byte[] getPublicKeyForTxOut(TransactionOutput out, NetworkParameters params)

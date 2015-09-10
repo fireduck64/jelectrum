@@ -360,6 +360,52 @@ public class ElectrumNotifier
 
 
     }
+    public void sendUnspent(StratumConnection conn, Object request_id, String address)
+      throws AddressFormatException
+    {
+      try
+      {
+        Subscriber sub = new Subscriber(conn, request_id);
+        Address target = new Address(jelly.getNetworkParameters(), address);
+        JSONObject reply = sub.startReply();
+
+        Collection<TransactionOutPoint> outs = jelly.getUtxoTrieMgr().getUnspentForAddress(target);
+
+        
+        JSONArray arr =new JSONArray();
+
+
+        for(TransactionOutPoint out : outs)
+        {
+          JSONObject o = new JSONObject();
+          o.put("tx_hash", out.getHash().toString());
+          o.put("tx_pos", out.getIndex());
+
+          SortedTransaction s_tx = new SortedTransaction(out.getHash());
+
+          Transaction tx = s_tx.tx; 
+          long value = tx.getOutput((int)out.getIndex()).getValue().longValue();
+          o.put("value",value);
+          o.put("height", s_tx.getEffectiveHeight());
+          
+          arr.put(o);
+        }
+
+
+        reply.put("result", arr);
+
+
+
+        sub.sendReply(reply);
+      }
+      catch(org.json.JSONException e)
+      {   
+        throw new RuntimeException(e);
+      }
+
+
+    }
+
     public void sendAddressBalance(StratumConnection conn, Object request_id, String address)
       throws AddressFormatException
     {
