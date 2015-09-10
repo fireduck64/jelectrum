@@ -191,9 +191,16 @@ public class Jelectrum
         {
             if (bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight()+2)
             {
-                System.out.println("We are far behind.  Aborting.");
-                event_log.log("We are far behind.  Aborting.");
-                System.exit(1);
+                event_log.alarm("We are far behind.  Aborting.");
+
+                event_log.alarm("Actually, do a kill -3 of this process and then send fireduck the output");
+
+                while(true)
+                {
+                  Thread.sleep(5000);
+                }
+                
+                //System.exit(1);
             }
 
             Thread.sleep(25000);

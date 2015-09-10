@@ -80,7 +80,7 @@ public class JelectrumDBLobstack extends JelectrumDB
             block_rescan_map = new LobstackMap<Sha256Hash, String>(openStack("block_rescan_map"),ConversionMode.STRING);
             special_object_map = new LobstackMap<String, Object>(special_object_map_stack,ConversionMode.OBJECT);
             header_chunk_map = new CacheMap<Integer, String>(200, new LobstackMap<Integer, String>(openStack("header_chunk_map"),ConversionMode.STRING));
-            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(250000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
+            utxo_trie_map = new CacheMap<String, UtxoTrieNode>(1000000, new LobstackMap<String, UtxoTrieNode>(openStack("utxo_trie_map"),ConversionMode.OBJECT));
 
             address_to_tx_map = new LobstackMapSet(openStack("address_to_tx_map", 1));
             tx_to_block_map = new LobstackMapSet(openStack("tx_to_block_map"));
