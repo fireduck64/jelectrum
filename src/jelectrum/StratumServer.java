@@ -215,6 +215,13 @@ public class StratumServer
                 }
                 for(Map.Entry<String, StratumConnection> me : lst)
                 {
+                    if (!me.getValue().isOpen())
+                    {
+                        synchronized(conn_map)
+                        {
+                            conn_map.remove(me.getKey());
+                        }
+                    }
                     if (me.getValue().getLastNetworkAction() + max_idle_time < System.nanoTime())
                     {
                         jelectrum.getEventLog().log(me.getKey() + " - Closing connection due to inactivity");
@@ -227,8 +234,7 @@ public class StratumServer
                     }   
                 }
 
-                try{Thread.sleep(30000);}catch(Throwable t){}
-
+                try{Thread.sleep(15000);}catch(Throwable t){}
                 
 
             }

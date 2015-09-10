@@ -10,13 +10,14 @@ public class IrcBot extends PircBot
   private Object connection_lock = new Object();
   private Config config;
 
+  private long kickWaitTime=0;
+
   public IrcBot(Jelectrum jelly)
   {
     config = jelly.getConfig();
 
-    config.require("irc_enabled");
 
-    if (config.getBoolean("irc_enabled"))
+    if (config.isSet("irc_enabled") && config.getBoolean("irc_enabled"))
     {
       config.require("irc_nick");
       config.require("irc_advertise_host");
@@ -65,11 +66,15 @@ public class IrcBot extends PircBot
   protected void onKick(String channel, String kickerNick, String kickerLogin, String kickerHostname, String recipientNick, String reason)
   {
     jelly.getEventLog().log("Kicked from " + channel + " by " + kickerNick + " for " + reason);
+    jelly.getEventLog().log("Waiting one hour before trying again");
 
-    /*synchronized(connection_lock)
+
+    kickWaitTime = System.currentTimeMillis() + 3600L * 1000L;
+
+    synchronized(connection_lock)
     {
       connection_lock.notifyAll();
-    }*/
+    }
   }
 
 
@@ -117,7 +122,12 @@ public class IrcBot extends PircBot
 
       synchronized(connection_lock)
       {
-      connection_lock.wait();
+        connection_lock.wait();
+      }
+
+      if (System.currentTimeMillis() < kickWaitTime)
+      {
+        Thread.sleep(15000);
       }
 
 
