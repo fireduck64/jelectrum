@@ -11,19 +11,46 @@ public class IrcBot extends PircBot
   private Config config;
 
   private long kickWaitTime=0;
+  private boolean shouldRun = false;
+  private String advert_host = null;
+  private String nick = null;
 
-  public IrcBot(Jelectrum jelly)
+  public IrcBot(Jelectrum jelly, String mode)
   {
     config = jelly.getConfig();
 
-
-    if (config.isSet("irc_enabled") && config.getBoolean("irc_enabled"))
+    if (mode == null)
     {
-      config.require("irc_nick");
-      config.require("irc_advertise_host");
-      setName("E_j_" + config.get("irc_nick"));
-      setLogin("E_j_" + config.get("irc_nick"));
 
+      if (config.isSet("irc_enabled") && config.getBoolean("irc_enabled"))
+      {
+        config.require("irc_nick");
+        config.require("irc_advertise_host");
+        String nick = ("E_j_" + config.get("irc_nick"));
+        advert_host = config.get("irc_advertise_host");
+
+        setName(nick);
+        setLogin(nick);
+        shouldRun=true;
+
+      }
+    }
+    else 
+    {
+      if (config.isSet("irc_enabled_" + mode) && config.getBoolean("irc_enabled_" + mode))
+      {
+        config.require("irc_nick_"+mode);
+        config.require("irc_advertise_host_"+mode);
+
+        String nick = "E_j_" + config.get("irc_nick_"+mode);
+        advert_host = config.get("irc_advertise_host_"+mode);
+
+        setName(nick);
+        setLogin(nick);
+        shouldRun=true;
+
+      }
+ 
     }
 
     this.jelly = jelly;
@@ -32,7 +59,7 @@ public class IrcBot extends PircBot
   public String getAdvertString()
   {
     StringBuilder sb=new StringBuilder();
-    sb.append(config.get("irc_advertise_host"));
+    sb.append(advert_host);
     sb.append(" v");
     sb.append(StratumConnection.PROTO_VERSION);
     sb.append(" p10000");
@@ -47,7 +74,7 @@ public class IrcBot extends PircBot
 
   public void start()
   {
-    if (config.getBoolean("irc_enabled"))
+    if (shouldRun)
     {
       new IrcThread().start();
     }
@@ -91,7 +118,7 @@ public class IrcBot extends PircBot
 
     public void run()
     {
-      while(true)
+      while(shouldRun)
       {
         try
         {

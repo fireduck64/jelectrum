@@ -177,7 +177,8 @@ public class Jelectrum
         System.out.println("Block chain caught up");
         event_log.log("Block chain caught up");
         caught_up=true;
-        new IrcBot(this).start();
+        new IrcBot(this,null).start();
+        new IrcBot(this,"onion").start();
 
         importer.setBlockPrintEvery(1);
         importer.disableRatePrinting();
