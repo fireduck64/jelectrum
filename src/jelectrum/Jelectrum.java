@@ -4,6 +4,7 @@ import com.google.bitcoin.store.H2FullPrunedBlockStore;
 import com.google.bitcoin.store.BlockStore;
 import com.google.bitcoin.core.NetworkParameters;
 import com.google.bitcoin.params.MainNetParams;
+import com.google.bitcoin.params.TestNet3Params;
 import com.google.bitcoin.core.BlockChain;
 import com.google.bitcoin.core.PeerGroup;
 import com.google.bitcoin.core.PeerAddress;
@@ -47,8 +48,12 @@ public class Jelectrum
     public Jelectrum(Config conf)
         throws Exception
     {
-        network_params = MainNetParams.get();
         config = conf;
+        network_params = MainNetParams.get();
+        if ((config.isSet("testnet")) && (config.getBoolean("testnet")))
+        {
+          network_params = TestNet3Params.get();
+        }
 
 
         config.require("bitcoin_network_use_peers");
@@ -147,7 +152,7 @@ public class Jelectrum
 
         if (config.getBoolean("bitcoin_network_use_peers"))
         {
-            peer_group.addPeerDiscovery(new DnsDiscovery(MainNetParams.get()));
+            peer_group.addPeerDiscovery(new DnsDiscovery(network_params));
             peer_group.addPeerDiscovery(new IrcDiscovery("#bitcoin"));
         }
         peer_group.addEventListener(new DownloadListener());

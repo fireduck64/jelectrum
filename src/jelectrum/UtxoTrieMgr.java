@@ -80,8 +80,6 @@ public class UtxoTrieMgr
   protected Object block_notify= new Object();
   protected Object block_done_notify = new Object();
 
-  protected Map<Integer, Sha256Hash> authMap;
-
   //Not to be trusted, only used for logging
   protected int block_height;
 
@@ -97,8 +95,6 @@ public class UtxoTrieMgr
 
     db_map = jelly.getDB().getUtxoTrieMap();
 
-
-    authMap = loadAuthMap("check/utxo-root-file");
 
 
     if (jelly.getConfig().isSet("utxo_reset") && jelly.getConfig().getBoolean("utxo_reset"))
@@ -125,14 +121,6 @@ public class UtxoTrieMgr
     new UtxoMgrThread().start();
     new UtxoCheckThread().start();
 
-  }
-
-  public void saveCheckFile()
-  {
-    UtxoCheckThread uct = new UtxoCheckThread();
-    uct.client_name="check_file";
-    uct.start();
-    saveAuthMap("check/utxo-root-file");
   }
 
   public void resetEverything()
@@ -504,74 +492,6 @@ public class UtxoTrieMgr
       return getKey(public_key, out.getParentTransaction().getHash(), idx);
     }
 
-  public void saveAuthMap(String location)
-  {
-    try
-    {
-    Scanner scan =new Scanner(new FileInputStream(location));
-
-
-    while(scan.hasNext())
-    {
-      int height = scan.nextInt();
-      String hash = scan.next();
-      try
-      {
-        Sha256Hash utxo = new Sha256Hash(hash);
-
-        {
-          Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(height);
-          UtxoCheckEntry check_entry = new UtxoCheckEntry(height, block_hash, utxo);
-          check_queue.put(check_entry);
-        }
-
-
-      }
-      catch(Throwable t)
-      {}
-    }
-    }
-    catch(java.io.IOException e)
-    {
-      e.printStackTrace();
-    }
-
-
-  }
-
-  public static Map<Integer, Sha256Hash> loadAuthMap(String location)
-  {
-    TreeMap<Integer, Sha256Hash> map = new TreeMap<Integer, Sha256Hash>();
-    try
-    {
-    Scanner scan =new Scanner(new FileInputStream(location));
-
-
-    while(scan.hasNext())
-    {
-      int height = scan.nextInt();
-      String hash = scan.next();
-      try
-      {
-        Sha256Hash utxo = new Sha256Hash(hash);
-        map.put(height, utxo);
-
-
-      }
-      catch(Throwable t)
-      {}
-    }
-    }
-    catch(java.io.IOException e)
-    {
-      e.printStackTrace();
-    }
-    System.out.println("Loaded checks: " + map.size());
-    return map;
-
-  }
-
-
   public class UtxoMgrThread extends Thread
   {
     private BlockChainCache block_chain_cache;
@@ -691,46 +611,21 @@ public class UtxoTrieMgr
           Sha256Hash root_hash = getRootHash();
 
 
-          if (near_caught_up || 
-          ((i % 50 == 0) || (authMap.containsKey(i))))
-          {
-            t1=System.currentTimeMillis();
-            t2=System.currentTimeMillis();
-            get_hash_stat.addDataPoint(t2-t1);
-          }
-
           block_height=i;
 
           checkUtxoHash(i, block_hash, root_hash);
 
-          if (authMap.containsKey(i))
+          if (near_caught_up)
           {
-            Sha256Hash target_hash = authMap.get(i);
-            if (!target_hash.equals(root_hash))
-            {
-              jelly.getEventLog().alarm("UTXO hash mismatch " + i + " - " + root_hash + " - " + target_hash);
-            }
-            else
-            {
-              jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash + " - MATCH");
-              if (DEBUG) debug_out.println("UTXO added block " + i + " - " + root_hash + " - MATCH");
-
-            }
+            jelly.getEventLog().alarm("UTXO added block " + i + " - " + root_hash);
           }
           else
           {
-            if (near_caught_up)
-            {
-              jelly.getEventLog().alarm("UTXO added block " + i + " - " + root_hash);
-            }
-            else
-            {
-              jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash);
-
-            }
-
+            jelly.getEventLog().log("UTXO added block " + i + " - " + root_hash);
 
           }
+
+
           added_since_flush++;
 
         }
@@ -908,17 +803,8 @@ public class UtxoTrieMgr
     String config_path = args[0];
     Jelectrum jelly = new Jelectrum(new Config(config_path));
 
-    //jelly.getUtxoTrieMgr().saveCheckFile();
-    //System.exit(8);
 
     int block_number = Integer.parseInt(args[1]);
-
-
-
-
-
-
-
     
     Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(block_number);
     Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());

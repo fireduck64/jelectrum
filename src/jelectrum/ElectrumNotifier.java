@@ -36,7 +36,7 @@ public class ElectrumNotifier
 
     Jelectrum jelly;
 
-    StoredBlock chain_head;
+    volatile StoredBlock chain_head;
     Object chain_head_lock= new Object();
 
 
@@ -148,7 +148,7 @@ public class ElectrumNotifier
 
         synchronized(chain_head_lock)
         {
-            if (blk.getHeight() > chain_head.getHeight())
+            if (blk.getHeight() >= chain_head.getHeight())
             {
                 chain_head = blk;        
             }
@@ -157,7 +157,7 @@ public class ElectrumNotifier
         {
             for(Subscriber sub : block_subscribers.values())
             {
-                blockNotify(sub, blk);
+                blockNotify(sub, chain_head);
 
             }
         }
@@ -165,7 +165,7 @@ public class ElectrumNotifier
         {
             for(Subscriber sub : blocknum_subscribers.values())
             {
-                blockNumNotify(sub, blk);
+                blockNumNotify(sub, chain_head);
 
             }
         }
