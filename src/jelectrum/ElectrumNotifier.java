@@ -511,7 +511,7 @@ public class ElectrumNotifier
         try
         {
             List<SortedTransaction> lst = getTransactionsForAddress(address);
-            if (lst.size() > 0)
+            //if (lst.size() > 0)
             {
                 JSONArray arr =new JSONArray();
 
@@ -532,10 +532,10 @@ public class ElectrumNotifier
                 return arr;
 
             }
-            else
+            /*else
             {
                 return JSONObject.NULL;
-            }
+            }*/
  
         }
         catch(org.json.JSONException e)
