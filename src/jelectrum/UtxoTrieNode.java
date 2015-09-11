@@ -39,12 +39,38 @@ import java.text.DecimalFormat;
 import java.util.Random;
 import lobstack.SerialUtil;
 
+ 
+  /**
+   * This class stores a node in the UTXO trie structure
+   */
   public class UtxoTrieNode implements java.io.Serializable
   {
+
+    /**
+     * This is the key prefix of this node.
+     * It is in hex, 20 bytes (40 characters) of address public key
+     * then 32 bytes (64 characters) of transaction hash
+     * then 4 bytes of transaction output offset (integer)
+     * but none of those code cares about that.  It is just a string
+     * that could be up to 56*2 characters long
+     */
     private String prefix;
 
+    /**
+     * This is a map children of this node.
+     * For space efficency, the string keys in this map
+     * are only the part after this prefix.
+     * So if this node is "12" and the child prefix is "12af" then this map will just have "af".
+     *
+     * The hash value is the hash of the subtree or null if it needs to be recalculated.
+     * this way, when getHash() is called we know which children we need to recurse into
+     */
     private TreeMap<String, Sha256Hash> springs;
 
+    /**
+     * For some serialization methods we want a special null value
+     * so this value, which is a hash of "null" is our chosen null value.
+     */
     private static Sha256Hash hash_null = new Sha256Hash("74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b");
     private static final long serialVersionUID = 2675325841660230241L;
 
@@ -55,6 +81,9 @@ import lobstack.SerialUtil;
       this.prefix = prefix;
     }
 
+    /**
+     * Deserialize from a byte buffer
+     */
     public UtxoTrieNode(ByteBuffer bb)
     {
       try
@@ -94,6 +123,9 @@ import lobstack.SerialUtil;
       return springs;
     }
 
+    /**
+     * Serialize to a byte buffer
+     */
     public ByteBuffer serialize()
     {
       try
@@ -129,12 +161,21 @@ import lobstack.SerialUtil;
 
 
 
+    /**
+     * This should be called add child and mark as needing to be rehashed
+     */
     public void addSpring(String s, UtxoTrieMgr mgr)
     {
+      // Mark that we don't have the hash
       springs.put(s, null);
+
+      // Mark this node as changes to it needs to be saved on next flush to db
       mgr.putSaveSet(prefix, this);
     }
 
+    /**
+     * Return an ordered set of keys matching the given 'start' prefix
+     */
     public Collection<String> getKeysByPrefix(String start, UtxoTrieMgr mgr)
     {
       LinkedList<String> lst = new LinkedList<>();
@@ -143,6 +184,8 @@ import lobstack.SerialUtil;
         String name = prefix+sub;
         if (name.startsWith(start) || start.startsWith(name))
         {
+          //If it is the expected total length, then it is just a leaf node
+          //and we can just put it on the list
           if (name.length() == UtxoTrieMgr.ADDR_SPACE*2)
           {
             lst.add(name);
@@ -158,20 +201,33 @@ import lobstack.SerialUtil;
       return lst;
 
     }
+
+
     public void addHash(String key, Sha256Hash tx_hash, UtxoTrieMgr mgr)
     {
       mgr.putSaveSet(prefix, this);
 
+      //If we are here, we are assuming that the start of 'key' and
+      //my 'prefix' are already matching and that 'key' is longer.
+      //So get just the part of 'key' that is past 'prefix'.
+      //Example:
+      // If this node is "abc7" and we are adding "abc7f8f8fe"
+      // Then next will be "f8f8fe"
       String next = key.substring(prefix.length());
+
+
       for(String sub : springs.keySet())
       {
+        //If the new key simply fits into a sub node we have already, send it there
         if (next.startsWith(sub))
         {
           String name = prefix+sub;
           if (name.length() < UtxoTrieMgr.ADDR_SPACE*2)
-          { //Handles strange txid d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 issue
+          { //if statement avoids the strange txid d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 issue
             //If the sub name is the entire key space, then we are adding a duplicate transaction and
             //are just going to leave that alone
+
+            //Otherwise, add it to the node below us
             UtxoTrieNode n = mgr.getByKey(prefix+sub);
             if (n == null) System.out.println("Missing: " + prefix + sub + " from " + prefix);
             n.addHash(key, tx_hash, mgr);
@@ -180,9 +236,13 @@ import lobstack.SerialUtil;
           return;
         }
       }
+
       for(String sub : springs.keySet())
       {
         int common = UtxoTrieMgr.commonLength(sub, next);
+
+        //If the new entry has a common start with a previous entry
+        //Make a new sub node that will contain them both
         if (common >= 2)
         {
           String common_str = sub.substring(0, common);
@@ -199,6 +259,9 @@ import lobstack.SerialUtil;
         }
         
       }
+
+      //If it doesn't go into a sub node
+      //and it has no common node, just save it directly to this node
       springs.put(next, null);
 
     }
@@ -257,24 +320,22 @@ import lobstack.SerialUtil;
 
     }
 
+
     public Sha256Hash getHash(String skip_string, UtxoTrieMgr mgr)
     {
-      /*if ((!dirty) && (skip_string.equals(last_skip)))
-      {
-        return hash;
-      }
-      last_skip = skip_string;*/
 
       LinkedList<Sha256Hash> lst=new LinkedList<Sha256Hash>();
 
       for(String sub : springs.keySet())
       {
+        
         if (springs.get(sub) != null)
-        {
+        { //If we have a hash for a child already, just use it
           lst.add(springs.get(sub));
         }
         else
         {
+
           String sub_skip_str = "";
           if (sub.length() > 2)
           {
@@ -283,15 +344,16 @@ import lobstack.SerialUtil;
           String full_sub = prefix+sub;
           Sha256Hash h = null;
           if (full_sub.length() == UtxoTrieMgr.ADDR_SPACE*2)
-          {
+          { // If the sub is a leaf, just get the tx hash
             h = UtxoTrieMgr.getHashFromKey(full_sub);
           }
           else
-          {
+          { // Otherwise, recurse
             h = mgr.getByKey(full_sub).getHash(sub_skip_str, mgr);
           }
           lst.add(h);
 
+          // Save any hash we calculate for the child for later use
           springs.put(sub, h);
         }
       }
@@ -300,11 +362,11 @@ import lobstack.SerialUtil;
 
       
       if ((lst.size() == 1) && (prefix.length() >= 2))
-      {
+      { // I don't want to talk about it
         hash = lst.get(0);
       }
       else
-      {
+      { //Take the skip list and the sub hashes and hash them
         hash = UtxoTrieMgr.hashThings(skip_string,lst);
       }
 
