@@ -26,7 +26,7 @@ public class IrcBot extends PircBot
       {
         config.require("irc_nick");
         config.require("irc_advertise_host");
-        String nick = ("E_j_" + config.get("irc_nick"));
+        nick = ("E_j_" + config.get("irc_nick"));
         advert_host = config.get("irc_advertise_host");
 
         setName(nick);
@@ -42,7 +42,7 @@ public class IrcBot extends PircBot
         config.require("irc_nick_"+mode);
         config.require("irc_advertise_host_"+mode);
 
-        String nick = "E_j_" + config.get("irc_nick_"+mode);
+        nick = "E_j_" + config.get("irc_nick_"+mode);
         advert_host = config.get("irc_advertise_host_"+mode);
 
         setName(nick);
@@ -92,15 +92,17 @@ public class IrcBot extends PircBot
   @Override
   protected void onKick(String channel, String kickerNick, String kickerLogin, String kickerHostname, String recipientNick, String reason)
   {
-    jelly.getEventLog().log("Kicked from " + channel + " by " + kickerNick + " for " + reason);
-    jelly.getEventLog().log("Waiting one hour before trying again");
-
-
-    kickWaitTime = System.currentTimeMillis() + 3600L * 1000L;
-
-    synchronized(connection_lock)
+    if (nick.equals(recipientNick))
     {
-      connection_lock.notifyAll();
+      jelly.getEventLog().log("Kicked from " + channel + " by " + kickerNick + " for " + reason);
+      jelly.getEventLog().log("Waiting one hour before trying again");
+
+      kickWaitTime = System.currentTimeMillis() + 3600L * 1000L;
+
+      synchronized(connection_lock)
+      {
+        connection_lock.notifyAll();
+      }
     }
   }
 
