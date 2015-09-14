@@ -10,7 +10,7 @@ public class IrcBot extends PircBot
   private Object connection_lock = new Object();
   private Config config;
 
-  private long kickWaitTime=0;
+  private volatile long kickWaitTime=0;
   private boolean shouldRun = false;
   private String advert_host = null;
   private String nick = null;
@@ -142,9 +142,13 @@ public class IrcBot extends PircBot
     {
       //setVerbose(true);
       
+      if (System.currentTimeMillis() < kickWaitTime)
+      {
+        Thread.sleep(15000);
+      }
+
       setVersion(getAdvertString());
       connect("irc.freenode.net");
-
 
       joinChannel("#electrum");
       joinChannel("#jelectrum");
@@ -158,7 +162,6 @@ public class IrcBot extends PircBot
       {
         Thread.sleep(15000);
       }
-
 
       disconnect();
 

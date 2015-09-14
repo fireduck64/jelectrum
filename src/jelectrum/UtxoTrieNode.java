@@ -203,7 +203,7 @@ import lobstack.SerialUtil;
     }
 
 
-    public void addHash(String key, Sha256Hash tx_hash, UtxoTrieMgr mgr)
+    public void addHash(String key, UtxoTrieMgr mgr)
     {
       mgr.putSaveSet(prefix, this);
 
@@ -230,7 +230,7 @@ import lobstack.SerialUtil;
             //Otherwise, add it to the node below us
             UtxoTrieNode n = mgr.getByKey(prefix+sub);
             if (n == null) System.out.println("Missing: " + prefix + sub + " from " + prefix);
-            n.addHash(key, tx_hash, mgr);
+            n.addHash(key, mgr);
             springs.put(sub, null);
           }
           return;
@@ -252,7 +252,7 @@ import lobstack.SerialUtil;
 
           UtxoTrieNode n = new UtxoTrieNode(prefix + common_str);
 
-          n.addHash(key, tx_hash, mgr);
+          n.addHash(key, mgr);
           n.addSpring(sub.substring(common), mgr);
            
           return;
@@ -266,7 +266,7 @@ import lobstack.SerialUtil;
 
     }
 
-    public String removeHash(String key, Sha256Hash tx_hash, UtxoTrieMgr mgr)
+    public String removeHash(String key, UtxoTrieMgr mgr)
     {
       mgr.putSaveSet(prefix, this);
       String rest = key.substring(prefix.length());
@@ -281,7 +281,7 @@ import lobstack.SerialUtil;
           String full = prefix + sub;
           if (rest.startsWith(sub))
           {
-            String next_sub = mgr.getByKey(prefix+sub).removeHash(key, tx_hash, mgr);
+            String next_sub = mgr.getByKey(prefix+sub).removeHash(key, mgr);
             springs.put(sub, null);
 
             if (next_sub == null)

@@ -237,7 +237,7 @@ public class UtxoTrieMgr
       if (DEBUG) debug_out.println("Adding key: " + key);
       if (key != null)
       {
-        getByKey("").addHash(key, tx.getHash(), this);
+        getByKey("").addHash(key, this);
 
       }
       idx++;
@@ -250,7 +250,7 @@ public class UtxoTrieMgr
         String key = getKeyForInput(tx_in);
         if (key != null)
         {
-          getByKey("").removeHash(key, tx_in.getOutpoint().getHash(), this);
+          getByKey("").removeHash(key, this);
         }
       }
     }
@@ -267,7 +267,7 @@ public class UtxoTrieMgr
       if (DEBUG) System.out.println("Adding key: " + key);
       if (key != null)
       {
-        getByKey("").removeHash(key, tx.getHash(), this);
+        getByKey("").removeHash(key, this);
 
       }
       idx++;
@@ -280,7 +280,7 @@ public class UtxoTrieMgr
         String key = getKeyForInput(tx_in);
         if (key != null)
         {
-          getByKey("").addHash(key, tx_in.getOutpoint().getHash(), this);
+          getByKey("").addHash(key, this);
         }
       }
     }
@@ -654,7 +654,7 @@ public class UtxoTrieMgr
 
           checkUtxoHash(i, block_hash, root_hash);
 
-          if (near_caught_up)
+          if ((near_caught_up) && (jelly.isUpToDate()))
           {
             jelly.getEventLog().alarm("UTXO added block " + i + " - " + root_hash);
           }

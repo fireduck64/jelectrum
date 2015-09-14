@@ -38,7 +38,7 @@ public class Lobstack
   public static long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=2048;
-  public static final int MAX_CACHE_ENTRIES=128*1024*4;
+  public static final int MAX_CACHE_ENTRIES=128;
   public static final int MAX_CACHE_SIZE=65536*4;
 
   public static final String MODE="rw";
