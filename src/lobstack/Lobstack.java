@@ -38,8 +38,6 @@ public class Lobstack
   public static long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=2048;
-  public static final int MAX_CACHE_ENTRIES=128;
-  public static final int MAX_CACHE_SIZE=65536*4;
 
   public static final String MODE="rw";
   public static final boolean DEBUG=false;
@@ -67,7 +65,6 @@ public class Lobstack
 
   private AutoCloseLRUCache<Long, FileChannel> data_files;
   //private ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>  read_data_files=new ThreadLocal<AutoCloseLRUCache<Long, FileChannel>>();
-  private LRUCache<Long, ByteBuffer> cached_data;
 
   private static SynchronousQueue<WorkUnit> queue;
 
@@ -112,7 +109,6 @@ public class Lobstack
     }
 
     data_files = new AutoCloseLRUCache<Long, FileChannel>(MAX_OPEN_FILES);
-    cached_data = new LRUCache<Long, ByteBuffer>(MAX_CACHE_ENTRIES);
 
     RandomAccessFile root_file = new RandomAccessFile(new File(dir, name + ".root"), MODE);
 
@@ -171,10 +167,6 @@ public class Lobstack
   private void reset()
     throws IOException
   {
-    synchronized(cached_data)
-    {
-      cached_data.clear();
-    }
     synchronized(ptr_lock)
     {
       current_root=-1;
@@ -189,10 +181,6 @@ public class Lobstack
       saves.put(loc, com);
       saveGroup(saves);
       setRoot(loc);
-    }
-    synchronized(cached_data)
-    {
-      cached_data.clear();
     }
   }
 
@@ -538,23 +526,6 @@ public class Lobstack
   {
     if (loc == MAGIC_LOCATION_ZERO) return BB_ZERO;
 
-    long t1_cache = System.nanoTime();
-
-    ByteBuffer bb_cache = null;
-
-    synchronized(cached_data)
-    {
-      bb_cache = cached_data.get(loc);
-    }
-    getTimeReport().addTime(System.nanoTime() - t1_cache, "cachecheck");
-
-    if (bb_cache != null)
-    {
-      long t1 = System.nanoTime(); 
-      ByteBuffer dbb = decompress(bb_cache);
-      getTimeReport().addTime(System.nanoTime() - t1, "decompress");
-      return dbb;
-    }
     
 
     long file_t1 = System.nanoTime();
@@ -579,13 +550,6 @@ public class Lobstack
       bb.rewind();
     }
 
-    if (bb.capacity() < MAX_CACHE_SIZE)
-    {
-      synchronized(cached_data)
-      {
-        cached_data.put(loc, ByteBuffer.wrap(bb.array()));
-      }
-    }
     getTimeReport().addTime(System.nanoTime() - file_t1, "load_file");
 
     long t1 = System.nanoTime();
@@ -669,14 +633,6 @@ public class Lobstack
       ByteBuffer data = me.getValue();
       int data_size = data.capacity();
       if (DEBUG) System.out.println(stack_name + " - saving to " + me.getKey() + " sz " + data_size);
-
-      if (data_size < MAX_CACHE_SIZE)
-      {
-        synchronized(cached_data)
-        {
-          cached_data.put(start_location, data);
-        }
-      }
 
       long file_idx = start_location / SEGMENT_FILE_SIZE;
 

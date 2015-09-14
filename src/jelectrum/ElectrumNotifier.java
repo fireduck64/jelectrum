@@ -777,8 +777,19 @@ public class ElectrumNotifier
         {
             if (s_tx ==null) return false;
             if (block!=null) return true;
-            if (s_tx.getSavedTime() + 86400L * 1000L > System.currentTimeMillis()) return true;
-            return false;
+            if (s_tx.getSavedTime() + 86400L * 1000L < System.currentTimeMillis()) return false;
+
+            // For unconfirmed transactions, make sure all the inputs
+            // are known
+            for(TransactionInput tx_in : s_tx.getTx(jelly.getNetworkParameters()).getInputs())
+            {
+              TransactionOutPoint op = tx_in.getOutpoint();
+              Sha256Hash tx_in_h = op.getHash();
+              SerializedTransaction s_in_tx = jelly.getDB().getTransactionMap().get(tx_in_h);
+              if (s_in_tx == null) return false;
+            }
+
+            return true;
         }
 
     }
