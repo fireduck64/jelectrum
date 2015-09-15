@@ -17,6 +17,7 @@ import com.google.bitcoin.net.discovery.IrcDiscovery;
 import com.google.bitcoin.core.DownloadListener;
 
 import java.util.LinkedList;
+import jelectrum.db.DBFace;
 
 public class Jelectrum
 {
@@ -27,7 +28,7 @@ public class Jelectrum
     }
 
     private Config config;
-    private JelectrumDB jelectrum_db;
+    private DBFace jelectrum_db;
     private Importer importer;
 
     private MapBlockStore block_store;
@@ -71,7 +72,7 @@ public class Jelectrum
 
         if (db_type.equals("mongo"))
         {
-          jelectrum_db = new JelectrumDBMongo(config);
+          jelectrum_db = new jelectrum.db.mongo.MongoDB(config);
         }
         else if (db_type.equals("sql"))
         {
@@ -79,11 +80,11 @@ public class Jelectrum
         }
         else if (db_type.equals("leveldb"))
         {
-          jelectrum_db = new JelectrumDBLevelDB(this, config);
+          jelectrum_db = new jelectrum.db.level.LevelDB(event_log, config);
         }
         else if (db_type.equals("lobstack"))
         {
-          jelectrum_db = new JelectrumDBLobstack(this, config);
+          jelectrum_db = new jelectrum.db.lobstack.LobstackDB(this, config);
         }
         else
         {
@@ -118,6 +119,7 @@ public class Jelectrum
     public void start()
         throws Exception
     {
+      utxo_trie_mgr.getUtxoState();
         System.out.println("Updating block chain cache");
         block_chain_cache.update(this, block_store.getChainHead());
 
@@ -156,7 +158,7 @@ public class Jelectrum
             peer_group.addPeerDiscovery(new IrcDiscovery("#bitcoin"));
         }
         peer_group.addEventListener(new DownloadListener());
-        peer_group.addEventListener(new ImportEventListener(jelectrum_db, importer));
+        peer_group.addEventListener(new ImportEventListener(importer));
         peer_group.setMinBroadcastConnections(1);
 
         peer_group.start();
@@ -218,7 +220,7 @@ public class Jelectrum
         return importer;
     }
 
-    public JelectrumDB getDB()
+    public DBFace getDB()
     {
         return jelectrum_db;
     }

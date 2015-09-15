@@ -107,6 +107,7 @@ public class UtxoTrieMgr
       debug_out = new PrintStream(new FileOutputStream("utxo-debug.log"));
     }
 
+
   }
 
   public boolean isUpToDate()
@@ -116,6 +117,7 @@ public class UtxoTrieMgr
 
   public void start()
   {
+
     new UtxoMgrThread().start();
     new UtxoCheckThread().start();
 
@@ -151,14 +153,13 @@ public class UtxoTrieMgr
   {
     jelly.getDB().getSpecialObjectMap().put("utxo_trie_mgr_state", status);
   }
-  public UtxoStatus getUtxoState()
+  public synchronized UtxoStatus getUtxoState()
   {
     try
     {
       Object o = jelly.getDB().getSpecialObjectMap().get("utxo_trie_mgr_state");
       if (o != null)
       {
-
         return (UtxoStatus)o;
       }
     }
@@ -214,7 +215,10 @@ public class UtxoTrieMgr
     n = db_map.get(prefix);
     if (n != null) return n;
 
-    if (prefix == "") n = new UtxoTrieNode("");
+
+
+    jelly.getEventLog().alarm("UTXO node missing: ." + prefix + ".");
+
 
     return n;
   }

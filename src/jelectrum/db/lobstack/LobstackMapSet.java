@@ -1,4 +1,4 @@
-package jelectrum;
+package jelectrum.db.lobstack;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -6,17 +6,13 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
 
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
+import jelectrum.db.DBMapSet;
 
 import java.nio.ByteBuffer;
 import com.google.bitcoin.core.Sha256Hash;
 import lobstack.Lobstack;
 
-public class LobstackMapSet
+public class LobstackMapSet extends DBMapSet
 {
   private Lobstack stack;
 
@@ -41,7 +37,7 @@ public class LobstackMapSet
       catch(java.io.IOException e){throw new RuntimeException(e);}
     }
 
-    public void putList(Collection<Map.Entry<String, Sha256Hash> > lst)
+    public void addAll(Collection<Map.Entry<String, Sha256Hash> > lst)
     {
       try
       {
@@ -61,7 +57,7 @@ public class LobstackMapSet
 
     }
 
-    public void put(String p, Sha256Hash v)
+    public void add(String p, Sha256Hash v)
     {
       try
       {

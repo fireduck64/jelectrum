@@ -1,4 +1,4 @@
-package jelectrum;
+package jelectrum.db.level;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -16,8 +16,10 @@ import org.junit.Assert;
 
 import java.nio.ByteBuffer;
 import com.google.bitcoin.core.Sha256Hash;
+import jelectrum.db.DBMapSet;
+import com.google.protobuf.ByteString;
 
-public class LevelDBMapSet
+public class LevelDBMapSet extends DBMapSet
 {
   private LevelNetClient c;
   private String prefix;
@@ -41,9 +43,9 @@ public class LevelDBMapSet
       return ret;
     }
 
-    public void putList(Collection<Map.Entry<String, Sha256Hash> > lst)
+    public void addAll(Collection<Map.Entry<String, Sha256Hash> > lst)
     {
-      Map<String, ByteBuffer> write_map = new TreeMap<String, ByteBuffer>();
+      Map<String, ByteString> write_map = new TreeMap<String, ByteString>();
 
       for(Map.Entry<String, Sha256Hash> me : lst)
       {
@@ -54,7 +56,7 @@ public class LevelDBMapSet
 
     }
 
-    public void put(String p, Sha256Hash v)
+    public void add(String p, Sha256Hash v)
     {
       c.put(prefix + p + "/" + v, null);
     }

@@ -26,7 +26,7 @@
 
   <target name="test" depends="build_test">
     <junit fork="yes" haltonfailure="yes">
-	  <jvmarg value="-Xmx1024m"/>
+	  <jvmarg value="-Xmx4g"/>
       <formatter type="plain" usefile="false" />
       <classpath refid="test.classpath" />
       <batchtest>
@@ -50,7 +50,7 @@
   </target>
   <target name="test_leveldb" depends="build_test">
     <junit fork="yes" haltonfailure="yes">
-	  <jvmarg value="-Xmx1024m"/>
+	  <jvmarg value="-Xmx4g"/>
       <formatter type="plain" usefile="false" />
       <classpath refid="test.classpath" />
       <batchtest>

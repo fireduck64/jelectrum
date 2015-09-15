@@ -15,7 +15,7 @@ import com.google.bitcoin.core.Block;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.AbstractMap.SimpleEntry;
 
-public abstract class JelectrumDB
+public abstract class JelectrumDB implements jelectrum.db.DBFace
 {
     protected Config conf;
     protected Map<Sha256Hash, SerializedTransaction> tx_map;

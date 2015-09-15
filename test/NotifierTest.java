@@ -49,7 +49,7 @@ public class NotifierTest
         throws org.json.JSONException
     {
 
-        Assert.assertEquals("ca5a89ed582553f33c64b2245526edb65b929436681a2c0e8a9695b7b1aa7b50",jelly.getElectrumNotifier().getAddressChecksum("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4"));
+        Assert.assertEquals("7b8716f234c243861e85f73b5bf22cde74ec6b5e28c44c91967a91949496a348",jelly.getElectrumNotifier().getAddressChecksum("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4"));
 
         testAddress("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4");
 
@@ -74,14 +74,15 @@ public class NotifierTest
         String hash = jelly.getElectrumNotifier().getAddressChecksum(address);
 
         Object history = jelly.getElectrumNotifier().getAddressHistory(address);
+        JSONArray arr = (JSONArray)history;
 
         if (hash==null)
         {
-            Assert.assertEquals(history, JSONObject.NULL);
+
+            Assert.assertEquals(0, arr.length());
             return;
         }
 
-        JSONArray arr = (JSONArray)history;
         StringBuilder sb = new StringBuilder();
 
         for(int i=0; i<arr.length() ; i++)

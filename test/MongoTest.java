@@ -5,9 +5,10 @@ import com.mongodb.*;
 
 import java.util.Set;
 
-import jelectrum.MongoKey;
-import jelectrum.MongoEntry;
-import jelectrum.MongoMapSet;
+import jelectrum.db.mongo.MongoKey;
+import jelectrum.db.mongo.MongoEntry;
+import jelectrum.db.mongo.MongoMapSet;
+import com.google.bitcoin.core.Sha256Hash;
 
 public class MongoTest implements java.io.Serializable
 {
@@ -26,28 +27,16 @@ public class MongoTest implements java.io.Serializable
         DBCollection coll = db.getCollection("crudtest");
         coll.drop();
 
-        coll.save(new MongoEntry("a","1",true));
-        coll.save(new MongoEntry("b","1",true));
-        coll.save(new MongoEntry("c","1",true));
-        coll.save(new MongoEntry("d","1",true));
-        coll.save(new MongoEntry("a","100",true));
+        coll.save(new MongoEntry("a",TestUtil.randomByteString()));
+        coll.save(new MongoEntry("b",TestUtil.randomByteString()));
+        coll.save(new MongoEntry("c",TestUtil.randomByteString()));
+        coll.save(new MongoEntry("d",TestUtil.randomByteString()));
+        coll.save(new MongoEntry("a",TestUtil.randomByteString()));
 
         Assert.assertEquals(4, coll.count());
 
         Assert.assertEquals(1, coll.count(new MongoKey("a")));
         Assert.assertEquals(0, coll.count(new MongoKey("aaa")));
-
-        {
-            TestObject to_1 = new TestObject();
-            to_1.a = 17;
-            coll.save(new MongoEntry("obj", to_1,true));
-            to_1.a = 37;
-            Assert.assertEquals(37, to_1.a);
-        }
-
-        DBObject o = coll.findOne(new MongoKey("obj"));
-        TestObject to_2 = (TestObject) MongoEntry.getValue(o,true);
-        Assert.assertEquals(17, to_2.a);
 
         
 
@@ -66,28 +55,25 @@ public class MongoTest implements java.io.Serializable
         DBCollection coll = db.getCollection("mapsettest");
         coll.drop();
 
-        MongoMapSet<String, String> m = new MongoMapSet<String, String>(coll, true);
+        MongoMapSet m = new MongoMapSet(coll);
 
-        Assert.assertEquals(0, m.size());
+        m.add("a",TestUtil.randomHash());
+        m.add("a",TestUtil.randomHash());
+        m.add("a",TestUtil.randomHash());
+        m.add("a",TestUtil.randomHash());
 
-        m.add("a","a");
-        m.add("a","b");
-        m.add("a","c");
-        m.add("a","d");
-
-        Set<String> s = m.getSet("a");
+        Set<Sha256Hash> s = m.getSet("a");
         Assert.assertEquals(4, s.size());
 
-        m.add("a","d");
-        m.add("a","d");
-        m.add("a","d");
-        m.add("a","d");
-        m.add("a","d");
-        m.add("a","d");
-        m.add("a","d");
+        Sha256Hash h = TestUtil.randomHash();
+        m.add("a",h);
+        m.add("a",h);
+        m.add("a",h);
+        m.add("a",h);
+        m.add("a",h);
 
         s = m.getSet("a");
-        Assert.assertEquals(4, s.size());
+        Assert.assertEquals(5, s.size());
             
 
     }
@@ -143,7 +129,7 @@ public class MongoTest implements java.io.Serializable
         long t1 = System.currentTimeMillis();
         for(int i=0; i<10000; i++)
         {
-            coll.save(new MongoEntry("a_" + i ,"1",false),WriteConcern.ACKNOWLEDGED);
+            coll.save(new MongoEntry("a_" + i ,TestUtil.randomByteString()),WriteConcern.ACKNOWLEDGED);
 
         }
         long t2 = System.currentTimeMillis();
@@ -175,7 +161,7 @@ public class MongoTest implements java.io.Serializable
 
         for(int i=0; i<10000; i++)
         {
-            bulk.insert(new MongoEntry("a_" + i ,"1",false));
+            bulk.insert(new MongoEntry("a_" + i ,TestUtil.randomByteString()));
 
         }
 
@@ -193,8 +179,7 @@ public class MongoTest implements java.io.Serializable
     public class TestObject implements java.io.Serializable
     {
         int a,b,c,d,e,f,g;
-
-
     }
+
 
 }

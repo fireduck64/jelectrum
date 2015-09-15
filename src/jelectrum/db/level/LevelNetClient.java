@@ -1,4 +1,4 @@
-package jelectrum;
+package jelectrum.db.level;
 
 
 import java.net.Socket;
@@ -15,6 +15,10 @@ import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import jelectrum.EventLog;
+import jelectrum.Config;
+import com.google.protobuf.ByteString;
+
 
 public class LevelNetClient
 {
@@ -23,7 +27,7 @@ public class LevelNetClient
   public static final int RESULT_NOTFOUND = 133133;
   public static final int SOCKET_TIMEOUT = 45000;
 
-  private Jelectrum jelly;
+  private EventLog log;
 
   private Config config;
 
@@ -36,9 +40,9 @@ public class LevelNetClient
 
   public boolean throw_on_error=false;
 
-  public LevelNetClient(Jelectrum jelly, Config config) throws Exception
+  public LevelNetClient(EventLog log, Config config) throws Exception
   {
-    this.jelly = jelly;
+    this.log = log;
     this.config = config;
 
     config.require("leveldb_host");
@@ -71,7 +75,7 @@ public class LevelNetClient
         }
         catch(java.io.IOException e)
         {
-          jelly.getEventLog().alarm("LevelDB connection failure: " + e);
+          log.alarm("LevelDB connection failure: " + e);
           if (throw_on_error) throw new RuntimeException(e);
           try{ Thread.sleep(2500); } catch(Throwable t){}
         }
@@ -112,7 +116,7 @@ public class LevelNetClient
   }
 
 
-  public ByteBuffer get(String key)
+  public ByteString get(String key)
   {
     while(true)
     {
@@ -127,7 +131,7 @@ public class LevelNetClient
       {
         trashConnection(conn); conn=null;
 
-        jelly.getEventLog().log("LevelDB error: " + e);
+        log.log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -139,7 +143,7 @@ public class LevelNetClient
   
   }
 
-  public void put(String key, ByteBuffer value)
+  public void put(String key, ByteString value)
   {
     while(true)
     {
@@ -154,7 +158,7 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        jelly.getEventLog().log("LevelDB error: " + e);
+        log.log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -166,7 +170,7 @@ public class LevelNetClient
   
   }
 
-  public void putAll(Map<String, ByteBuffer> m)
+  public void putAll(Map<String, ByteString> m)
   {
     while(true)
     {
@@ -181,7 +185,7 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        jelly.getEventLog().log("LevelDB error: " + e);
+        log.log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -194,7 +198,7 @@ public class LevelNetClient
   
   }
 
-  public Map<String, ByteBuffer> getByPrefix(String prefix)
+  public Map<String, ByteString> getByPrefix(String prefix)
   {
     while(true)
     {
@@ -207,7 +211,7 @@ public class LevelNetClient
       catch(java.io.IOException e)
       {
         trashConnection(conn); conn=null;
-        jelly.getEventLog().log("LevelDB error: " + e);
+        log.log("LevelDB error: " + e);
         if (throw_on_error) throw new RuntimeException(e);
         try{ Thread.sleep(2500); } catch(Throwable t){}
       }
@@ -255,7 +259,7 @@ public class LevelNetClient
     }
 
 
-    public ByteBuffer get(String key)
+    public ByteString get(String key)
       throws java.io.IOException
     {
       byte cmd[]=new byte[2];
@@ -275,7 +279,7 @@ public class LevelNetClient
     }
 
 
-    public void put(String key, ByteBuffer value)
+    public void put(String key, ByteString value)
       throws java.io.IOException
     {
       byte cmd[]=new byte[2];
@@ -293,7 +297,7 @@ public class LevelNetClient
       if (status != RESULT_GOOD) throw new java.io.IOException("Bad result: " + status);
     }
 
-    public void putAll(Map<String, ByteBuffer> map)
+    public void putAll(Map<String, ByteString> map)
       throws java.io.IOException
     {
       byte cmd[]=new byte[2];
@@ -304,7 +308,7 @@ public class LevelNetClient
 
       writeInt(map.size());
 
-      for(Map.Entry<String, ByteBuffer> me : map.entrySet())
+      for(Map.Entry<String, ByteString> me : map.entrySet())
       {
         writeString(me.getKey());
         writeByteArray(me.getValue());
@@ -314,7 +318,7 @@ public class LevelNetClient
 
     }
 
-    public Map<String, ByteBuffer> getByPrefix(String prefix)
+    public Map<String, ByteString> getByPrefix(String prefix)
       throws java.io.IOException
     {
       byte cmd[]=new byte[2];
@@ -328,11 +332,11 @@ public class LevelNetClient
       int status = readInt();
       int items = readInt();
 
-      Map<String,ByteBuffer> m = new TreeMap<String,ByteBuffer>();
+      Map<String,ByteString> m = new TreeMap<>();
       for(int i=0; i<items; i++)
       {
         String key = readString();
-        ByteBuffer buff = readBytes();
+        ByteString buff = readBytes();
         m.put(key, buff);
       }
 
@@ -340,7 +344,7 @@ public class LevelNetClient
 
     }
 
-    private ByteBuffer readBytes()
+    private ByteString readBytes()
       throws java.io.IOException
     {
       int sz = readInt();
@@ -350,7 +354,7 @@ public class LevelNetClient
       byte[] data = new byte[sz];
       d_in.readFully(data);
 
-      return ByteBuffer.wrap(data);
+      return ByteString.copyFrom(data);
     }
 
 
@@ -358,7 +362,7 @@ public class LevelNetClient
     private String readString()
       throws java.io.IOException
     {
-      return new String(readBytes().array());
+      return readBytes().toStringUtf8();
 
     }
 
@@ -406,7 +410,7 @@ public class LevelNetClient
       sock.getOutputStream().write(bytes);
     }
 
-    private void writeByteArray(ByteBuffer bb)
+    private void writeByteArray(ByteString bb)
       throws java.io.IOException
     {
       if (bb == null)
@@ -414,9 +418,9 @@ public class LevelNetClient
         writeNull();
         return;
       }
-      byte[] bytes = bb.array();
-      writeInt(bytes.length);
-      sock.getOutputStream().write(bytes);
+      byte[] bytes = bb.toByteArray();
+      writeInt(bb.size());
+      bb.writeTo(sock.getOutputStream());
     }
 
   }

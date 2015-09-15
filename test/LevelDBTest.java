@@ -13,12 +13,13 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.Semaphore;
 
 import com.google.bitcoin.core.Sha256Hash;
-import jelectrum.LevelNetClient;
 import jelectrum.Jelectrum;
-import jelectrum.LevelDBMapSet;
 import java.util.Set;
 import java.util.LinkedList;
 import java.util.AbstractMap.SimpleEntry;
+
+import jelectrum.db.level.*;
+import com.google.protobuf.ByteString;
 
 
 public class LevelDBTest
@@ -34,9 +35,9 @@ public class LevelDBTest
 
     c.put("test_a", randomBytes(1024));
 
-    ByteBuffer b = c.get("test_a");
+    ByteString b = c.get("test_a");
 
-    Assert.assertEquals(1024, b.capacity());
+    Assert.assertEquals(1024, b.size());
 
   }
   @Test
@@ -47,7 +48,7 @@ public class LevelDBTest
     LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
-    ByteBuffer b = c.get("test_doesnotexist");
+    ByteString b = c.get("test_doesnotexist");
 
     Assert.assertNull(b);
 
@@ -83,10 +84,10 @@ public class LevelDBTest
     c.put("test_pre_z", randomBytes(0));
     c.put("test_prf", randomBytes(27));
 
-    Map<String,ByteBuffer> m = c.getByPrefix("test_pre_");
+    Map<String,ByteString> m = c.getByPrefix("test_pre_");
 
     Assert.assertEquals(3, m.size());
-    Assert.assertEquals(1000, m.get("test_pre_c").capacity());
+    Assert.assertEquals(1000, m.get("test_pre_c").size());
     Assert.assertNull(m.get("test_pre_a"));
     Assert.assertNull(m.get("test_pre_z"));
 
@@ -100,7 +101,7 @@ public class LevelDBTest
     LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
     c.throw_on_error=true;
 
-    Map<String,ByteBuffer> m = new TreeMap<String, ByteBuffer>();
+    Map<String,ByteString> m = new TreeMap<String, ByteString>();
 
     for(int i=0; i<2048; i++)
     {
@@ -109,9 +110,10 @@ public class LevelDBTest
 
     c.putAll(m);
 
-    Map<String,ByteBuffer> m2 = c.getByPrefix("test_putall_");
+    Map<String,ByteString> m2 = c.getByPrefix("test_putall_");
 
     Assert.assertEquals(m.size(), m2.size());
+    Assert.assertEquals(m, m2);
 
 
 
@@ -131,9 +133,8 @@ public class LevelDBTest
 
     String key = "key" + rnd.nextLong();
 
-    Sha256Hash h; 
-    h = new Sha256Hash(randomBytes(32).array());
-    ms.put(key, h);
+    Sha256Hash h = TestUtil.randomHash(); 
+    ms.add(key, h);
 
     Set<Sha256Hash> set;
     set = ms.getSet(key);
@@ -141,8 +142,8 @@ public class LevelDBTest
     Assert.assertTrue(set.contains(h));
 
 
-    h = new Sha256Hash(randomBytes(32).array());
-    ms.put(key, h);
+    h = TestUtil.randomHash();
+    ms.add(key, h);
 
     set = ms.getSet(key);
     Assert.assertEquals(2, set.size());
@@ -152,9 +153,9 @@ public class LevelDBTest
     LinkedList<Map.Entry<String, Sha256Hash>> lst = new LinkedList<Map.Entry<String, Sha256Hash>>();
     for(int i=0; i<25; i++)
     {
-      lst.add(new SimpleEntry<String, Sha256Hash>(key, new Sha256Hash(randomBytes(32).array())));
+      lst.add(new SimpleEntry<String, Sha256Hash>(key, TestUtil.randomHash() ));
     }
-    ms.putList(lst);
+    ms.addAll(lst);
 
     set = ms.getSet(key);
     Assert.assertEquals(27, set.size());
@@ -177,13 +178,13 @@ public class LevelDBTest
     LevelDBMapSet ms = new LevelDBMapSet(c, "testmapset");
 
     String key = "key" + rnd.nextLong();
-    String key_a = "key" + rnd.nextLong() + "a";
-    String key_b = "key" + rnd.nextLong() + "b";
+    String key_a = key + "a";
+    String key_b = key + "b";
     
     for(int i=0; i<1024; i++)
     {
-      ms.put(key_a, new Sha256Hash(randomBytes(32).array()));
-      ms.put(key_b, new Sha256Hash(randomBytes(32).array()));
+      ms.add(key_a,TestUtil.randomHash());
+      ms.add(key_b,TestUtil.randomHash());
     }
 
     Assert.assertEquals(1024, ms.getSet(key_a).size());
@@ -198,14 +199,14 @@ public class LevelDBTest
 
  
  
-  public ByteBuffer randomBytes(int len)
+  public ByteString randomBytes(int len)
   {
     Random rnd = new Random();
     byte[] b = new byte[len];
 
     rnd.nextBytes(b);
 
-    return ByteBuffer.wrap(b);
+    return ByteString.copyFrom(b);
 
   }
 

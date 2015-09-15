@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.TreeMap;
 import java.util.Map;
 import java.util.HashMap;
+import jelectrum.db.DBFace;
 
 public class Importer
 {
@@ -37,7 +38,7 @@ public class Importer
     private LinkedBlockingQueue<TransactionWork> tx_queue;
 
     private Jelectrum jelly;
-    private JelectrumDB file_db;
+    private DBFace file_db;
     private MapBlockStore block_store;
     
     private LRUCache<Sha256Hash, Transaction> transaction_cache;

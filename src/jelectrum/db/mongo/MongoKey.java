@@ -1,4 +1,4 @@
-package jelectrum;
+package jelectrum.db.mongo;
 
 import com.mongodb.BasicDBObject;
 
@@ -8,7 +8,6 @@ public class MongoKey extends BasicDBObject
     {
         super("_id", key);
     }
-
 
     public String getKey()
     {

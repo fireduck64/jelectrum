@@ -9,13 +9,10 @@ import com.google.bitcoin.core.Transaction;
 
 public class ImportEventListener extends AbstractPeerEventListener
 {
-    private JelectrumDB file_db;
     private Importer importer;
 
-    public ImportEventListener(JelectrumDB file_db, Importer importer)
+    public ImportEventListener(Importer importer)
     {
-        this.file_db = file_db;
-
         this.importer = importer;
 
 

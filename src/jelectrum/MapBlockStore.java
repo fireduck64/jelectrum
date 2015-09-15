@@ -10,11 +10,12 @@ import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.NetworkParameters;
 
+import jelectrum.db.DBFace;
 
 public class MapBlockStore implements BlockStore
 {
     private Jelectrum jelly;
-    private JelectrumDB file_db;
+    private DBFace file_db;
 
     private Sha256Hash genisis_hash;
 
