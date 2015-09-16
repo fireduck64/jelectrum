@@ -21,6 +21,7 @@ import java.util.AbstractMap.SimpleEntry;
 import jelectrum.db.level.*;
 import com.google.protobuf.ByteString;
 
+import jelectrum.EventLog;
 
 public class LevelDBTest
 {
@@ -30,7 +31,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
     c.put("test_a", randomBytes(1024));
@@ -45,7 +46,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
     ByteString b = c.get("test_doesnotexist");
@@ -58,7 +59,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
     c.put("test_zero", randomBytes(0));
@@ -74,7 +75,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
 
@@ -98,7 +99,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
     Map<String,ByteString> m = new TreeMap<String, ByteString>();
@@ -124,7 +125,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
     Random rnd=new Random();
@@ -170,7 +171,7 @@ public class LevelDBTest
     throws Exception
   {
     Config config = new Config("jelly.conf");
-    LevelNetClient c = new LevelNetClient(new Jelectrum(config), config);
+    LevelNetClient c = new LevelNetClient(new EventLog(System.out), config);
     c.throw_on_error=true;
 
     Random rnd=new Random();

@@ -75,7 +75,7 @@ public class Importer
         config.require("transaction_save_threads");
 
 
-        block_queue = new LinkedBlockingQueue<Block>(16);
+        block_queue = new LinkedBlockingQueue<Block>(64);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(512);
         transaction_cache = new LRUCache<Sha256Hash, Transaction>(8000);
 

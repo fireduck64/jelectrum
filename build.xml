@@ -86,6 +86,18 @@
       </batchtest>
     </junit>
   </target>
+   <target name="test_db" depends="build_test">
+    <junit fork="yes" haltonfailure="yes">
+	  <jvmarg value="-Xmx8g"/>
+      <formatter type="plain" usefile="false" />
+      <classpath refid="test.classpath" />
+      <batchtest>
+	    <fileset dir="${test}">
+	  	  <include name="**/DBTest.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
   
 
   <target name="test_zip" depends="build_test">

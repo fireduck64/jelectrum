@@ -86,6 +86,10 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.lobstack.LobstackDB(this, config);
         }
+        else if (db_type.equals("lmdb"))
+        {
+          jelectrum_db = new jelectrum.db.lmdb.LMDB(config);
+        }
         else
         {
           System.out.println("Unknown db_type: " + db_type);

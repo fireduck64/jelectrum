@@ -5,6 +5,7 @@ import jelectrum.Config;
 import jelectrum.db.mongo.MongoDB;
 import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.level.LevelDB;
+import jelectrum.db.lmdb.LMDB;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -41,7 +42,7 @@ public class GrindTest
 
     DB db = null;
     Config conf = new Config("jelly.conf");
-    EventLog log =new EventLog(conf);
+    EventLog log =new EventLog(System.out);
 
     if (name.equals("mongo"))
     {
@@ -54,6 +55,10 @@ public class GrindTest
     if (name.equals("leveldb"))
     {
       db = new LevelDB(log, conf);
+    }
+    if (name.equals("lmdb"))
+    {
+      db = new LMDB(conf);
     }
 
     db_map = db.openMap("grindtest");

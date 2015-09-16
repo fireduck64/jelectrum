@@ -2,6 +2,7 @@ package jelectrum;
 
 import java.io.PrintStream;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 
 import java.text.SimpleDateFormat;
 
@@ -27,9 +28,10 @@ public class EventLog
             sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
         }
 
-
-
-
+    }
+    public EventLog(OutputStream out)
+    {
+      log_stream = new PrintStream(out);
     }
     public void log(Throwable e)
     {
