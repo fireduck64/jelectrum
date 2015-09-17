@@ -102,18 +102,22 @@ public class MapBlockStore implements BlockStore
     {
         Sha256Hash hash = block.getHeader().getHash();
 
-        file_db.getSpecialBlockStoreMap().put("head", block);
+
+        if (jelly.isUpToDate() || (block.getHeight() % 100 == 0))
+        {
+          file_db.getSpecialBlockStoreMap().put("head", block);
+        }
 
         if (jelly.getBlockChainCache() != null)
         {
             jelly.getBlockChainCache().update(jelly, block);
         }
+
         if (jelly.getHeaderChunkAgent()!=null)
         {
             jelly.getHeaderChunkAgent().poke(block.getHeight());
         }
 
-        
     }
 
 

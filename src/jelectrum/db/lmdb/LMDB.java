@@ -27,9 +27,8 @@ public class LMDB extends DB
 
     env = new Env();
     env.setMaxDbs(16);
-    env.setMapSize(300 * 1024L * 1024L * 1024L);
+    env.setMapSize(500 * 1024L * 1024L * 1024L);
     env.open(path);
-
 
     open();
 

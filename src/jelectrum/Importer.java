@@ -51,10 +51,6 @@ public class Importer
     private AtomicInteger imported_blocks= new AtomicInteger(0);
     private AtomicInteger imported_transactions= new AtomicInteger(0);
 
-    //private BandedUpdater<String, Sha256Hash> address_to_tx_updater;
-
-    private static final int BUSY_ADDRESS_LIMIT=10000;
-
     private int block_print_every=100;
 
     private volatile boolean run_rates=true;
@@ -77,7 +73,7 @@ public class Importer
 
         block_queue = new LinkedBlockingQueue<Block>(64);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(512);
-        transaction_cache = new LRUCache<Sha256Hash, Transaction>(8000);
+        transaction_cache = new LRUCache<Sha256Hash, Transaction>(32000);
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
@@ -834,7 +830,6 @@ public class Importer
     public String getThreadStatusReport()
     {
         TreeMap<String, Integer> status_map = new TreeMap<String, Integer>();
-        status_map.put("STALLED", 0);
         for(StatusContext t : save_thread_list)
         {
             String status = t.getStatus();
@@ -843,14 +838,6 @@ public class Importer
                 status_map.put(status, 0);
             }
             status_map.put(status, status_map.get(status) + 1);
-
-            long age = System.currentTimeMillis() - t.getLastStatusChangeTime();
-            if (age > 120000L)
-            {
-                status_map.put("STALLED", status_map.get("STALLED") + 1);
-                
-            }
-
         }
         return status_map.toString();
 
