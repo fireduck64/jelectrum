@@ -38,10 +38,10 @@ public class Importer
     private LinkedBlockingQueue<TransactionWork> tx_queue;
 
     private Jelectrum jelly;
+    private TXUtil tx_util;
     private DBFace file_db;
     private MapBlockStore block_store;
     
-    private LRUCache<Sha256Hash, Transaction> transaction_cache;
     private LRUCache<Sha256Hash, Semaphore> in_progress;
 
 
@@ -64,6 +64,7 @@ public class Importer
         this.jelly = jelly;
         this.params = params;
         this.file_db = jelly.getDB();
+        this.tx_util = new TXUtil(file_db, params);
         this.block_store = (MapBlockStore)block_store;
 
         Config config = jelly.getConfig();
@@ -73,7 +74,6 @@ public class Importer
 
         block_queue = new LinkedBlockingQueue<Block>(64);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(512);
-        transaction_cache = new LRUCache<Sha256Hash, Transaction>(32000);
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
@@ -341,32 +341,6 @@ public class Importer
 
     }
 
-    public Transaction getTransaction(Sha256Hash hash)
-    {
-        Transaction tx = null;
-        synchronized(transaction_cache)
-        {
-            tx = transaction_cache.get(hash);
-        }
-        if (tx == null)
-        {
-
-            SerializedTransaction s_tx = file_db.getTransactionMap().get(hash);
-
-            if (s_tx != null)
-            {
-                tx = s_tx.getTx(params);
-                synchronized(transaction_cache)
-                {
-                    transaction_cache.put(hash, SerializedTransaction.scrubTransaction(params, tx));
-                }
-            }
-
-        }
-        return tx;
-
-    }
-
     public void putTxOutSpents(Transaction tx)
     {
       LinkedList<String> tx_outs = new LinkedList<String>();
@@ -405,7 +379,7 @@ public class Importer
         boolean confirmed = (block_hash != null);
 
         ctx.setStatus("TX_GET_ADDR");
-        Collection<String> addrs = getAllAddresses(tx, confirmed, null);
+        Collection<String> addrs = tx_util.getAllAddresses(tx, confirmed, null);
         if (DEBUG) jelly.getEventLog().log("Put TX: " + tx.getHash() + " - " + addrs);
 
         Random rnd = new Random();
@@ -465,12 +439,9 @@ public class Importer
         int size=0;
 
         ctx.setStatus("BLOCK_TX_CACHE_INSERT");
-        synchronized(transaction_cache)
+        for(Transaction tx : block.getTransactions())
         {
-            for(Transaction tx : block.getTransactions())
-            {
-                transaction_cache.put(tx.getHash(), SerializedTransaction.scrubTransaction(params, tx));
-            }
+          tx_util.saveTxCache(SerializedTransaction.scrubTransaction(params, tx));
         }
 
         if (DEBUG) jelly.getEventLog().alarm("" + h + " - Get Addresses");
@@ -492,7 +463,7 @@ public class Importer
         for(Transaction tx : block.getTransactions())
         {
           imported_transactions.incrementAndGet();
-          Collection<String> addrs = getAllAddresses(tx, true, block_tx_map);
+          Collection<String> addrs = tx_util.getAllAddresses(tx, true, block_tx_map);
           addr_map.put(tx.getHash(), addrs);
 
           for(String addr : addrs)
@@ -625,109 +596,6 @@ public class Importer
         run_rates=false;
     }
  
-    public Address getAddressForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
-    {
-        if (in.isCoinBase()) return null;
-
-        try
-        {
-            Address a = in.getFromAddress();
-            return a;
-        }
-        catch(ScriptException e)
-        {
-                    //Lets try this the other way
-
-                    try
-                    {
-
-                        TransactionOutPoint out_p = in.getOutpoint();
-                        
-                        Transaction src_tx = null;
-                        while(src_tx == null)
-                        { 
-                          if (block_tx_map != null)
-                          {
-                            src_tx = block_tx_map.get(out_p.getHash());
-                          }
-                          if (src_tx == null)
-                          {
-                            src_tx = getTransaction(out_p.getHash());
-                            if (src_tx == null)
-                            {
-                                if (!confirmed)
-                                {
-                                    return null;
-                                }
-                                System.out.println("Unable to get source transaction: " + out_p.getHash());
-                                try{Thread.sleep(500);}catch(Exception e7){}
-                            }
-                          }
-                        }
-                        TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
-                        Address a = getAddressForOutput(out);
-                        return a;
-                    }
-                    catch(ScriptException e2)
-                    {
-                        return null;
-
-                    }
-        }
-
-    }
-
-    public Address getAddressForOutput(TransactionOutput out)
-    {
-            try
-            {
-                Script script = out.getScriptPubKey();
-                if (script.isSentToRawPubKey())
-                {
-                    byte[] key = out.getScriptPubKey().getPubKey();
-                    byte[] address_bytes = com.google.bitcoin.core.Utils.sha256hash160(key);
-                    Address a = new Address(params, address_bytes);
-                    return a;
-                }
-                else
-                {
-                    Address a = script.getToAddress(params);
-                    return a;
-                }
-            }
-            catch(ScriptException e)
-            {
-
-                //System.out.println(out.getParentTransaction().getHash() + " - " + out);
-                //e.printStackTrace();
-                //jelly.getEventLog().log("Unable process tx output: " + out.getParentTransaction().getHash());
-            }
-            return null;
- 
-    }
-
-    public Collection<String> getAllAddresses(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
-    {
-        HashSet<String> lst = new HashSet<String>();
-        boolean detail = false;
-
-        for(TransactionInput in : tx.getInputs())
-        {
-            Address a = getAddressForInput(in, confirmed, block_tx_map);
-            if (a!=null) lst.add(a.toString());
-        }
-
-        for(TransactionOutput out : tx.getOutputs())
-        {
-            Address a = getAddressForOutput(out);
-            if (a!=null) lst.add(a.toString());
-
-        }
-
-
-        return lst;
-
-    }
 
     public class RateThread extends Thread
     {

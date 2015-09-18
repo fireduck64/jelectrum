@@ -61,6 +61,7 @@ public class UtxoTrieMgr
 
   private NetworkParameters params;
   private Jelectrum jelly;
+  private TXUtil tx_util;
 
   private StatData get_block_stat=new StatData();
   private StatData add_block_stat=new StatData();
@@ -91,6 +92,9 @@ public class UtxoTrieMgr
     this.jelly = jelly;
     this.params = jelly.getNetworkParameters();
 
+    tx_util = new TXUtil(jelly.getDB(), params);
+
+
     db_map = jelly.getDB().getUtxoTrieMap();
 
 
@@ -115,8 +119,12 @@ public class UtxoTrieMgr
     return caught_up;
   }
 
+  private boolean started=false;
+
   public void start()
   {
+    if (started) return;
+    started=true;
 
     new UtxoMgrThread().start();
     new UtxoCheckThread().start();
@@ -458,7 +466,7 @@ public class UtxoTrieMgr
 
           TransactionOutPoint out_p = in.getOutpoint();
 
-          Transaction src_tx = jelly.getImporter().getTransaction(out_p.getHash());
+          Transaction src_tx = tx_util.getTransaction(out_p.getHash());
           TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
           return getKeyForOutput(out, (int)out_p.getIndex());
         }

@@ -69,7 +69,9 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
       {
         ObjectInputStream oin = new ObjectInputStream(buff.newInput());
 
-        return (V) oin.readObject();
+        Object o = oin.readObject();
+
+        return (V) o;
       }
       catch(java.io.IOException e)
       {

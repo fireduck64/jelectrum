@@ -60,6 +60,7 @@ public class Config
     public boolean getBoolean(String key)
     {
         String v = get(key);
+        if (v == null) return false;
         v = v.toLowerCase();
         if (v.equals("1")) return true;
         if (v.equals("true")) return true;

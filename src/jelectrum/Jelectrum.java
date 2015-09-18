@@ -123,9 +123,16 @@ public class Jelectrum
     public void start()
         throws Exception
     {
-      utxo_trie_mgr.getUtxoState();
+        utxo_trie_mgr.getUtxoState();
+        if (config.getBoolean("bulk_import_enabled"))
+        {
+          new BulkImporter(this);
+        }
+
         System.out.println("Updating block chain cache");
         block_chain_cache.update(this, block_store.getChainHead());
+        
+        utxo_trie_mgr.start();
 
 
         System.out.println("Starting things");
@@ -136,7 +143,6 @@ public class Jelectrum
 
         stratum_server.start();
 
-        utxo_trie_mgr.start();
 
         System.out.println("Starting peer download");
 
@@ -192,7 +198,7 @@ public class Jelectrum
 
         header_chunk_agent.start();
 
-        if (config.isSet("block_repo_saver") && (config.getBoolean("block_repo_saver")))
+        if (config.getBoolean("block_repo_saver"))
         {
           new BlockRepoSaver(this).start();
         }
@@ -244,7 +250,7 @@ public class Jelectrum
         return notifier;
     }
 
-    public BlockStore getBlockStore()
+    public MapBlockStore getBlockStore()
     {
         return block_store;
     }

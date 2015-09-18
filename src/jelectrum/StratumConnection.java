@@ -39,6 +39,7 @@ public class StratumConnection
     private AtomicLong last_network_action;
     private volatile boolean open;
     private Config config;
+    private TXUtil tx_util;
 
     private long connection_start_time;
     private String version_info;
@@ -61,6 +62,7 @@ public class StratumConnection
     {
         
         this.jelectrum = jelectrum;
+        this.tx_util = new TXUtil(jelectrum.getDB(), jelectrum.getNetworkParameters());
         this.server = server;
         this.config = server.getConfig();
         this.sock = sock;
@@ -349,7 +351,7 @@ public class StratumConnection
 
                 Sha256Hash hash =new Sha256Hash(params.getString(0));
 
-                Transaction tx = jelectrum.getImporter().getTransaction(hash);
+                Transaction tx = tx_util.getTransaction(hash);
                 if (tx==null)
                 {
                     reply.put("error","unknown transaction");

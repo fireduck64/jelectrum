@@ -18,15 +18,33 @@ Reasons to exist
 DB Options
 ----------
 
-Not sure what to use?  Use leveldb.  It is fast and has the smallest on disk footprint.
-
-Make sure you are using a revent leveldb version.  1.17 and 1.18 seem to work well.
+Not sure what to use?  Use lmdb. 
 
 
-How to LevelDB
---------------
+LMDB
+----
+
+This uses JNI so if your system differs from mine, you might need to rebuild it.
+
+Do a git clone of:
+https://github.com/deephacks/lmdbjni
+
+git clone https://github.com/deephacks/lmdbjni.git lmdbjni.git
+cd lmdbjni.git
+mvn install
+cd lmdbjni-linux64
+mvn install
+
+Copy the resulting tar file into your jelectrum 'lib' dictory
+Example: target/lmdbjni-linux64-0.4.5-SNAPSHOT.jar
+
+
+LevelDB
+-------
 
 LevelDB seems cool and the C++ library seems good, so I've made a network layer to call into the C++ leveldb.
+
+Make sure you are using a revent leveldb version.  1.17 and 1.18 seem to work well.
 
 This is done because I've found things to be more reliable if the database is a separate process that doesn't
 get restarted.  It is thus less likely to corrupt the datastore and be a problem.
@@ -86,7 +104,7 @@ Build:
 ant jar
 
 Config:
-cp jelly.sample.conf jelly.conf
+cp jelly.default.conf jelly.conf
 edit jelly.conf as makes sense
 
 Run:
@@ -112,8 +130,6 @@ but I don't see the need.  If someone feels otherwise, let me know.
 
 2) The following commands that clients don't seem to issue (yet):
 ```
-blockchain.address.listunspent
-blockchain.address.get_balance
 blockchain.address.get_proof
 blockchain.address.get_mempool
 blockchain.utxo.get_address

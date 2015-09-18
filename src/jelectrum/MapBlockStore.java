@@ -9,6 +9,10 @@ import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.NetworkParameters;
+import java.util.List;
+import java.util.TreeMap;
+
+import org.junit.Assert;
 
 import jelectrum.db.DBFace;
 
@@ -91,6 +95,43 @@ public class MapBlockStore implements BlockStore
         file_db.getBlockStoreMap().put(hash, block);
     }
 
+    public void putAll(List<Block> blks)
+        throws com.google.bitcoin.store.BlockStoreException
+    {
+      TreeMap<Sha256Hash, StoredBlock> insert_map = new TreeMap<>();
+
+      StoredBlock last = null;
+
+      for(Block b : blks)
+      {
+        Sha256Hash hash = b.getHash();
+        Sha256Hash prev = b.getPrevBlockHash();
+
+        if (!hash.equals(jelly.getNetworkParameters().getGenesisBlock().getHash()))
+        {
+          StoredBlock prev_sb = insert_map.get(prev);
+          if (prev_sb == null)
+          {
+            prev_sb = file_db.getBlockStoreMap().get(prev);
+          }
+          Assert.assertNotNull(prev_sb);
+
+          Block header = b.cloneAsHeader();
+          StoredBlock sb = prev_sb.build(header);
+
+          last = sb;
+
+          insert_map.put(hash, sb);
+        }
+      }
+
+
+      file_db.getBlockStoreMap().putAll(insert_map);
+
+      if (last != null) saveChainHead(last);
+
+    }
+
     public int getHeight(Sha256Hash hash)
     {
         return get(hash).getHeight();
@@ -103,7 +144,7 @@ public class MapBlockStore implements BlockStore
         Sha256Hash hash = block.getHeader().getHash();
 
 
-        if (jelly.isUpToDate() || (block.getHeight() % 100 == 0))
+        //if (jelly.isUpToDate() || (block.getHeight() % 100 == 0))
         {
           file_db.getSpecialBlockStoreMap().put("head", block);
         }
@@ -118,6 +159,19 @@ public class MapBlockStore implements BlockStore
             jelly.getHeaderChunkAgent().poke(block.getHeight());
         }
 
+    }
+
+
+    private void saveChainHead(StoredBlock block)
+        throws com.google.bitcoin.store.BlockStoreException
+    {
+      Sha256Hash hash = block.getHeader().getHash();
+      file_db.getSpecialBlockStoreMap().put("head", block);
+
+        if (jelly.getBlockChainCache() != null)
+        {
+            jelly.getBlockChainCache().update(jelly, block);
+        }
     }
 
 

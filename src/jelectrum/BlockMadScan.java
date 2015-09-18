@@ -27,6 +27,7 @@ public class BlockMadScan
     private AtomicInteger blocks_scanned;
     private AtomicInteger transactions_scanned;
     private String rescan_operation="zing-" + System.currentTimeMillis();
+    private TXUtil tx_util;
 
     private LRUCache<String, Set<Sha256Hash> > addr_to_tx_cache;
 
@@ -34,6 +35,8 @@ public class BlockMadScan
         throws Exception
     {
         jelly = new Jelectrum(config);
+
+        tx_util = new TXUtil(jelly.getDB(), jelly.getNetworkParameters());
         queue = new LinkedBlockingQueue<Sha256Hash>();
         sem = new Semaphore(0);
         blocks_scanned = new AtomicInteger(0);
@@ -147,7 +150,7 @@ public class BlockMadScan
                             System.out.println("Transaction map does not contain " + tx.getHash());
                             System.exit(-1);
                           }
-                          Collection<String> addresses = jelly.getImporter().getAllAddresses(tx, true, null);
+                          Collection<String> addresses = tx_util.getAllAddresses(tx, true, null);
                           for(String addr : addresses)
                           {
                             Set<Sha256Hash> tx_set = getAddressToTxSet(addr);

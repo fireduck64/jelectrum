@@ -35,6 +35,7 @@ public class ElectrumNotifier
     LRUCache<String, String> address_sums;
 
     Jelectrum jelly;
+    private TXUtil tx_util;
 
     volatile StoredBlock chain_head;
     Object chain_head_lock= new Object();
@@ -43,6 +44,7 @@ public class ElectrumNotifier
     public ElectrumNotifier(Jelectrum jelly)
     {
         this.jelly = jelly;
+        tx_util = new TXUtil(jelly.getDB(), jelly.getNetworkParameters());
 
         block_subscribers = new HashMap<String, Subscriber>(512, 0.5f);
         blocknum_subscribers = new HashMap<String, Subscriber>(512, 0.5f);
@@ -137,14 +139,7 @@ public class ElectrumNotifier
     {
         if (chain_head == null) return;
         StoredBlock blk = null;
-        try
-        {
-            blk = jelly.getBlockStore().get(b.getHash());
-        }
-        catch(com.google.bitcoin.store.BlockStoreException e)
-        {
-            throw new RuntimeException(e);
-        }
+        blk = jelly.getBlockStore().get(b.getHash());
 
         synchronized(chain_head_lock)
         {
@@ -429,7 +424,7 @@ public class ElectrumNotifier
               int idx=0;
               for(TransactionOutput tx_out : tx.getOutputs())
               {
-                Address a = jelly.getImporter().getAddressForOutput(tx_out);
+                Address a = tx_util.getAddressForOutput(tx_out);
                 if (target.equals(a))
                 {
                   String k = tx.getHash().toString() + ":" + idx;

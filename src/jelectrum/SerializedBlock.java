@@ -2,6 +2,7 @@ package jelectrum;
 
 import com.google.bitcoin.core.Block;
 import com.google.bitcoin.core.NetworkParameters;
+import com.google.protobuf.ByteString;
 
 
 public class SerializedBlock implements java.io.Serializable
@@ -16,6 +17,10 @@ public class SerializedBlock implements java.io.Serializable
     {
         this.tx = tx;
         bytes = tx.bitcoinSerialize();
+    }
+    public SerializedBlock(ByteString bytes)
+    {
+      this.bytes = bytes.toByteArray();
     }
 
     public Block getBlock(NetworkParameters params)

@@ -58,7 +58,7 @@ public class BlockChainCache implements java.io.Serializable
     {
         if (new_head.getHeader().getHash().equals(head)) return;
 
-        Sha256Hash genisis_hash = jelly.getNetworkParameters().getGenesisBlock().getHash();
+        Sha256Hash genesis_hash = jelly.getNetworkParameters().getGenesisBlock().getHash();
 
         synchronized(update_lock)
         {
@@ -83,7 +83,7 @@ public class BlockChainCache implements java.io.Serializable
                     updates++;
 
                 }
-                if (blk.getHeader().getHash().equals(genisis_hash)) break;
+                if (blk.getHeader().getHash().equals(genesis_hash)) break;
                 
                 blk = blk.getPrev(jelly.getBlockStore());
     

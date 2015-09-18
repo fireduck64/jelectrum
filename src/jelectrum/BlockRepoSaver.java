@@ -70,6 +70,8 @@ public class BlockRepoSaver extends Thread
       String key = "blockchunk/" +BLOCKS_PER_CHUNK+"/" + start;
 
       Sha256Hash db_hash = (Sha256Hash) special_object_map.get(key);
+      if (start == 375100) db_hash=null;
+
       if ((db_hash == null) || (!db_hash.equals(end_hash)))
       {
         jelly.getEventLog().log("Doing BlockRepoSaver for chunk: " + start + " to " + end_block);
