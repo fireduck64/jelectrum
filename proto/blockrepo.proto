@@ -1,0 +1,22 @@
+package jelectrum.proto;
+
+option java_package="jelectrum.proto";
+
+message BitcoinBlock
+{
+  required int32 height = 1;
+  required string hash = 2;
+  required bytes block_data = 3;
+
+}
+
+message BitcoinBlockPack
+{
+  required string new_head_hash = 1;
+  required int32 start_height = 2;
+  repeated BitcoinBlock blocks = 3;
+}
+
+
+
+

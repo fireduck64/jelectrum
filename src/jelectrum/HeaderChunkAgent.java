@@ -105,6 +105,10 @@ public class HeaderChunkAgent extends Thread
             if (start+i <= height)
             {
                 Sha256Hash hash = jelly.getBlockChainCache().getBlockHashAtHeight(start+i);
+                if (hash == null) {
+                  int h = start+i;
+                  System.out.println("unable to find hash for height: " + h);
+                }
                 StoredBlock blk = jelly.getBlockStore().get(hash);
                 try
                 {

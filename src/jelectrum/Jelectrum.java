@@ -192,6 +192,12 @@ public class Jelectrum
 
         header_chunk_agent.start();
 
+        if (config.isSet("block_repo_saver") && (config.getBoolean("block_repo_saver")))
+        {
+          new BlockRepoSaver(this).start();
+        }
+
+
 
         while(true)
         {

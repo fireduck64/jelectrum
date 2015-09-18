@@ -20,8 +20,8 @@ import jelectrum.EventLog;
 
 public class GrindTest
 {
-  private static final long ITEMS_TO_ADD = 1000000L;
-  private static final int ITEMS_PER_PUT = 1000;
+  private static final long ITEMS_TO_ADD = 10000000L;
+  private static final int ITEMS_PER_PUT = 100000;
   private static final int THREADS = 16;
 
   public static void main(String args[]) throws Exception
@@ -78,6 +78,9 @@ public class GrindTest
     {
       queue.put("" + i);
     }
+
+    System.out.println("Adding " + ITEMS_TO_ADD + " in groups of " + ITEMS_PER_PUT);
+
 
     long total_start = System.nanoTime();
 

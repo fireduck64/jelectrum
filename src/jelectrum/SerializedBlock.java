@@ -6,6 +6,8 @@ import com.google.bitcoin.core.NetworkParameters;
 
 public class SerializedBlock implements java.io.Serializable
 {
+  public static final long serialVersionUID = 1280282305786765588L;
+
     private transient Block tx;
 
     private byte[] bytes;
@@ -22,6 +24,10 @@ public class SerializedBlock implements java.io.Serializable
         tx = new Block(params, bytes);
         return tx;
         
+    }
+    public byte[] getBytes()
+    {
+      return bytes;
     }
 
 
