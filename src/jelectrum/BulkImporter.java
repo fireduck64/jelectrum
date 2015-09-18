@@ -62,6 +62,7 @@ public class BulkImporter
       Blockrepo.BitcoinBlockPack pack = pack_queue.take();
       long t2 = System.nanoTime();
       importPack(pack, t2 - t1);
+      System.gc();
     }
 
 
