@@ -4,7 +4,7 @@ import jelectrum.proto.Blockrepo;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.zip.InflaterInputStream;
-
+import com.google.protobuf.CodedInputStream;
 
 import java.net.URL;
 import java.util.List;
@@ -240,8 +240,10 @@ public class BulkImporter
           URL u = new URL(url);
 
           InflaterInputStream de_in = new InflaterInputStream(u.openStream());
+          CodedInputStream code_in = CodedInputStream.newInstance(de_in);
+          code_in.setSizeLimit(256 * 1024 * 1024);
 
-          Blockrepo.BitcoinBlockPack pack = Blockrepo.BitcoinBlockPack.parseFrom(de_in);
+          Blockrepo.BitcoinBlockPack pack = Blockrepo.BitcoinBlockPack.parseFrom(code_in);
 
           de_in.close();
 
