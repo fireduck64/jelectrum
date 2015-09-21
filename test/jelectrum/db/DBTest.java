@@ -9,9 +9,14 @@ import jelectrum.db.DB;
 
 import jelectrum.db.mongo.MongoDB;
 import jelectrum.db.lmdb.LMDB;
+import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.Config;
 import jelectrum.EventLog;
+import com.google.bitcoin.core.Sha256Hash;
+import java.util.Map;
+import java.util.LinkedList;
 
+import java.util.AbstractMap.SimpleEntry;
 import com.google.protobuf.ByteString;
 
 public class DBTest
@@ -20,23 +25,37 @@ public class DBTest
   @Test
   public void testMongo() throws Exception
   {
-    Config conf = new Config("jelly.conf");
+    Config conf = new Config("jelly-grind.conf");
     EventLog log =new EventLog(System.out);
 
     DB db = new MongoDB(conf);
     testDB(db);
 
   }
+
   @Test
   public void testLMDB() throws Exception
   {
-    Config conf = new Config("jelly.conf");
+    Config conf = new Config("jelly-grind.conf");
     EventLog log =new EventLog(System.out);
 
     DB db = new LMDB(conf);
     testDB(db);
 
   }
+
+  @Test
+  public void testLobstack() throws Exception
+  {
+    Config conf = new Config("jelly-grind.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new LobstackDB(null, conf);
+    testDB(db);
+
+  }
+
+
 
 
   public static void testDB(DB db)
@@ -96,7 +115,58 @@ public class DBTest
 
   public static void testDBMapSet(DBMapSet set)
   {
+    testSetBasic(set);    
+    testSetBulk(set);
+    testSetPrefix(set);
     
+
+  }
+
+  public static void testSetBasic(DBMapSet set)
+  {
+    String prefix=TestUtil.randomHash().toString().substring(0,8);
+
+    set.add(prefix + "a",TestUtil.randomHash());
+    set.add(prefix + "a",TestUtil.randomHash());
+    set.add(prefix + "a",TestUtil.randomHash());
+
+    Assert.assertEquals(3, set.getSet(prefix+"a").size());
+
+  }
+  public static void testSetPrefix(DBMapSet set)
+  {
+    String prefix=TestUtil.randomHash().toString().substring(0,8);
+
+    set.add(prefix + "a",TestUtil.randomHash());
+    set.add(prefix + "a",TestUtil.randomHash());
+    set.add(prefix + "ab",TestUtil.randomHash());
+    set.add(prefix + "ab",TestUtil.randomHash());
+    set.add(prefix + "ab",TestUtil.randomHash());
+    set.add(prefix + "ab",TestUtil.randomHash());
+
+    Assert.assertEquals(2, set.getSet(prefix+"a").size());
+    Assert.assertEquals(4, set.getSet(prefix+"ab").size());
+
+  }
+  public static void testSetBulk(DBMapSet set)
+  {
+    String prefix=TestUtil.randomHash().toString().substring(0,8);
+
+    LinkedList<Map.Entry<String, Sha256Hash> > lst = new LinkedList<>();
+
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"a", TestUtil.randomHash()));
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"b", TestUtil.randomHash()));
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"b", TestUtil.randomHash()));
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"b", TestUtil.randomHash()));
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"b", TestUtil.randomHash()));
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"c", TestUtil.randomHash()));
+    lst.add(new SimpleEntry<String, Sha256Hash>(prefix+"c", TestUtil.randomHash()));
+
+    set.addAll(lst);
+
+    Assert.assertEquals(1, set.getSet(prefix+"a").size());
+    Assert.assertEquals(4, set.getSet(prefix+"b").size());
+    Assert.assertEquals(2, set.getSet(prefix+"c").size());
 
   }
 

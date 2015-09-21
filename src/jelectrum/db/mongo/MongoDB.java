@@ -27,7 +27,7 @@ public class MongoDB extends jelectrum.db.DB
     MongoClientOptions.Builder opts = MongoClientOptions.builder();
     opts.connectionsPerHost(conf.getInt("mongo_db_connections_per_host"));
     opts.threadsAllowedToBlockForConnectionMultiplier(100);
-    opts.socketTimeout(120000);
+    opts.socketTimeout(3600000);
 
 
     mc = new MongoClient(new ServerAddress(conf.get("mongo_db_host")), opts.build());

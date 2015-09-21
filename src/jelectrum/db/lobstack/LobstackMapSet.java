@@ -26,9 +26,9 @@ public class LobstackMapSet extends DBMapSet
       try
       {
         HashSet<Sha256Hash> ret = new HashSet<Sha256Hash>();
-        String first=p;
-        int len = first.length() + 1;
-        for(String s : stack.getByPrefix(p).keySet())
+        String search = p + "/";
+        int len = search.length();
+        for(String s : stack.getByPrefix(search).keySet())
         {
           ret.add(new Sha256Hash(s.substring(len)));
         }

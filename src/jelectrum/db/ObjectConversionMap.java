@@ -3,6 +3,7 @@ package jelectrum.db;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.HashMap;
 import java.util.Collection;
 import java.nio.ByteBuffer;
 import com.google.protobuf.ByteString;
@@ -112,7 +113,7 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
   { 
     try
     {
-      Map<String, ByteString> write_map = new TreeMap<String, ByteString>();
+      Map<String, ByteString> write_map = new HashMap<String, ByteString>(m.size()*2, 0.75f);
 
       for(Map.Entry<? extends K,? extends V> me : m.entrySet())
       {

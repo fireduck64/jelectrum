@@ -42,7 +42,7 @@ public class BulkImporter
     this.jelly = jelly;
     this.tx_util = new TXUtil(jelly.getDB(), jelly.getNetworkParameters());
 
-    start_height = jelly.getBlockStore().getChainHead().getHeight();
+    start_height = jelly.getBlockStore().getChainHead().getHeight() + 1;
 
     bitcoind_height = jelly.getBitcoinRPC().getBlockHeight();
     
@@ -137,6 +137,8 @@ public class BulkImporter
     Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<>();
     Collection<Map.Entry<Sha256Hash, Sha256Hash> > blockTxLst = new LinkedList<>();
 
+    jelly.getEventLog().alarm("Block Map...");
+
     for(Blockrepo.BitcoinBlock bblk : pack.getBlocksList())
     {
       SerializedBlock sblk = new SerializedBlock(bblk.getBlockData());
@@ -148,6 +150,7 @@ public class BulkImporter
 
     }
 
+    jelly.getEventLog().alarm("TX Map...");
     for(Block blk : ordered_block_list)
     {
       Sha256Hash blk_hash = blk.getHash();
@@ -161,9 +164,13 @@ public class BulkImporter
       }
     }
 
+
+    jelly.getEventLog().alarm("TX Save...");
     //This way the transactions will be availible if needed
     jelly.getDB().getTransactionMap().putAll(txs_map);
 
+    
+    jelly.getEventLog().alarm("Get Addresses...");
     for(Transaction tx : tx_map.values())
     {
       Collection<String> addrs = tx_util.getAllAddresses(tx, true, tx_map);
@@ -174,16 +181,20 @@ public class BulkImporter
     }
 
     
+    jelly.getEventLog().alarm("Save addresses...");
     // Add transaction mappings
     jelly.getDB().addAddressesToTxMap(addrTxLst);
+    jelly.getEventLog().alarm("Save tx block map...");
     jelly.getDB().addTxsToBlockMap(blockTxLst);
 
     
     //Save block headers
+    jelly.getEventLog().alarm("Save headers...");
     jelly.getBlockStore().putAll(ordered_block_list);
 
     
     //Save blocks themselves
+    jelly.getEventLog().alarm("Save blocks...");
     jelly.getDB().getBlockMap().putAll(block_map);
 
 
@@ -211,8 +222,8 @@ public class BulkImporter
       List<Integer> dl_lst = getPackList();
       for(int pack_no : dl_lst)
       {
-        //String url = "https://ds73ipzb70zbz.cloudfront.net/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
-        String url = "https://s3-us-west-2.amazonaws.com/bitcoin-blocks/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
+        String url = "https://ds73ipzb70zbz.cloudfront.net/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
+        //String url = "https://s3-us-west-2.amazonaws.com/bitcoin-blocks/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
         
         download(url);
 

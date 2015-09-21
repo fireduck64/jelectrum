@@ -636,48 +636,20 @@ public class Importer
 
                     System.out.println(rate_log );
                     jelly.getEventLog().log(rate_log);
-
-
-                    if (name.equals("1-hour"))
-                    {
-                        //System.exit(0);
-                    }
-                    if (name.equals("5-minute"))
-                    {
-                        //if (tx_rate < 250.0) System.exit(0);
-                    }
-                    if (name.equals("1-minute"))
-                    {
-                        //if (tx_rate < 10.0) System.exit(0);
-                    }
-                    //SqlMapSet.printStats();
-                    //SqlMap.printStats();
                     String status_report = getThreadStatusReport();
-
-
-                    System.out.println(status_report);
-                    jelly.getEventLog().log(status_report);
+                    
+                    jelly.getEventLog().alarm(status_report);
                     if (jelly.getPeerGroup().numConnectedPeers() == 0)
                     {
                       jelly.getEventLog().alarm("No connected peers - can't get new blocks or transactions");
                     }
-
                 }
-
 
                 blocks = blocks_now;
                 transactions = transactions_now;
                 last_run= now;
-
-
-                
-
-
-
             }
-
         }
-
     }
 
     public interface StatusContext
