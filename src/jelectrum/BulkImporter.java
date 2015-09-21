@@ -109,7 +109,7 @@ public class BulkImporter
           + " - seconds (" + df.format(sec) + " processing) "
           +"(" + df.format(qsec) + " download wait) "
           +"(" + df.format(blks_sec) + " B/s) "
-          +"(" + df.format(txs_sec) + " TX/s)"
+          +"(" + df.format(txs_sec) + " Objs/s)"
           );
 
         return;
@@ -165,7 +165,7 @@ public class BulkImporter
     }
 
 
-    jelly.getEventLog().alarm("TX Save...");
+    jelly.getEventLog().alarm("TX Save... " + txs_map.size());
     //This way the transactions will be availible if needed
     jelly.getDB().getTransactionMap().putAll(txs_map);
 
@@ -181,10 +181,10 @@ public class BulkImporter
     }
 
     
-    jelly.getEventLog().alarm("Save addresses...");
+    jelly.getEventLog().alarm("Save addresses... " + addrTxLst.size());
     // Add transaction mappings
     jelly.getDB().addAddressesToTxMap(addrTxLst);
-    jelly.getEventLog().alarm("Save tx block map...");
+    jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
     jelly.getDB().addTxsToBlockMap(blockTxLst);
 
     
@@ -203,7 +203,7 @@ public class BulkImporter
     jelly.getUtxoTrieMgr().start();
     jelly.getUtxoTrieMgr().notifyBlock(false);
 
-    return tx_map.size();
+    return tx_map.size() + block_map.size() + ordered_block_list.size() + blockTxLst.size() + addrTxLst.size();
    
 
   }
