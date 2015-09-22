@@ -142,7 +142,7 @@ public class IrcBot extends PircBot
     {
       //setVerbose(true);
       
-      if (System.currentTimeMillis() < kickWaitTime)
+      while (System.currentTimeMillis() < kickWaitTime)
       {
         Thread.sleep(15000);
       }
@@ -158,7 +158,7 @@ public class IrcBot extends PircBot
         connection_lock.wait();
       }
 
-      if (System.currentTimeMillis() < kickWaitTime)
+      while (System.currentTimeMillis() < kickWaitTime)
       {
         Thread.sleep(15000);
       }
