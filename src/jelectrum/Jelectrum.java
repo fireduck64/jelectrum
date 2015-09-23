@@ -74,10 +74,10 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.mongo.MongoDB(config);
         }
-        else if (db_type.equals("sql"))
+        /*else if (db_type.equals("sql"))
         {
           jelectrum_db = new JelectrumDBSQL(config);
-        }
+        }*/
         else if (db_type.equals("leveldb"))
         {
           jelectrum_db = new jelectrum.db.level.LevelDB(event_log, config);
