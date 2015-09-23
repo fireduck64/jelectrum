@@ -31,4 +31,13 @@ public class TestUtil
     return ByteString.copyFrom(b);
   }
 
+  public static byte[] randomBytes(int len)
+  {
+    Random rnd = new Random();
+    byte[] b= new byte[len];
+    rnd.nextBytes(b);
+
+    return b;
+  }
+
 }

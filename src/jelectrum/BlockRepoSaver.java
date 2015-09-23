@@ -38,7 +38,7 @@ public class BlockRepoSaver extends Thread
 
   }
 
-  public void start()
+  public void run()
   {
     while(true)
     {

@@ -6,6 +6,7 @@ import jelectrum.db.mongo.MongoDB;
 import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.level.LevelDB;
 import jelectrum.db.lmdb.LMDB;
+import jelectrum.db.slopbucket.SlopbucketDB;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -21,9 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GrindTest
 {
-  private static final long ITEMS_TO_ADD = 500000000L;
+  private static final long ITEMS_TO_ADD = 100L * 1000000L;
   private static final int ITEMS_PER_PUT = 10000;
-  private static final int THREADS = 1;
+  private static final int THREADS = 8;
 
   private AtomicInteger items_saved= new AtomicInteger(0);
 
@@ -64,18 +65,22 @@ public class GrindTest
     {
       db = new LMDB(conf);
     }
+    if (name.equals("slopbucket"))
+    {
+      db = new SlopbucketDB(conf, log);
+    }
     log.log("Selected DB: " + name);
 
     db_map = db.openMap("grindtest");
 
     new RateThread(15000).start();
 
-    performTest();
+    performTest(name);
 
 
   }
 
-  private void performTest()
+  private void performTest(String name)
     throws Exception
   {
     done_sem = new Semaphore(0);
@@ -102,7 +107,7 @@ public class GrindTest
 
     DecimalFormat df = new DecimalFormat("0.000");
 
-    log.log("Run done in " + df.format(sec));
+    log.log("Run "+ name +" done in " + df.format(sec));
 
 
   }

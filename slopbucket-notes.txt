@@ -1,0 +1,43 @@
+// LobHash
+//
+
+// [8 bytes] Next free pointer
+
+// Data file
+// Entries for tables
+// Series of table pointers followed by names
+// [8 bytes]  pointer
+// [256 table name]
+
+
+// Hash Tables
+// Table size [4 bytes]
+// Table item count [4 bytes]
+// Next table pointer [8 bytes]
+// Followed by N table entries, which are [8 byte] pointers
+
+// Regular Entry
+// [2 byte] key size
+// [key data]
+// [4 byte] data size
+// [data]
+
+// List Entry
+// [2 byte] key size
+// [key data]
+// [8 byte] next pointer (or zeros)
+// [4 byte] data size
+// [data]
+
+// Add list: look up entry, add new entry, point new entry to prev entry,
+// save pointer to new entry
+
+// Tables - Read from newest table first, so on startup read down to get a list of all hash tables to work backwards from
+//
+// Table start size 1024k * 8 = 8mb of space
+// Each table increases size by 8x, so even a 1 billion node table would only be 4 or 5 hash table lookups.
+// Keep the table fill percentage low
+
+
+
+

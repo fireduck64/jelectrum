@@ -202,6 +202,10 @@ public class Jelectrum
         {
           new BlockRepoSaver(this).start();
         }
+        if (config.getBoolean("bloom_baker"))
+        {
+          new BloomBaker(this).start();
+        }
 
 
 

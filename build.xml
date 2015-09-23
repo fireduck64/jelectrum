@@ -36,14 +36,14 @@
       </batchtest>
     </junit>
   </target>
-  <target name="test_sql" depends="build_test">
+  <target name="test_slop" depends="build_test">
     <junit fork="yes" haltonfailure="yes">
 	  <jvmarg value="-Xmx1024m"/>
       <formatter type="plain" usefile="false" />
       <classpath refid="test.classpath" />
       <batchtest>
 	    <fileset dir="${test}">
-	  	  <include name="**/SqlTest.java"/>
+	  	  <include name="**/SlopbucketTest.java"/>
         </fileset>
       </batchtest>
     </junit>
@@ -94,6 +94,19 @@
       <batchtest>
 	    <fileset dir="${test}">
 	  	  <include name="**/DBTest.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+  <target name="test_bloom" depends="build_test">
+    <junit fork="yes" haltonfailure="yes">
+	  <jvmarg value="-Xmx8g"/>
+      <formatter type="plain" usefile="false" />
+      <classpath refid="test.classpath" />
+      <batchtest>
+	    <fileset dir="${test}">
+	  	  <include name="**/LongMappedBufferTest.java"/>
+	  	  <include name="**/BloomtimeTest.java"/>
         </fileset>
       </batchtest>
     </junit>
