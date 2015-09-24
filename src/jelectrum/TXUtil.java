@@ -55,7 +55,7 @@ public class TXUtil
     }
     if (tx != null) return tx;
 
-    SerializedTransaction s_tx = db.getTransactionMap().get(hash);
+    SerializedTransaction s_tx = db.getTransaction(hash);
 
     if (s_tx != null)
     { 

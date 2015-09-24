@@ -139,6 +139,7 @@ public class BlockChainCache implements java.io.Serializable
             }
 
             BlockChainCache c = new BlockChainCache(height_map_list);
+            //return new BlockChainCache();
             return c;
         }
         catch(Throwable t)

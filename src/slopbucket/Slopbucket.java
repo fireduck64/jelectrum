@@ -20,8 +20,8 @@ public class Slopbucket
   private static final long SEGMENT_FILE_SIZE=Integer.MAX_VALUE;
   
   public static final long MAGIC_LOCATION_ZERO=Long.MAX_VALUE;
-  public static final int MAX_TROUGHS=512;
-  public static final int MAX_TROUGH_NAME_LEN=128;
+  public static final int MAX_TROUGHS=64;
+  public static final int MAX_TROUGH_NAME_LEN=64;
 
   private static final int LOCATION_VERSION=0;
   private static final int LOCATION_NEXT_FREE=LOCATION_VERSION+8;
@@ -33,10 +33,9 @@ public class Slopbucket
   private static final int LOCATION_HASH_NEXT=LOCATION_HASH_ITEMS+4;
   private static final int LOCATION_HASH_START=LOCATION_HASH_NEXT+8;
  
-  private static final int HASH_INITAL_SIZE=65536;
-  private static final int HASH_MULTIPLCATION=8;
+  private static final int HASH_INITAL_SIZE=1024;
+  private static final int HASH_MULTIPLCATION=16;
   private static final double HASH_FULL=0.5;
-
   
   private Object ptr_lock = new Object();
 
@@ -191,8 +190,6 @@ public class Slopbucket
     }
   }
 
-
-
   protected long allocateSpace(int size)
   {
     if (size==0) return MAGIC_LOCATION_ZERO;
@@ -228,8 +225,6 @@ public class Slopbucket
       MappedByteBuffer mbb = openFileInternal(idx);
       open_buffers.put(idx, mbb);
       return mbb;
-
-
     }
   }
 
@@ -243,7 +238,6 @@ public class Slopbucket
 
       RandomAccessFile raf = new RandomAccessFile(f, "rw");
       return raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, SEGMENT_FILE_SIZE);
-
     }
     catch(java.io.IOException e)
     {
@@ -313,11 +307,8 @@ public class Slopbucket
           }
         }
       }
-      
       loc = (loc + 131 ) % max;
     }
-
-
 
   }
 
@@ -381,9 +372,12 @@ public class Slopbucket
           hash_mbb.position(file_offset + LOCATION_HASH_START + loc * 8);
           hash_mbb.putLong(data_loc);
 
-          hash_mbb.position(file_offset + LOCATION_HASH_ITEMS);
-          items++;
-          hash_mbb.putInt(items);
+          if (ptr == 0)
+          {
+            hash_mbb.position(file_offset + LOCATION_HASH_ITEMS);
+            items++;
+            hash_mbb.putInt(items);
+          }
           return;
         }
       }
@@ -412,7 +406,7 @@ public class Slopbucket
     int file = (int) (data_loc / SEGMENT_FILE_SIZE);
     MappedByteBuffer mbb = getBufferMap(file);
     int offset = (int) (data_loc % SEGMENT_FILE_SIZE);
-    //System.out.println("File: " + file + " Offset: " + offset);
+    //System.out.println("Data loc: " + data_loc + " File: " + file + " Offset: " + offset);
     synchronized(mbb)
     {
       mbb.position(offset);
@@ -442,5 +436,79 @@ public class Slopbucket
     }
   }
 
+  private Map<String, Long> getStats(String trough_name)
+  {
+    Map<String, Long> map = new TreeMap<String, Long>();
+
+    map.put("tables",0L);
+    map.put("items",0L);
+    map.put("key_size",0L);
+    map.put("data_size",0L);
+    long pos = getTroughPtr(trough_name);
+
+    getTableStats(pos, map);
+
+    return map;
+
+  }
+  private void getTableStats(long table_pos, Map<String, Long> map)
+  {
+    map.put("tables", map.get("tables") + 1);
+
+    int hash_file = (int) (table_pos / SEGMENT_FILE_SIZE);
+    MappedByteBuffer hash_mbb = getBufferMap(hash_file);
+    int file_offset = (int) (table_pos % SEGMENT_FILE_SIZE);
+
+    int max;
+    int items;
+    long next_ptr;
+
+    synchronized(hash_mbb)
+    {
+      hash_mbb.position(file_offset + (int) LOCATION_HASH_MAX); 
+      max = hash_mbb.getInt();
+      items = hash_mbb.getInt();
+      next_ptr = hash_mbb.getLong();
+
+      hash_mbb.position(file_offset + (int) LOCATION_HASH_START);
+      for(int i=0; i<max; i++)
+      {
+        long ptr = hash_mbb.getLong(file_offset + LOCATION_HASH_START + i*8);
+        if (ptr != 0)
+        {
+          ByteString key = getKey(ptr);
+          ByteString value = getValue(ptr);
+          map.put("key_size", map.get("key_size") + key.size());
+          map.put("data_size", map.get("data_size") + value.size());
+          
+        }
+      }
+
+    }
+    map.put("items", map.get("items") + items);
+
+    if (next_ptr != 0)
+    {
+      getTableStats(next_ptr, map);
+    }
+
+
+  }
+
+
+  public void printStats()
+  {
+    for(Map.Entry<String, Integer> me : getTroughMap().entrySet())
+    {
+      if (!me.getKey().equals("__FREE"))
+      {
+        System.out.println(me.getKey() + " - " +getStats(me.getKey()));
+
+      }
+
+
+    }
+
+  }
 
 }

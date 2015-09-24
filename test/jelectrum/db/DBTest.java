@@ -10,6 +10,8 @@ import jelectrum.db.DB;
 import jelectrum.db.mongo.MongoDB;
 import jelectrum.db.lmdb.LMDB;
 import jelectrum.db.lobstack.LobstackDB;
+import jelectrum.db.level.LevelDB;
+import jelectrum.db.memory.MemoryDB;
 import jelectrum.Config;
 import jelectrum.EventLog;
 import com.google.bitcoin.core.Sha256Hash;
@@ -25,7 +27,7 @@ public class DBTest
   @Test
   public void testMongo() throws Exception
   {
-    Config conf = new Config("jelly-grind.conf");
+    Config conf = new Config("jelly-test.conf");
     EventLog log =new EventLog(System.out);
 
     DB db = new MongoDB(conf);
@@ -36,7 +38,7 @@ public class DBTest
   @Test
   public void testLMDB() throws Exception
   {
-    Config conf = new Config("jelly-grind.conf");
+    Config conf = new Config("jelly-test.conf");
     EventLog log =new EventLog(System.out);
 
     DB db = new LMDB(conf);
@@ -47,13 +49,35 @@ public class DBTest
   @Test
   public void testLobstack() throws Exception
   {
-    Config conf = new Config("jelly-grind.conf");
+    Config conf = new Config("jelly-test.conf");
     EventLog log =new EventLog(System.out);
 
     DB db = new LobstackDB(null, conf);
     testDB(db);
 
   }
+
+  @Test
+  public void testLevelDB() throws Exception
+  {
+    Config conf = new Config("jelly-test.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new LevelDB(log, conf);
+    testDB(db);
+
+  }
+  @Test
+  public void testMemoryDB() throws Exception
+  {
+    Config conf = new Config("jelly-test.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new MemoryDB(conf);
+    testDB(db);
+
+  }
+
 
 
 

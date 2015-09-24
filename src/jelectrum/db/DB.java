@@ -12,6 +12,7 @@ import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
 import com.google.bitcoin.core.StoredBlock;
 import com.google.bitcoin.core.Block;
+import com.google.bitcoin.core.NetworkParameters;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.AbstractMap.SimpleEntry;
 import static jelectrum.db.ObjectConversionMap.ConversionMode.*;
@@ -20,6 +21,7 @@ import jelectrum.SerializedTransaction;
 import jelectrum.SerializedBlock;
 import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
+import jelectrum.Util;
 
 
 public abstract class DB implements DBFace
@@ -35,10 +37,13 @@ public abstract class DB implements DBFace
     protected Map<String, UtxoTrieNode> utxo_trie_map;
     protected DBMapSet address_to_tx_map;
     protected DBMapSet tx_to_block_map;
+    protected NetworkParameters network_params;
 
     public DB(Config conf)
     {
-        this.conf = conf;
+      this.conf = conf;
+
+      network_params = Util.getNetworkParameters(conf);
     }
 
     public void compact()
@@ -55,13 +60,13 @@ public abstract class DB implements DBFace
       throws Exception
     {
         tx_map = new ObjectConversionMap<>(SERIALIZEDTRANSACTION, openMap("tx_map"));
-        block_store_map = new ObjectConversionMap<>(OBJECT, openMap("block_store_map"));
-        special_block_store_map = new ObjectConversionMap<>(OBJECT, openMap("special_block_store_map"));
+        block_store_map = new ObjectConversionMap<>(STOREDBLOCK, openMap("block_store_map"), network_params);
+        special_block_store_map = new ObjectConversionMap<>(STOREDBLOCK, openMap("special_block_store_map"), network_params);
         block_map = new ObjectConversionMap<>(OBJECT, openMap("block_map"));
         block_rescan_map = new ObjectConversionMap<>(STRING, openMap("block_rescan_map"));
         special_object_map = new ObjectConversionMap<>(OBJECT, openMap("special_object_map"));
         header_chunk_map = new ObjectConversionMap<>(STRING, openMap("header_chunk_map"));
-        utxo_trie_map = new ObjectConversionMap<>(OBJECT, openMap("utxo_trie_map"));
+        utxo_trie_map = new ObjectConversionMap<>(UTXONODE, openMap("utxo_trie_map"));
 
         address_to_tx_map = openMapSet("address_to_tx_map");
         tx_to_block_map = openMapSet("tx_to_block_map");
@@ -74,15 +79,13 @@ public abstract class DB implements DBFace
 
     public Map<Sha256Hash, StoredBlock> getBlockStoreMap(){ return block_store_map; }
     public Map<String, StoredBlock> getSpecialBlockStoreMap() { return special_block_store_map; }
-    public Map<Sha256Hash,SerializedTransaction> getTransactionMap() { return tx_map; }
+    public Map<Sha256Hash, SerializedTransaction> getTransactionMap() { return tx_map; }
     public Map<Sha256Hash, SerializedBlock> getBlockMap(){ return block_map; }
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx) { return tx_to_block_map.getSet(tx.toString()); }
     public Map<Sha256Hash, String> getBlockRescanMap() { return block_rescan_map; }
     public Map<String, Object> getSpecialObjectMap() { return special_object_map; }
     public Map<Integer, String> getHeaderChunkMap() {return header_chunk_map; }
     public Map<String, UtxoTrieNode> getUtxoTrieMap() { return utxo_trie_map; } 
-
-
 
     public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash)
     {
@@ -130,9 +133,17 @@ public abstract class DB implements DBFace
       for(Map.Entry<Sha256Hash, Sha256Hash> me : lst)
       {
         olst.add(new SimpleEntry<String, Sha256Hash>(me.getKey().toString(), me.getValue()));
-
       }
       tx_to_block_map.addAll(olst);
     } 
+
+    public void addBlockThings(int height, Block blk){}
+
+    public boolean needsDetails(){return true;}
+
+    public SerializedTransaction getTransaction(Sha256Hash hash)
+    {
+      return getTransactionMap().get(hash);
+    }
 
 }

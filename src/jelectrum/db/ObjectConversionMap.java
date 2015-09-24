@@ -14,6 +14,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ByteArrayOutputStream;
 import com.google.bitcoin.core.Sha256Hash;
+import com.google.bitcoin.core.StoredBlock;
+import com.google.bitcoin.core.NetworkParameters;
+import org.junit.Assert;
 
 /**
  * Converts the high level types to and from the simple
@@ -26,6 +29,7 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
   private DBMap inner;
 
   private ConversionMode mode;
+  private NetworkParameters params;
 
   public enum ConversionMode
   {
@@ -33,14 +37,26 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
     SHA256HASH,
     OBJECT,
     SERIALIZEDTRANSACTION,
-    UTXONODE
+    UTXONODE,
+    STOREDBLOCK,
+    EXISTENCE
   } 
-
 
   public ObjectConversionMap(ConversionMode mode, DBMap inner)
   {
+    this(mode, inner, null);
+  }
+
+  public ObjectConversionMap(ConversionMode mode, DBMap inner, NetworkParameters params)
+  {
     this.inner = inner;
     this.mode = mode;
+    this.params = params;
+
+    if (mode==ConversionMode.STOREDBLOCK)
+    {
+      Assert.assertNotNull(params);
+    }
 
   }
   
@@ -91,7 +107,63 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
     }
     if (mode==ConversionMode.UTXONODE)
     {
-      return (V) new UtxoTrieNode(ByteBuffer.wrap(buff.toByteArray()));
+      long ver = buff.asReadOnlyByteBuffer().getLong();
+      if (ver==UtxoTrieNode.serialVersionUID)
+      {
+        return (V) new UtxoTrieNode(buff);
+      }
+      try
+      {
+        ObjectInputStream oin = new ObjectInputStream(buff.newInput());
+        Object o = oin.readObject();
+        return (V) o;
+      }
+      catch(java.io.IOException e)
+      {
+        System.out.println("Exception reading key: " + key);
+        throw new RuntimeException(e);
+      }
+      catch(ClassNotFoundException e)
+      {
+        throw new RuntimeException(e);
+      }
+
+
+    }
+    if (mode==ConversionMode.STOREDBLOCK)
+    {
+      if (buff.size() == StoredBlock.COMPACT_SERIALIZED_SIZE)
+      {
+        ByteBuffer ba = ByteBuffer.wrap(buff.toByteArray());
+        return (V) StoredBlock.deserializeCompact(params, ba);
+      }
+      else
+      {
+
+        try
+        {
+          ObjectInputStream oin = new ObjectInputStream(buff.newInput());
+
+          Object o = oin.readObject();
+
+          return (V) o;
+        }
+        catch(java.io.IOException e)
+        {
+          System.out.println("Exception reading key: " + key);
+          throw new RuntimeException(e);
+        }
+        catch(ClassNotFoundException e)
+        {
+          throw new RuntimeException(e);
+        }
+
+
+      }
+    }
+    if (mode==ConversionMode.EXISTENCE)
+    {
+      throw new RuntimeException("Get called on existence only map");
     }
     throw new RuntimeException("No conversion found");
 
@@ -149,6 +221,13 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
           oout.writeObject(value);
           oout.flush();
           b = ByteString.copyFrom(bout.toByteArray());
+
+          /*if (value instanceof UtxoTrieNode)
+          {
+            UtxoTrieNode node = (UtxoTrieNode) value;
+            System.out.println("Uxto node: " + b.size() + " " + node.serialize().size());
+          }*/
+
         }
         catch(java.io.IOException e)
         {
@@ -164,7 +243,19 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
       if (mode==ConversionMode.UTXONODE)
       {
         UtxoTrieNode node = (UtxoTrieNode) value;
-        b = ByteString.copyFrom(node.serialize().array());
+        b = node.serialize();
+      }
+      if (mode==ConversionMode.STOREDBLOCK)
+      {
+        StoredBlock sb = (StoredBlock) value;
+        byte[] buff = new byte[StoredBlock.COMPACT_SERIALIZED_SIZE];
+        sb.serializeCompact(ByteBuffer.wrap(buff));
+        b = ByteString.copyFrom(buff);
+      }
+      if (mode==ConversionMode.EXISTENCE)
+      {
+        byte[] b1= new byte[1];
+        b = ByteString.copyFrom(b1);
       }
 
 

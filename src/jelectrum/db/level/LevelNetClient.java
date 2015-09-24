@@ -349,7 +349,7 @@ public class LevelNetClient
     {
       int sz = readInt();
 
-      if (sz == 0) return null;
+      //if (sz == 0) return ByteString;
 
       byte[] data = new byte[sz];
       d_in.readFully(data);

@@ -46,7 +46,7 @@ public class GrindTest
   {
 
     DB db = null;
-    Config conf = new Config("jelly-grind.conf");
+    Config conf = new Config("jelly-test.conf");
     log =new EventLog(System.out);
 
     if (name.equals("mongo"))

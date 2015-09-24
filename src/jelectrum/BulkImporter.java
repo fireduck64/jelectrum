@@ -25,7 +25,7 @@ public class BulkImporter
   private Jelectrum jelly;
   private TXUtil tx_util;
 
-  private static final int BLOCKS_PER_CHUNK=100;
+  private int BLOCKS_PER_CHUNK=100;
 
   //At 1mb per block, and 100 blocks per chunk, it is 100mb
   //per queue pack.  So memory can fill up fast.
@@ -40,6 +40,10 @@ public class BulkImporter
     throws Exception
   {
     this.jelly = jelly;
+    if (jelly.getConfig().isSet("bulk_import_blocks"))
+    {
+      BLOCKS_PER_CHUNK = jelly.getConfig().getInt("bulk_import_blocks");
+    }
     this.tx_util = new TXUtil(jelly.getDB(), jelly.getNetworkParameters());
 
     start_height = jelly.getBlockStore().getChainHead().getHeight() + 1;
@@ -64,10 +68,6 @@ public class BulkImporter
       importPack(pack, t2 - t1);
       System.gc();
     }
-
-
-
-
 
   }
 
@@ -111,6 +111,7 @@ public class BulkImporter
           +"(" + df.format(blks_sec) + " B/s) "
           +"(" + df.format(txs_sec) + " Objs/s)"
           );
+        System.gc();
 
         return;
       }
@@ -128,82 +129,137 @@ public class BulkImporter
   private long importPackThrows(Blockrepo.BitcoinBlockPack pack)
     throws Exception
   {
-    Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<>();
-    Map<Sha256Hash, Transaction> tx_map = new HashMap<>();
-
-    Map<Sha256Hash, SerializedBlock> block_map = new HashMap<>();
     LinkedList<Block> ordered_block_list = new LinkedList<>();
 
-    Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<>();
-    Collection<Map.Entry<Sha256Hash, Sha256Hash> > blockTxLst = new LinkedList<>();
-
-    jelly.getEventLog().alarm("Block Map...");
-
-    for(Blockrepo.BitcoinBlock bblk : pack.getBlocksList())
+    if (jelly.getDB().needsDetails())
     {
-      SerializedBlock sblk = new SerializedBlock(bblk.getBlockData());
-      Block blk = sblk.getBlock(jelly.getNetworkParameters());
-      Sha256Hash block_hash = new Sha256Hash(bblk.getHash());
+      Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<>();
+      Map<Sha256Hash, Transaction> tx_map = new HashMap<>();
 
-      block_map.put(block_hash, sblk);
-      ordered_block_list.add(blk);
+      Map<Sha256Hash, SerializedBlock> block_map = new HashMap<>();
+      Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<>();
+      Collection<Map.Entry<Sha256Hash, Sha256Hash> > blockTxLst = new LinkedList<>();
+ 
+      jelly.getEventLog().alarm("Block Map...");
 
-    }
-
-    jelly.getEventLog().alarm("TX Map...");
-    for(Block blk : ordered_block_list)
-    {
-      Sha256Hash blk_hash = blk.getHash();
-
-      for(Transaction tx : blk.getTransactions())
+      for(Blockrepo.BitcoinBlock bblk : pack.getBlocksList())
       {
-        tx_map.put(tx.getHash(), tx);
-        txs_map.put(tx.getHash(), new SerializedTransaction(tx));
+        SerializedBlock sblk = new SerializedBlock(bblk.getBlockData());
+        Block blk = sblk.getBlock(jelly.getNetworkParameters());
 
-        blockTxLst.add(new SimpleEntry<Sha256Hash, Sha256Hash>(tx.getHash(), blk_hash));
+        Sha256Hash block_hash = new Sha256Hash(bblk.getHash());
+
+        jelly.getDB().addBlockThings(bblk.getHeight(), blk);      
+
+        block_map.put(block_hash, sblk);
+        ordered_block_list.add(blk);
+
       }
+
+      jelly.getEventLog().alarm("TX Map...");
+      for(Block blk : ordered_block_list)
+      {
+        Sha256Hash blk_hash = blk.getHash();
+
+        for(Transaction tx : blk.getTransactions())
+        {
+          tx_map.put(tx.getHash(), tx);
+          txs_map.put(tx.getHash(), new SerializedTransaction(tx));
+
+          blockTxLst.add(new SimpleEntry<Sha256Hash, Sha256Hash>(tx.getHash(), blk_hash));
+        }
+      }
+
+
+      jelly.getEventLog().alarm("TX Save... " + txs_map.size());
+      //This way the transactions will be availible if needed
+      jelly.getDB().getTransactionMap().putAll(txs_map);
+
+      
+      jelly.getEventLog().alarm("Get Addresses...");
+      for(Transaction tx : tx_map.values())
+      {
+        Collection<String> addrs = tx_util.getAllAddresses(tx, true, tx_map);
+        for(String addr : addrs)
+        { 
+          addrTxLst.add(new SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
+        }      
+      }
+
+      
+      jelly.getEventLog().alarm("Save addresses... " + addrTxLst.size());
+      // Add transaction mappings
+      jelly.getDB().addAddressesToTxMap(addrTxLst);
+      jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
+      jelly.getDB().addTxsToBlockMap(blockTxLst);
+
+      
+      //Save block headers
+      jelly.getEventLog().alarm("Save headers...");
+      jelly.getBlockStore().putAll(ordered_block_list);
+
+      
+
+      //Save blocks themselves
+      jelly.getEventLog().alarm("Save blocks...");
+      jelly.getDB().getBlockMap().putAll(block_map);
+
+
+
+      jelly.getUtxoTrieMgr().start();
+      jelly.getUtxoTrieMgr().notifyBlock(false);
+
+      return tx_map.size() + block_map.size() + ordered_block_list.size() + blockTxLst.size() + addrTxLst.size();
     }
-
-
-    jelly.getEventLog().alarm("TX Save... " + txs_map.size());
-    //This way the transactions will be availible if needed
-    jelly.getDB().getTransactionMap().putAll(txs_map);
-
-    
-    jelly.getEventLog().alarm("Get Addresses...");
-    for(Transaction tx : tx_map.values())
+    else
     {
-      Collection<String> addrs = tx_util.getAllAddresses(tx, true, tx_map);
-      for(String addr : addrs)
-      { 
-        addrTxLst.add(new SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
-      }      
+      Map<Sha256Hash, SerializedBlock> block_map = new HashMap<>();
+
+      long tx_count = 0;
+      TimeRecord time_rec = new TimeRecord();
+      TimeRecord.setSharedRecord(time_rec);
+      long t1;
+      long t2;
+      for(Blockrepo.BitcoinBlock bblk : pack.getBlocksList())
+      {
+        SerializedBlock sblk = new SerializedBlock(bblk.getBlockData());
+        Block blk = sblk.getBlock(jelly.getNetworkParameters());
+        Sha256Hash block_hash = new Sha256Hash(bblk.getHash());
+
+        t1 = System.nanoTime();
+        jelly.getDB().addBlockThings(bblk.getHeight(), blk);
+        t2 = System.nanoTime();
+        time_rec.addTime(t2-t1,"add_block_things");
+
+        block_map.put(block_hash, sblk);
+        ordered_block_list.add(blk);
+
+        tx_count += blk.getTransactions().size();
+      }
+
+      //Save block headers
+      t1 = System.nanoTime();
+      jelly.getEventLog().alarm("Save headers...");
+      jelly.getBlockStore().putAll(ordered_block_list);
+      time_rec.addTime(System.nanoTime() - t1, "save_headers");
+      
+      jelly.getEventLog().alarm("Doing commit...");
+      jelly.getDB().commit();
+
+      //Save blocks themselves
+      t1 = System.nanoTime();
+      jelly.getEventLog().alarm("Save blocks...");
+      jelly.getDB().getBlockMap().putAll(block_map);
+      time_rec.addTime(System.nanoTime() - t1, "save_blocks");
+
+
+      jelly.getUtxoTrieMgr().start();
+      jelly.getUtxoTrieMgr().notifyBlock(false);
+
+      time_rec.printReport(System.out);
+
+      return tx_count;
     }
-
-    
-    jelly.getEventLog().alarm("Save addresses... " + addrTxLst.size());
-    // Add transaction mappings
-    jelly.getDB().addAddressesToTxMap(addrTxLst);
-    jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
-    jelly.getDB().addTxsToBlockMap(blockTxLst);
-
-    
-    //Save block headers
-    jelly.getEventLog().alarm("Save headers...");
-    jelly.getBlockStore().putAll(ordered_block_list);
-
-    
-    //Save blocks themselves
-    jelly.getEventLog().alarm("Save blocks...");
-    jelly.getDB().getBlockMap().putAll(block_map);
-
-
-
-
-    jelly.getUtxoTrieMgr().start();
-    jelly.getUtxoTrieMgr().notifyBlock(false);
-
-    return tx_map.size() + block_map.size() + ordered_block_list.size() + blockTxLst.size() + addrTxLst.size();
    
 
   }
@@ -259,8 +315,6 @@ public class BulkImporter
 
         }
         try{sleep(10000);}catch(Throwable t){}
-
-
 
       }
 

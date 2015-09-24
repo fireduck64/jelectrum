@@ -25,7 +25,7 @@ public class AddressTest
     public static void setup()
         throws Exception
     {
-        jelly = new Jelectrum(new Config("jelly.conf"));
+        jelly = new Jelectrum(new Config("jelly-test.conf"));
         tx_util = new TXUtil(jelly.getDB(), jelly.getNetworkParameters());
     }
 
@@ -50,6 +50,8 @@ public class AddressTest
         Sha256Hash tx_hash = new Sha256Hash("5e86b6609207e3376ebddde5e96da2b33ccfba3783f2389cb2aaad6452be985d");
 
         Transaction tx = tx_util.getTransaction(tx_hash);
+
+        Assert.assertNotNull(tx);
 
         Collection<String> lst = tx_util.getAllAddresses(tx, true, null);
 

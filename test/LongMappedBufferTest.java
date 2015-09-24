@@ -16,7 +16,9 @@ public class LongMappedBufferTest
   public static void loadMap()
     throws Exception
   {
-    map = new LongMappedBuffer(new File("/var/ssd/clash/longmappedbuffer-test"), 16L*1024L*1024L*1024L);
+    new File("/var/ssd/clash/test").mkdirs();
+
+    map = new LongMappedBuffer(new File("/var/ssd/clash/test/longmappedbuffer-test"), 16L*1024L*1024L*1024L);
   }
 
   @Test

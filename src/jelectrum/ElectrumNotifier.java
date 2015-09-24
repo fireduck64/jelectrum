@@ -737,7 +737,7 @@ public class ElectrumNotifier
         int height;
         public SortedTransaction(Sha256Hash tx_hash)
         {
-            this.s_tx = jelly.getDB().getTransactionMap().get(tx_hash);
+            this.s_tx = jelly.getDB().getTransaction(tx_hash);
             if (s_tx==null) return;
             this.tx = s_tx.getTx(jelly.getNetworkParameters());
             Set<Sha256Hash> block_list = jelly.getDB().getTxToBlockMap(tx.getHash());
@@ -780,7 +780,7 @@ public class ElectrumNotifier
             {
               TransactionOutPoint op = tx_in.getOutpoint();
               Sha256Hash tx_in_h = op.getHash();
-              SerializedTransaction s_in_tx = jelly.getDB().getTransactionMap().get(tx_in_h);
+              SerializedTransaction s_in_tx = jelly.getDB().getTransaction(tx_in_h);
               if (s_in_tx == null) return false;
             }
 

@@ -7,6 +7,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import com.google.bitcoin.core.Sha256Hash;
 import com.google.bitcoin.core.Transaction;
+import com.google.bitcoin.core.NetworkParameters;
+import com.google.bitcoin.params.MainNetParams;
+import com.google.bitcoin.params.TestNet3Params;
 
 import java.util.Collection;
 import java.util.ArrayList;
@@ -260,5 +263,14 @@ public class Util
     }
 
 
+  public static NetworkParameters getNetworkParameters(Config config)
+  {
+    NetworkParameters network_params = MainNetParams.get();
+    if (config.getBoolean("testnet"))
+    { 
+      network_params = TestNet3Params.get();
+    }
+    return network_params;
 
+  }
 }

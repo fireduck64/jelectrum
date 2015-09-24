@@ -110,8 +110,11 @@ public class UtxoTrieMgr
       
       debug_out = new PrintStream(new FileOutputStream("utxo-debug.log"));
     }
+  }
 
-
+  public void setTxUtil(TXUtil tx_util)
+  {
+    this.tx_util = tx_util;
   }
 
   public boolean isUpToDate()
@@ -141,7 +144,11 @@ public class UtxoTrieMgr
 
   }
 
-  private void flush()
+
+  /**
+   * Just public for testing, don't call
+   */
+  public void flush()
   {
     DecimalFormat df = new DecimalFormat("0.000");
 
@@ -160,6 +167,14 @@ public class UtxoTrieMgr
   public void saveState(UtxoStatus status)
   {
     jelly.getDB().getSpecialObjectMap().put("utxo_trie_mgr_state", status);
+  }
+
+  public synchronized void printTree(PrintStream out)
+  {
+
+    out.println("UTXO TREE:");
+    getByKey("").printTree(out, 1, this);
+    
   }
   public synchronized UtxoStatus getUtxoState()
   {

@@ -23,7 +23,9 @@ public class BloomtimeTest
   public static void loadMap()
     throws Exception
   {
-    File f = new File("/var/ssd/clash/bloomtime-test");
+    new File("/var/ssd/clash/test").mkdirs();
+
+    File f = new File("/var/ssd/clash/test/bloomtime-test");
     f.delete();
     bloom = new Bloomtime(f, 8192, 1048576, 4); 
   }
@@ -95,7 +97,7 @@ public class BloomtimeTest
     Random rnd = new Random();
 
     HashMap<ByteString, Integer> correct_map = new HashMap<>();
-    for(int i=0; i<100000; i++)
+    for(int i=0; i<10000; i++)
     {
       int slice = rnd.nextInt(8192);
       ByteString b = TestUtil.randomByteString();
@@ -103,7 +105,7 @@ public class BloomtimeTest
       correct_map.put(b, slice);
     }
 
-    Assert.assertEquals(100000, correct_map.size());
+    Assert.assertEquals(10000, correct_map.size());
     for(Map.Entry<ByteString, Integer> me : correct_map.entrySet())
     {
       ByteString b = me.getKey();
@@ -123,9 +125,9 @@ public class BloomtimeTest
   public void testLayerCake()
     throws Exception
   {
-    BloomLayerCake cake = new BloomLayerCake(new File("/var/ssd/clash/bloom"), 750000);
+    BloomLayerCake cake = new BloomLayerCake(new File("/var/ssd/clash/test/bloom"), 750000);
     Random rnd = new Random();
-    for(int i=0; i<750000; i+=rnd.nextInt(8192)+1)
+    for(int i=0; i<75000; i+=rnd.nextInt(8192)+1)
     {
       LinkedList<String> addrs = new LinkedList<String>();
       for(int j=0; j<8; j++) addrs.add(TestUtil.randomHash().toString());
@@ -137,6 +139,9 @@ public class BloomtimeTest
     cake.addAddresses(5, addrs);
     cake.addAddresses(3506, addrs);
     cake.addAddresses(740021, addrs);
+    cake.flush();
+
+    System.out.println("--------test layer");
 
     Set<Integer> v = cake.getBlockHeightsForAddress(addr);
     Assert.assertTrue(v.size() >= 3);
@@ -144,6 +149,7 @@ public class BloomtimeTest
     Assert.assertTrue(v.contains(3506));
     Assert.assertTrue(v.contains(740021));
 
+    System.out.println("--------test layer");
 
   }
 

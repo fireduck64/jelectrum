@@ -3,8 +3,6 @@ package jelectrum;
 import com.google.bitcoin.store.H2FullPrunedBlockStore;
 import com.google.bitcoin.store.BlockStore;
 import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.params.MainNetParams;
-import com.google.bitcoin.params.TestNet3Params;
 import com.google.bitcoin.core.BlockChain;
 import com.google.bitcoin.core.PeerGroup;
 import com.google.bitcoin.core.PeerAddress;
@@ -50,12 +48,7 @@ public class Jelectrum
         throws Exception
     {
         config = conf;
-        network_params = MainNetParams.get();
-        if ((config.isSet("testnet")) && (config.getBoolean("testnet")))
-        {
-          network_params = TestNet3Params.get();
-        }
-
+        network_params = Util.getNetworkParameters(config);
 
         config.require("bitcoin_network_use_peers");
         config.require("db_type");
@@ -69,6 +62,9 @@ public class Jelectrum
         //jelectrum_db = new JelectrumDBMapDB(config);
         //jelectrum_db = new JelectrumDBDirect(config);
         //jelectrum_db = new JelectrumDBCloudData(config);
+
+        bitcoin_rpc = new BitcoinRPC(config);
+        bitcoin_rpc.testConnection();
 
         if (db_type.equals("mongo"))
         {
@@ -89,6 +85,14 @@ public class Jelectrum
         else if (db_type.equals("lmdb"))
         {
           jelectrum_db = new jelectrum.db.lmdb.LMDB(config);
+        }
+        else if (db_type.equals("little"))
+        {
+          jelectrum_db = new jelectrum.db.little.LittleDB(config, event_log, bitcoin_rpc);
+        }
+        else if (db_type.equals("memory"))
+        {
+          jelectrum_db = new jelectrum.db.memory.MemoryDB(config);
         }
         else
         {
@@ -114,11 +118,10 @@ public class Jelectrum
         header_chunk_agent = new HeaderChunkAgent(this);
 
 
-        bitcoin_rpc = new BitcoinRPC(config);
-        bitcoin_rpc.testConnection();
 
 
     }
+
 
     public void start()
         throws Exception
@@ -200,11 +203,8 @@ public class Jelectrum
 
         if (config.getBoolean("block_repo_saver"))
         {
-          new BlockRepoSaver(this).start();
-        }
-        if (config.getBoolean("bloom_baker"))
-        {
-          new BloomBaker(this).start();
+          new BlockRepoSaver(this,100).start();
+          new BlockRepoSaver(this,10).start();
         }
 
 

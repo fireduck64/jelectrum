@@ -51,6 +51,21 @@ public class TimeRecord
     counts.clear();
   }
 
+  private static TimeRecord shared;
+  public static void setSharedRecord(TimeRecord s)
+  {
+    shared = s;
+  }
+
+  public static void record(long start, String name)
+  {
+    if (shared != null)
+    {
+      shared.addTime(System.nanoTime() - start, name);
+    }
+
+  }
+
 
 }
 

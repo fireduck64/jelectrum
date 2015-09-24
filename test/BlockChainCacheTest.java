@@ -22,7 +22,7 @@ public class BlockChainCacheTest
     public static void setup()
         throws Exception
     {
-        jelly = new Jelectrum(new Config("jelly.conf"));
+        jelly = new Jelectrum(new Config("jelly-test.conf"));
     }
 
     @Test

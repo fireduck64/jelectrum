@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 import org.apache.commons.codec.binary.Hex;
 import com.google.bitcoin.core.Block;
+import com.google.bitcoin.core.Sha256Hash;
 import java.util.Random;
 
 public class BitcoinRPC
@@ -95,6 +96,7 @@ public class BitcoinRPC
 
 
         scan.close();
+        connection.disconnect();
         return sb.toString();
 
     }
@@ -133,6 +135,7 @@ public class BitcoinRPC
         return sendPost(msg);
 
     }
+
     public int getBlockHeight()
         throws java.io.IOException, org.json.JSONException
     {
@@ -160,6 +163,24 @@ public class BitcoinRPC
         JSONObject reply= sendPost(msg);
 
         return reply.getDouble("result");
+
+    }
+
+    public String getTransaction(Sha256Hash hash)
+        throws java.io.IOException, org.json.JSONException
+    {
+        Random rnd = new Random();
+        JSONObject msg = new JSONObject();
+        msg.put("id", "" + rnd.nextInt());
+        msg.put("method","getrawtransaction");
+        JSONArray params = new JSONArray();
+        params.put(hash.toString());
+        msg.put("params", params);
+        JSONObject reply= sendPost(msg);
+
+        if (reply.isNull("result")) return null;
+
+        return reply.getString("result");
 
     }
 

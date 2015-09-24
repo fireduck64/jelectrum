@@ -271,7 +271,6 @@ public class StratumConnection
                 //Should send this on each new block:
                 //{"id": 1, "result": {"nonce": 3114737334, "prev_block_hash": "000000000000000089e1f388af7cda336b6241b3f0b0ca36def7a8f22e44d39b", "timestamp": 1387995813, "merkle_root": "0debf5bd535624a955d229337a9bf3da5f370cc5a1f5fbee7261b0bdd0bd0f10", "block_height": 276921, "version": 2, "bits": 419668748}}
 
-
                 jelectrum.getElectrumNotifier().registerBlockchainHeaders(this, id, true);
                 
             }
@@ -279,7 +278,6 @@ public class StratumConnection
             {
                 //Should send this on each new block:
                 //{"id": 1, "result": {"nonce": 3114737334, "prev_block_hash": "000000000000000089e1f388af7cda336b6241b3f0b0ca36def7a8f22e44d39b", "timestamp": 1387995813, "merkle_root": "0debf5bd535624a955d229337a9bf3da5f370cc5a1f5fbee7261b0bdd0bd0f10", "block_height": 276921, "version": 2, "bits": 419668748}}
-
 
                 jelectrum.getElectrumNotifier().registerBlockCount(this, id, true);
                 
@@ -334,7 +332,7 @@ public class StratumConnection
 
             }
 
-            else if(method.equals("server.peers.subscribe"))
+            else if (method.equals("server.peers.subscribe"))
             {
                 JSONObject reply = new JSONObject();
                 JSONArray lst = new JSONArray();
@@ -342,7 +340,7 @@ public class StratumConnection
                 reply.put("result", lst);
                 sendMessage(reply);
             }
-            else if(method.equals("blockchain.transaction.get"))
+            else if (method.equals("blockchain.transaction.get"))
             {
                 JSONObject reply = new JSONObject();
                 reply.put("id", id);
@@ -420,7 +418,6 @@ public class StratumConnection
                  JSONObject result =  Util.getMerkleTreeForTransaction(blk.getTransactions(), tx_hash);
                  result.put("block_height", height);
 
-
                  reply.put("result", result);
 
                  sendMessage(reply);
@@ -454,8 +451,6 @@ public class StratumConnection
                 reply.put("id", id);
                 reply.put("error","unknown method - " + method);
                 sendMessage(reply);
-
-            
             }
         }
         catch(Throwable t)
@@ -469,6 +464,5 @@ public class StratumConnection
                 //t.printStackTrace();
         }
     }
-
 
 }

@@ -20,7 +20,7 @@ public class NotifierTest
     public static void setup()
         throws Exception
     {
-        jelly = new Jelectrum(new Config("jelly.conf"));
+        jelly = new Jelectrum(new Config("jelly-test.conf"));
     }
 
 

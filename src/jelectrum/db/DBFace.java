@@ -27,7 +27,7 @@ public interface DBFace
 
     public Map<Sha256Hash, StoredBlock> getBlockStoreMap();
     public Map<String, StoredBlock> getSpecialBlockStoreMap();
-    public Map<Sha256Hash,SerializedTransaction> getTransactionMap();
+    public Map<Sha256Hash, SerializedTransaction> getTransactionMap();
     public Map<Sha256Hash, SerializedBlock> getBlockMap();
     public Map<Sha256Hash, String> getBlockRescanMap();
     public Map<String, Object> getSpecialObjectMap();
@@ -37,6 +37,21 @@ public interface DBFace
     public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash);
     public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst);
     public Set<Sha256Hash> getAddressToTxSet(String address);
+
+    public SerializedTransaction getTransaction(Sha256Hash hash);
+
+
+    /**
+     * Add address and tx mappings a block at a time, if supported
+     */
+    public void addBlockThings(int height, Block blk);
+
+    /**
+     * If returns true, then the DB needs transactions added to the transaction map,
+     * blocks to the block map
+     * and addAddressesToTxMap() and addTxsToBlockMap() to be called.  If false,
+     * then addBlockThings() covers it. */
+    public boolean needsDetails();
 
 
     public void addTxToBlockMap(Sha256Hash tx, Sha256Hash block);

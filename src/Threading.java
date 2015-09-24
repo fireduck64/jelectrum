@@ -88,8 +88,8 @@ public class Threading {
         public UserThread() {
             super("bitcoinj user thread");
             setDaemon(true);
-            System.out.println("MAX QUEUE DEPTH 256 FOR Threading$UserThread");
-            tasks = new LinkedBlockingQueue<Runnable>(256);
+            System.out.println("MAX QUEUE DEPTH 8 FOR Threading$UserThread");
+            tasks = new LinkedBlockingQueue<Runnable>(8);
             start();
         }
 

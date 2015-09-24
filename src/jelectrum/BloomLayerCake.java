@@ -26,10 +26,24 @@ public class BloomLayerCake
 
     layers = new ArrayList<>();
 
-    layers.add(new LayerInfo(0, 10000, 0.02));
-    layers.add(new LayerInfo(1, 400, 0.02));
-    layers.add(new LayerInfo(2, 16, 0.02));
-    layers.add(new LayerInfo(3, 1, 0.02));
+
+    // If any of these values are changed, the entire bloom filter needs to be recreated
+    layers.add(new LayerInfo(0, 10000, 0.03));
+    layers.add(new LayerInfo(1, 400, 0.03));
+    layers.add(new LayerInfo(2, 16, 0.03));
+    layers.add(new LayerInfo(3, 1, 0.03));
+  }
+
+  /**
+   * Using this, the string hashes differently on each layer
+   * making multiple layers of false positives less likely
+   * (probably)
+   */
+  private ByteString getDataForLayer(String addr, int layer)
+  {
+    String s = addr + "_l" + layer;
+    return ByteString.copyFromUtf8(s);
+
   }
 
   public void addAddresses(int block_height, Collection<String> lst)
@@ -40,19 +54,26 @@ public class BloomLayerCake
 
       for(String s : lst)
       {
-        li.bloomtime.saveEntry(slice, ByteString.copyFromUtf8(s));
+        li.bloomtime.accumulateBits(slice, getDataForLayer(s, li.layer_no));
       }
 
+    }
+  }
+  public void flush()
+  {
+    for(LayerInfo li : layers)
+    {
+      li.bloomtime.flushBits();
     }
   }
 
   public Set<Integer> getBlockHeightsForAddress(String address)
   {
     TreeMap<Integer, Integer> block_ranges=new TreeMap<>();
-    ByteString data = ByteString.copyFromUtf8(address);
 
     for(int l=0; l<layers.size(); l++)
     {
+      ByteString data = getDataForLayer(address, l);
       if (l == 0)
       {
         Set<Integer> slices = layers.get(l).bloomtime.getMatchingSlices(data);
@@ -95,12 +116,14 @@ public class BloomLayerCake
     public static final int ESTIMATE_KEYS_PER_BLOCK=10000;
     private int blocks_per_layer;
     protected Bloomtime bloomtime;
+    protected int layer_no;
 
 
     public LayerInfo(int layer_no, int blocks, double prob)
       throws Exception
     {
       blocks_per_layer = blocks;
+      this.layer_no = layer_no;
       double estimate_keys = blocks * ESTIMATE_KEYS_PER_BLOCK;
       int bit_len = (int)Math.round(estimate_keys * Math.log(prob) / Math.log(1 / Math.pow(2, Math.log(2))));
       int slices = max_blocks / blocks;

@@ -48,18 +48,6 @@
       </batchtest>
     </junit>
   </target>
-  <target name="test_leveldb" depends="build_test">
-    <junit fork="yes" haltonfailure="yes">
-	  <jvmarg value="-Xmx4g"/>
-      <formatter type="plain" usefile="false" />
-      <classpath refid="test.classpath" />
-      <batchtest>
-	    <fileset dir="${test}">
-	  	  <include name="**/LevelDBTest.java"/>
-        </fileset>
-      </batchtest>
-    </junit>
-  </target>
 
   <target name="test_lobstack" depends="build_test">
     <junit fork="yes" haltonfailure="yes">
@@ -74,18 +62,6 @@
     </junit>
   </target>
   
-  <target name="test_lobstack_load" depends="build_test">
-    <junit fork="yes" haltonfailure="yes">
-	  <jvmarg value="-Xmx8g"/>
-      <formatter type="plain" usefile="false" />
-      <classpath refid="test.classpath" />
-      <batchtest>
-	    <fileset dir="${test}">
-	  	  <include name="**/LobstackLoadTest.java"/>
-        </fileset>
-      </batchtest>
-    </junit>
-  </target>
    <target name="test_db" depends="build_test">
     <junit fork="yes" haltonfailure="yes">
 	  <jvmarg value="-Xmx8g"/>
@@ -111,8 +87,6 @@
       </batchtest>
     </junit>
   </target>
-  
-
   <target name="test_zip" depends="build_test">
     <junit fork="yes" haltonfailure="yes">
 	  <jvmarg value="-Xmx1024m"/>

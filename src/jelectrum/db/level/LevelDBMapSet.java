@@ -33,11 +33,11 @@ public class LevelDBMapSet extends DBMapSet
     public Set<Sha256Hash> getSet(String p)
     {
       HashSet<Sha256Hash> ret = new HashSet<Sha256Hash>();
-      String first=prefix + p;
-      int len = first.length() + 1;
-      for(String s : c.getByPrefix(first).keySet())
+      String search=prefix + p + "/";
+      int len = search.length();
+      for(String s : c.getByPrefix(search).keySet())
       {
-        Assert.assertEquals(first, s.substring(0, first.length()));
+        Assert.assertEquals(search, s.substring(0, search.length()));
         ret.add(new Sha256Hash(s.substring(len)));
       }
       return ret;
