@@ -55,7 +55,7 @@ public class LittleDB extends MongoDB
 
     cake = new BloomLayerCake(cake_dir, 750000);
 
-    block_map = new ObjectConversionMap<>(EXISTENCE, openMap("block_map"));
+    //block_map = new ObjectConversionMap<>(EXISTENCE, openMap("block_map"));
     tx_map = null;
 
     if (conf.getBoolean("utxo_disable"))

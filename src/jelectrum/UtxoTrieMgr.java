@@ -75,7 +75,7 @@ public class UtxoTrieMgr
 
   protected Sha256Hash last_flush_block_hash;
   protected Sha256Hash last_added_block_hash;
-
+      
   protected Object block_notify= new Object();
   protected Object block_done_notify = new Object();
 
@@ -86,6 +86,8 @@ public class UtxoTrieMgr
 
   protected static PrintStream debug_out;
 
+  private boolean enabled=true;
+
   public UtxoTrieMgr(Jelectrum jelly)
     throws java.io.FileNotFoundException
   {
@@ -93,6 +95,12 @@ public class UtxoTrieMgr
     this.params = jelly.getNetworkParameters();
 
     tx_util = new TXUtil(jelly.getDB(), params);
+    if (jelly.getConfig().getBoolean("utxo_disabled"))
+    {
+      enabled=false;
+      return;
+    }
+
 
 
     db_map = jelly.getDB().getUtxoTrieMap();
@@ -107,7 +115,6 @@ public class UtxoTrieMgr
 
     if (DEBUG)
     {
-      
       debug_out = new PrintStream(new FileOutputStream("utxo-debug.log"));
     }
   }
@@ -126,6 +133,8 @@ public class UtxoTrieMgr
 
   public void start()
   {
+    if (!enabled) return;
+
     if (started) return;
     started=true;
 
@@ -178,6 +187,8 @@ public class UtxoTrieMgr
   }
   public synchronized UtxoStatus getUtxoState()
   {
+    if (!enabled) return null;
+
     try
     {
       Object o = jelly.getDB().getSpecialObjectMap().get("utxo_trie_mgr_state");
@@ -351,6 +362,11 @@ public class UtxoTrieMgr
 
   public synchronized Sha256Hash getRootHash()
   {
+    if (!enabled)
+    {
+      byte[] b = new byte[32];
+      return new Sha256Hash(b);
+    }
     Sha256Hash root = getByKey("").getHash("", this);
     if (DEBUG) debug_out.println("Root is now: " + root);
     return root;
