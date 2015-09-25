@@ -5,9 +5,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.ArrayList;
 
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
 
 
 public class BlockChainCache implements java.io.Serializable
@@ -54,7 +54,7 @@ public class BlockChainCache implements java.io.Serializable
     }
 
     public void update(Jelectrum jelly, StoredBlock new_head)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         if (new_head.getHeader().getHash().equals(head)) return;
 
@@ -62,7 +62,6 @@ public class BlockChainCache implements java.io.Serializable
 
         synchronized(update_lock)
         {
-
             StoredBlock blk = new_head;
 
             while(true)
@@ -84,23 +83,16 @@ public class BlockChainCache implements java.io.Serializable
 
                 }
                 if (blk.getHeader().getHash().equals(genesis_hash)) break;
-                
                 blk = blk.getPrev(jelly.getBlockStore());
-    
             }
 
             head = new_head.getHeader().getHash();
-
             if (updates >= UPDATES_BEFORE_SAVE)
             {
                 updates=0;
                 save(jelly);
-
             }
-
         }
-
-
     }
 
     private void save(Jelectrum jelly)

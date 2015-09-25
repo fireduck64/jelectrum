@@ -15,8 +15,8 @@ import java.util.Scanner;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
 
 import jelectrum.TXUtil;
 import jelectrum.SerializedBlock;

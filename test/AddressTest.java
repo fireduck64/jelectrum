@@ -9,8 +9,8 @@ import jelectrum.TXUtil;
 import jelectrum.ElectrumNotifier;
 import jelectrum.Util;
 import java.util.Collection;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Transaction;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
 
 import org.json.JSONObject;
 import org.json.JSONArray;

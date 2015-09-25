@@ -8,7 +8,7 @@ import java.util.Set;
 import jelectrum.db.mongo.MongoKey;
 import jelectrum.db.mongo.MongoEntry;
 import jelectrum.db.mongo.MongoMapSet;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
 public class MongoTest implements java.io.Serializable
 {

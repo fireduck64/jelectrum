@@ -1,10 +1,10 @@
 package jelectrum;
 
-import com.google.bitcoin.core.AbstractPeerEventListener;
-import com.google.bitcoin.core.PeerEventListener;
-import com.google.bitcoin.core.Peer;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
+import org.bitcoinj.core.listeners.AbstractPeerEventListener;
+import org.bitcoinj.core.Peer;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.FilteredBlock;
 
 
 public class ImportEventListener extends AbstractPeerEventListener
@@ -18,7 +18,7 @@ public class ImportEventListener extends AbstractPeerEventListener
 
     }
     @Override
-    public void onBlocksDownloaded(Peer peer, Block block, int blocksLeft)
+    public void onBlocksDownloaded(Peer peer, Block block, FilteredBlock fblock, int blocksLeft)
     {
         importer.saveBlock(block);
 

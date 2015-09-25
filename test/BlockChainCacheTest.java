@@ -10,9 +10,9 @@ import jelectrum.BlockChainCache;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.StoredBlock;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.StoredBlock;
 
 public class BlockChainCacheTest
 {

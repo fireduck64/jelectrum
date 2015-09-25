@@ -17,17 +17,17 @@ import java.nio.ByteBuffer;
 import java.util.Scanner;
 import java.net.URL;
 
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.TransactionInput;
-import com.google.bitcoin.core.TransactionOutput;
-import com.google.bitcoin.core.TransactionOutPoint;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.core.ScriptException;
-import com.google.bitcoin.core.Address;
-import com.google.bitcoin.script.Script;
-import com.google.bitcoin.script.ScriptChunk;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptChunk;
 
 import java.io.FileInputStream;
 import java.util.Scanner;
@@ -45,7 +45,7 @@ import java.util.Random;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static com.google.bitcoin.script.ScriptOpCodes.*;
+import static org.bitcoinj.script.ScriptOpCodes.*;
 
 /**
  * Blocks have to be loaded in order
@@ -526,7 +526,7 @@ public class UtxoTrieMgr
                 if (script.isSentToRawPubKey())
                 {  
                     byte[] key = out.getScriptPubKey().getPubKey();
-                    byte[] address_bytes = com.google.bitcoin.core.Utils.sha256hash160(key);
+                    byte[] address_bytes = org.bitcoinj.core.Utils.sha256hash160(key);
 
                     public_key = address_bytes;
                 }
@@ -540,7 +540,7 @@ public class UtxoTrieMgr
             { 
               if (script == null) return null;
 
-              //com.google.bitcoin.core.Utils.sha256hash160 
+              //org.bitcoinj.core.Utils.sha256hash160 
               List<ScriptChunk> chunks = script.getChunks();
               /*System.out.println("STRANGE: " + out.getParentTransaction().getHash() + " - has strange chunks " + chunks.size());
               for(int i =0; i<chunks.size(); i++)

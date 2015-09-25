@@ -21,10 +21,10 @@ import org.json.JSONArray;
 
 import org.apache.commons.codec.binary.Hex;
 import java.nio.ByteBuffer;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Transaction;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Transaction;
 import org.apache.commons.codec.binary.Hex;
 
 public class StratumConnection

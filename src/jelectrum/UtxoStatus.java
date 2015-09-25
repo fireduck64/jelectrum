@@ -1,11 +1,13 @@
 package jelectrum;
 
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
-import com.google.bitcoin.core.Block;
+import org.bitcoinj.core.Block;
 
 public class UtxoStatus implements java.io.Serializable
 {
+  private static final long serialVersionUID = 859944923280822401L;
+
   public Sha256Hash block_hash;
   public Sha256Hash prev_block_hash;
   public boolean complete;

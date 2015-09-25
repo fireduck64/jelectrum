@@ -9,7 +9,7 @@ import java.util.Collection;
 import jelectrum.db.DBMapSet;
 
 import java.nio.ByteBuffer;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 import lobstack.Lobstack;
 
 public class LobstackMapSet extends DBMapSet

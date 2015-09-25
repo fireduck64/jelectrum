@@ -1,18 +1,16 @@
 package jelectrum;
 
-import com.google.bitcoin.store.H2FullPrunedBlockStore;
-import com.google.bitcoin.store.BlockStore;
-import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.core.BlockChain;
-import com.google.bitcoin.core.PeerGroup;
-import com.google.bitcoin.core.PeerAddress;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.store.H2FullPrunedBlockStore;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.BlockChain;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.PeerAddress;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Sha256Hash;
 import org.apache.commons.codec.binary.Hex;
 import java.net.InetAddress;
-import com.google.bitcoin.net.discovery.DnsDiscovery;
-import com.google.bitcoin.net.discovery.IrcDiscovery;
-import com.google.bitcoin.core.DownloadListener;
+import org.bitcoinj.net.discovery.DnsDiscovery;
 
 import java.util.LinkedList;
 import jelectrum.db.DBFace;
@@ -168,10 +166,9 @@ public class Jelectrum
         if (config.getBoolean("bitcoin_network_use_peers"))
         {
             peer_group.addPeerDiscovery(new DnsDiscovery(network_params));
-            peer_group.addPeerDiscovery(new IrcDiscovery("#bitcoin"));
         }
-        peer_group.addEventListener(new DownloadListener());
-        peer_group.addEventListener(new ImportEventListener(importer));
+        peer_group.addDataEventListener(new ImportEventListener(importer));
+        peer_group.addOnTransactionBroadcastListener(new ImportEventListener(importer));
         peer_group.setMinBroadcastConnections(1);
 
         peer_group.start();

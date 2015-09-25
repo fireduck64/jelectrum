@@ -12,7 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 
 import java.nio.ByteBuffer;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
 import jelectrum.db.DBMap;
 import com.google.protobuf.ByteString;

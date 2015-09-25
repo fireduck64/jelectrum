@@ -1,7 +1,7 @@
 package jelectrum;
 
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.NetworkParameters;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.NetworkParameters;
 import com.google.protobuf.ByteString;
 
 

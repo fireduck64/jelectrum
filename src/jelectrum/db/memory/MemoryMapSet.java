@@ -3,7 +3,7 @@ package jelectrum.db.memory;
 import jelectrum.db.DBMapSet; 
 
 
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 import java.util.TreeMap;
 import java.util.HashSet;
 import java.util.Set;

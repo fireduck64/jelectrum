@@ -5,11 +5,11 @@ import java.security.MessageDigest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.params.MainNetParams;
-import com.google.bitcoin.params.TestNet3Params;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.TestNet3Params;
 
 import java.util.Collection;
 import java.util.ArrayList;

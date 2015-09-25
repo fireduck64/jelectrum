@@ -3,12 +3,12 @@ package jelectrum;
 
 import java.util.HashSet;
 
-import com.google.bitcoin.store.BlockStore;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.NetworkParameters;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.NetworkParameters;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -25,7 +25,7 @@ public class MapBlockStore implements BlockStore
 
 
     public MapBlockStore(Jelectrum jelly)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         this.jelly = jelly;
 
@@ -56,6 +56,11 @@ public class MapBlockStore implements BlockStore
         file_db.commit();
     }
 
+    public NetworkParameters getParams()
+    {
+      return jelly.getNetworkParameters();
+    }
+
     public StoredBlock get(Sha256Hash hash)
     {
         StoredBlock b = file_db.getBlockStoreMap().get(hash);
@@ -63,7 +68,7 @@ public class MapBlockStore implements BlockStore
     }
 
     public StoredBlock getChainHead()
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         System.out.print("GET HEAD - ");
         StoredBlock head_blk =  file_db.getSpecialBlockStoreMap().get("head");
@@ -88,7 +93,7 @@ public class MapBlockStore implements BlockStore
     }
 
     public void put(StoredBlock block)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         Sha256Hash hash = block.getHeader().getHash();
 
@@ -96,7 +101,7 @@ public class MapBlockStore implements BlockStore
     }
 
     public void putAll(List<Block> blks)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
       TreeMap<Sha256Hash, StoredBlock> insert_map = new TreeMap<>();
 
@@ -139,7 +144,7 @@ public class MapBlockStore implements BlockStore
 
 
     public void setChainHead(StoredBlock block)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         Sha256Hash hash = block.getHeader().getHash();
 
@@ -163,7 +168,7 @@ public class MapBlockStore implements BlockStore
 
 
     private void saveChainHead(StoredBlock block)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
       Sha256Hash hash = block.getHeader().getHash();
       file_db.getSpecialBlockStoreMap().put("head", block);

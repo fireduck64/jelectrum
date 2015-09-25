@@ -14,7 +14,7 @@ import jelectrum.db.level.LevelDB;
 import jelectrum.db.memory.MemoryDB;
 import jelectrum.Config;
 import jelectrum.EventLog;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 import java.util.Map;
 import java.util.LinkedList;
 

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
 import org.fusesource.lmdbjni.Database;
 import org.fusesource.lmdbjni.Env;

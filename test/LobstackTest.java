@@ -14,7 +14,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Semaphore;
 import jelectrum.Config;
 import jelectrum.UtxoTrieNode;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
 public class LobstackTest
 {

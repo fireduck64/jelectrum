@@ -5,23 +5,23 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.bitcoin.store.BlockStore;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.NetworkParameters;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.NetworkParameters;
 import org.apache.commons.codec.binary.Hex;
 
 import java.util.HashSet;
 
-import com.google.bitcoin.store.BlockStore;
-import com.google.bitcoin.core.TransactionInput;
-import com.google.bitcoin.core.TransactionOutput;
-import com.google.bitcoin.core.TransactionOutPoint;
-import com.google.bitcoin.core.Address;
-import com.google.bitcoin.core.ScriptException;
-import com.google.bitcoin.script.Script;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.script.Script;
 import java.util.Collection;
 import java.text.DecimalFormat;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +57,7 @@ public class Importer
 
 
     public Importer(NetworkParameters params, Jelectrum jelly, BlockStore block_store)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         this.jelly = jelly;
         this.params = params;
@@ -107,7 +107,7 @@ public class Importer
 
 
     public void checkConsistency()
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         StoredBlock head = block_store.getChainHead();
 

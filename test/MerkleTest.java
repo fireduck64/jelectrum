@@ -10,8 +10,8 @@ import jelectrum.Util;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Block;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Block;
 
 public class MerkleTest
 {

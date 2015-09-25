@@ -9,8 +9,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import org.apache.commons.codec.binary.Hex;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Sha256Hash;
 import java.util.Random;
 
 public class BitcoinRPC

@@ -14,9 +14,9 @@ import java.net.Socket;
 import java.net.ServerSocket;
 
 import org.json.JSONObject;
-import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.core.Address;
-import com.google.bitcoin.core.Block;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Block;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.sql.Connection;

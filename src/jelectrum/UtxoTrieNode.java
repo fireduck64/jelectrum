@@ -14,17 +14,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.nio.ByteBuffer;
 
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.TransactionInput;
-import com.google.bitcoin.core.TransactionOutput;
-import com.google.bitcoin.core.TransactionOutPoint;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.core.ScriptException;
-import com.google.bitcoin.core.Address;
-import com.google.bitcoin.script.Script;
-import com.google.bitcoin.script.ScriptChunk;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptChunk;
 
 import java.io.FileInputStream;
 import java.util.Scanner;

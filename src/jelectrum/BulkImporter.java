@@ -14,9 +14,9 @@ import java.util.Map;
 import java.util.Collection;
 import java.util.AbstractMap.SimpleEntry;
 
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Sha256Hash;
 import com.google.protobuf.ByteString;
 import java.text.DecimalFormat;
 

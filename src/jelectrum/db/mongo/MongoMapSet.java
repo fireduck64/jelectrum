@@ -22,7 +22,7 @@ import com.mongodb.DBObject;
 import com.mongodb.DBCursor;
 import com.mongodb.WriteConcern;
 import com.mongodb.BasicDBObject;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 import jelectrum.db.DBMapSet;
 
 public class MongoMapSet extends DBMapSet

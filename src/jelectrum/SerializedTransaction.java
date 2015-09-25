@@ -1,7 +1,7 @@
 package jelectrum;
 
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.NetworkParameters;
 import java.nio.ByteBuffer;
 
 

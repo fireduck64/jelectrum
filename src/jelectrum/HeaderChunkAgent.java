@@ -2,8 +2,8 @@ package jelectrum;
 
 import org.apache.commons.codec.binary.Hex;
 import java.io.ByteArrayOutputStream;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Sha256Hash;
 
 
 public class HeaderChunkAgent extends Thread
@@ -71,7 +71,7 @@ public class HeaderChunkAgent extends Thread
 
     }
     private void doPass()
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         int h = height;
         for(int i=0; i<h; i+=2016)
@@ -89,11 +89,11 @@ public class HeaderChunkAgent extends Thread
     }
 
     private void checkChunk(int index)
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         {
-            String old = jelly.getDB().getHeaderChunkMap().get(index);
-            if ((old != null) && (old.length() == 2 * 2016 * 80)) return;
+            //String old = jelly.getDB().getHeaderChunkMap().get(index);
+            //if ((old != null) && (old.length() == 2 * 2016 * 80)) return;
         }
 
         jelly.getEventLog().log("Building header chunk " + index);

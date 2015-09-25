@@ -8,10 +8,10 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.text.DecimalFormat;
 
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Block;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Block;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.AbstractMap.SimpleEntry;
 import static jelectrum.db.ObjectConversionMap.ConversionMode.*;

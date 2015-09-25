@@ -16,7 +16,7 @@ import java.util.Random;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.text.DecimalFormat;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 import jelectrum.EventLog;
 import java.util.concurrent.atomic.AtomicInteger;
 

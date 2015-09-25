@@ -13,9 +13,9 @@ import jelectrum.SerializedTransaction;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ByteArrayOutputStream;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.NetworkParameters;
 import org.junit.Assert;
 
 /**
@@ -145,6 +145,8 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
           ObjectInputStream oin = new ObjectInputStream(buff.newInput());
 
           Object o = oin.readObject();
+
+          inner.put(key.toString(), convertV((V)o));
 
           return (V) o;
         }

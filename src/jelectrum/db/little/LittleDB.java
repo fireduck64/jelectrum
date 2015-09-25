@@ -19,10 +19,10 @@ import java.util.Set;
 import java.util.HashSet;
 import com.google.protobuf.ByteString;
 
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.NetworkParameters;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.NetworkParameters;
 
 import jelectrum.db.ObjectConversionMap;
 import static jelectrum.db.ObjectConversionMap.ConversionMode.*;

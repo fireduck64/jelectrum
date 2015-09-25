@@ -1,6 +1,6 @@
 package jelectrum;
 
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
 import java.text.DecimalFormat;
 import java.util.Map;
@@ -75,7 +75,16 @@ public class BlockRepoSaver extends Thread
       Sha256Hash end_hash = jelly.getBlockChainCache().getBlockHashAtHeight(end_block);
       String key = "blockchunk/" +BLOCKS_PER_CHUNK+"/" + start;
 
-      Sha256Hash db_hash = (Sha256Hash) special_object_map.get(key);
+      Sha256Hash db_hash = null;
+      try
+      {
+        db_hash = (Sha256Hash) special_object_map.get(key);
+      }
+      catch(Throwable t)
+      {
+        special_object_map.put(key, end_hash);
+        db_hash = end_hash;
+      }
 
       if ((db_hash == null) || (!db_hash.equals(end_hash)))
       {

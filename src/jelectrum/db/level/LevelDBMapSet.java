@@ -15,7 +15,7 @@ import java.io.ByteArrayInputStream;
 import org.junit.Assert;
 
 import java.nio.ByteBuffer;
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 import jelectrum.db.DBMapSet;
 import com.google.protobuf.ByteString;
 

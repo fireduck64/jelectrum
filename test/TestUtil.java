@@ -1,7 +1,7 @@
 
 import java.util.Random;
 
-import com.google.bitcoin.core.Sha256Hash;
+import org.bitcoinj.core.Sha256Hash;
 
 import org.junit.Test;
 import com.google.protobuf.ByteString;

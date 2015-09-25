@@ -11,15 +11,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.google.bitcoin.core.Sha256Hash;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.StoredBlock;
-import com.google.bitcoin.core.Address;
-import com.google.bitcoin.core.TransactionInput;
-import com.google.bitcoin.core.TransactionOutput;
-import com.google.bitcoin.core.TransactionOutPoint;
-import com.google.bitcoin.core.Block;
-import com.google.bitcoin.core.AddressFormatException;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.StoredBlock;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.AddressFormatException;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -53,7 +53,7 @@ public class ElectrumNotifier
 
     }
     public void start()
-        throws com.google.bitcoin.store.BlockStoreException
+        throws org.bitcoinj.store.BlockStoreException
     {
         chain_head = jelly.getBlockStore().getChainHead();
 
