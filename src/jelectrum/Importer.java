@@ -501,6 +501,9 @@ public class Importer
 
         //System.out.println("Block " + hash + " " + Util.measureSerialization(new SerializedBlock(block)));
 
+        ctx.setStatus("DB_COMMIT");
+        file_db.commit();
+
         ctx.setStatus("BLOCK_SAVE");
         file_db.getBlockMap().put(hash, new SerializedBlock(block));
 

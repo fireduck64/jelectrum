@@ -12,7 +12,7 @@ import jelectrum.TimeRecord;
 
 import org.junit.Assert;
 
-public class LongMappedBuffer
+public class LongMappedBuffer implements LongFile
 {
   public static final long MAP_SIZE = Integer.MAX_VALUE;
   private ArrayList<MappedByteBuffer> map_list;

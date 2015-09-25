@@ -2,9 +2,11 @@ package jelectrum;
 
 import com.google.bitcoin.core.Sha256Hash;
 
+import java.text.DecimalFormat;
 import java.util.Map;
 import jelectrum.proto.Blockrepo;
 import com.google.protobuf.ByteString;
+import org.json.JSONObject;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -46,6 +48,7 @@ public class BlockRepoSaver extends Thread
       try
       {
         doUploadRun();
+        saveFeeEstimates();
 
       }
       catch(Throwable t)
@@ -63,6 +66,8 @@ public class BlockRepoSaver extends Thread
   {
     int head_height = jelly.getElectrumNotifier().getHeadHeight();
     Map<String, Object> special_object_map = jelly.getDB().getSpecialObjectMap();
+
+    int last_saved=-1;
 
     for(int start=0; start+BLOCKS_PER_CHUNK<=head_height; start+=BLOCKS_PER_CHUNK)
     {
@@ -97,20 +102,55 @@ public class BlockRepoSaver extends Thread
         ByteString bytes = pack.toByteString();
         ByteString c_data = ByteString.copyFrom(lobstack.ZUtil.compress(bytes.toByteArray()));
 
-        saveFile(key, c_data);
+        saveFile(key, c_data, 86400*7);
 
         special_object_map.put(key, end_hash);
         jelly.getEventLog().log("BlockRepoSaver"+BLOCKS_PER_CHUNK+" done chunk: " + start + " to " + end_block + " - " + bytes.size() + " / " + c_data.size());
-
+        last_saved=end_block;
       }
     }
 
+    if (last_saved > 0)
+    {
+      String data_str="" + last_saved;
+      saveFile("blockchunk/" +BLOCKS_PER_CHUNK+"/max", ByteString.copyFromUtf8(data_str), 300);
+    }
+
+
   }
 
-  private void saveFile(String key, ByteString data)
+  private void saveFeeEstimates()
+    throws java.io.IOException, org.json.JSONException
+  {
+
+    JSONObject obj = new JSONObject();
+    obj.put("updated", System.currentTimeMillis());
+
+
+    JSONObject fees = new JSONObject();
+
+    for(int i=1; i<120; i++)
+    {
+      double fee=jelly.getBitcoinRPC().getFeeEstimate(i);
+
+
+      fees.put("" + i, fee);
+
+    }
+    obj.put("fees", fees);
+
+
+    saveFile("fee_estimates", ByteString.copyFromUtf8(obj.toString(2) +"\n"), 300);
+
+
+
+  }
+
+
+  private void saveFile(String key, ByteString data, int cache_seconds)
   {
     ObjectMetadata omd = new ObjectMetadata();
-    omd.setCacheControl("max-age=86400");
+    omd.setCacheControl("max-age=" + cache_seconds);
     omd.setContentLength(data.size());
 
 

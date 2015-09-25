@@ -16,7 +16,7 @@ import jelectrum.TimeRecord;
 
 public class Bloomtime
 {
-  private LongMappedBuffer long_map;
+  private LongFile long_map;
   private int bloom_len;
   private int slices;
   private int hash_count;
@@ -39,7 +39,8 @@ public class Bloomtime
     
     long map_len = ((long)slices) * ((long)bloom_len) / 8L;
 
-    long_map = new LongMappedBuffer(f, map_len);
+    //long_map = new LongMappedBuffer(f, map_len);
+    long_map = new LongRandomFile(f, map_len);
   }
 
   /**
