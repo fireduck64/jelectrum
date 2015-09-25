@@ -39,9 +39,9 @@ import java.io.FileOutputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
-import java.sql.*;
 import java.text.DecimalFormat;
 import java.util.Random;
+import org.junit.Assert;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -538,33 +538,66 @@ public class UtxoTrieMgr
             }
             catch(ScriptException e)
             { 
-              if (script == null) return null;
-
-              //org.bitcoinj.core.Utils.sha256hash160 
-              List<ScriptChunk> chunks = script.getChunks();
-              /*System.out.println("STRANGE: " + out.getParentTransaction().getHash() + " - has strange chunks " + chunks.size());
-              for(int i =0; i<chunks.size(); i++)
-              {
-                System.out.print("Chunk " + i + " ");
-                System.out.print(Hex.encodeHex(chunks.get(i).data)); 
-                System.out.println(" " + getOpCodeName(chunks.get(i).data[0]));
-              }*/
-
-              //Remember, java bytes are signed because hate
-              if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
-              if ((chunks.get(0).data.length == 1) && (chunks.get(0).data[0] == OP_DUP))
-              if ((chunks.get(1).data.length == 1) && ((int)(chunks.get(1).data[0] & 0xFF) == OP_HASH160))
-              if ((chunks.get(3).data.length == 1) && ((int)(chunks.get(3).data[0] & 0xFF) == OP_EQUALVERIFY))
-              if ((chunks.get(4).data.length == 1) && ((int)(chunks.get(4).data[0] & 0xFF) == OP_CHECKSIG))
-              if ((chunks.get(5).data.length == 1) && (chunks.get(5).data[0] == OP_NOP))
-              {
-
-
-                public_key = chunks.get(2).data;
-              }
-            }
+              public_key = figureOutStrange(script, out, params);
+           }
 
       return public_key; 
+    }
+
+    public static byte[] figureOutStrange(Script script, TransactionOutput out, NetworkParameters params)
+    {
+      if (script == null) return null;
+
+      //org.bitcoinj.core.Utils.sha256hash160 
+      List<ScriptChunk> chunks = script.getChunks();
+      /*System.out.println("STRANGE: " + out.getParentTransaction().getHash() + " - has strange chunks " + chunks.size());
+      for(int i =0; i<chunks.size(); i++)
+      {
+        System.out.print("Chunk " + i + " ");
+        System.out.print(Hex.encodeHex(chunks.get(i).data)); 
+        System.out.println(" " + getOpCodeName(chunks.get(i).data[0]));
+      }*/
+
+      //Remember, java bytes are signed because hate
+      //System.out.println(out);
+      //System.out.println(script);
+      if (chunks.size() == 6)
+      {
+        if (chunks.get(0).equalsOpCode(OP_DUP))
+        if (chunks.get(1).equalsOpCode(OP_HASH160))
+        if (chunks.get(3).equalsOpCode(OP_EQUALVERIFY))
+        if (chunks.get(4).equalsOpCode(OP_CHECKSIG))
+        if (chunks.get(5).equalsOpCode(OP_NOP))
+        if (chunks.get(2).isPushData())
+        if (chunks.get(2).data.length == 20)
+        {
+          return chunks.get(2).data;
+        }
+
+      }
+      
+      /*if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
+      {
+        for(int i=0; i<6; i++)
+        {
+          if (chunks.get(i) == null) return null;
+          if (chunks.get(i).data == null) return null;
+          if (i != 2)
+          {
+            if (chunks.get(i).data.length != 1) return null;
+          }
+        }
+        if (chunks.get(0).data[0] == OP_DUP)
+        if ((int)(chunks.get(1).data[0] & 0xFF) == OP_HASH160)
+        if ((int)(chunks.get(3).data[0] & 0xFF) == OP_EQUALVERIFY)
+        if ((int)(chunks.get(4).data[0] & 0xFF) == OP_CHECKSIG)
+        if (chunks.get(5).data[0] == OP_NOP)
+        {
+          return chunks.get(2).data;
+        }
+      }*/
+      return null;
+
     }
 
     public String getKeyForOutput(TransactionOutput out, int idx)
@@ -889,6 +922,7 @@ public class UtxoTrieMgr
     int block_number = Integer.parseInt(args[1]);
     
     Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(block_number);
+    System.out.println("Block hash: " + block_hash);
     Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
     System.out.println("Inspecting " + block_number + " - " + block_hash);
 

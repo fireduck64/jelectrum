@@ -92,8 +92,8 @@ public class HeaderChunkAgent extends Thread
         throws org.bitcoinj.store.BlockStoreException
     {
         {
-            //String old = jelly.getDB().getHeaderChunkMap().get(index);
-            //if ((old != null) && (old.length() == 2 * 2016 * 80)) return;
+          String old = jelly.getDB().getHeaderChunkMap().get(index);
+          if ((old != null) && (old.length() == 2 * 2016 * 80)) return;
         }
 
         jelly.getEventLog().log("Building header chunk " + index);
