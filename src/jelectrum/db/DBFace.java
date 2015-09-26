@@ -20,6 +20,7 @@ import jelectrum.SerializedTransaction;
 import jelectrum.SerializedBlock;
 import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
+import jelectrum.BlockChainCache;
 
 
 public interface DBFace
@@ -60,5 +61,6 @@ public interface DBFace
     public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx);
 
     public void commit();
+    public void setBlockChainCache(BlockChainCache block_chain_cache);
 
 }

@@ -29,7 +29,7 @@ public class BulkImporter
 
   //At 1mb per block, and 100 blocks per chunk, it is 100mb
   //per queue pack.  So memory can fill up fast.
-  private static final int MAX_QUEUE=8;
+  private static final int MAX_QUEUE=3;
 
   private LinkedBlockingQueue<Blockrepo.BitcoinBlockPack> pack_queue;
 
@@ -51,6 +51,8 @@ public class BulkImporter
     bitcoind_height = jelly.getBitcoinRPC().getBlockHeight();
     
     pack_queue = new LinkedBlockingQueue<>(MAX_QUEUE);
+
+    start_height=200000;
 
 
     int pack_count = getPackList().size();

@@ -23,6 +23,8 @@ import org.bitcoinj.core.AddressFormatException;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
+import org.junit.Assert;
+
 /**
  * Why is the logic of preparing results for clients
  * mixed between here and StratumConnection?  This needs to be refactored.
@@ -168,6 +170,8 @@ public class ElectrumNotifier
     }
     public void notifyNewTransaction(Transaction tx, Collection<String> addresses, int height)
     {
+      Assert.assertNotNull(tx);
+      Assert.assertNotNull(addresses);
         synchronized(address_sums)
         {
             for(String s : addresses)

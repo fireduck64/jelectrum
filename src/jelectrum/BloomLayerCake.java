@@ -94,7 +94,7 @@ public class BloomLayerCake
           int in_high = me.getValue();
           int in_slice_low = layers.get(l).mapBlockHeightToSlice(in_low);
           int in_slice_high = layers.get(l).mapBlockHeightToSlice(in_high);
-          System.out.println("At layer " + l + " checking " + in_low + " to " + in_high);
+          //System.out.println("At layer " + l + " checking " + in_low + " to " + in_high);
           Set<Integer> slices = layers.get(l).bloomtime.getMatchingSlices(data, in_slice_low, in_slice_high);
           for(int slice : slices)
           {

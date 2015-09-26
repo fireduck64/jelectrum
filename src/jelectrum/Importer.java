@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.HashMap;
 import jelectrum.db.DBFace;
 
+import org.junit.Assert;
+
 public class Importer
 {
     private LinkedBlockingQueue<Block> block_queue;
@@ -440,7 +442,7 @@ public class Importer
 
 
         LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
-        TreeMap<Sha256Hash, Collection<String>> addr_map = new TreeMap<>();
+        HashMap<Sha256Hash, Collection<String>> addr_map = new HashMap<>();
         Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
         Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
         Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
@@ -455,6 +457,8 @@ public class Importer
         {
           imported_transactions.incrementAndGet();
           Collection<String> addrs = tx_util.getAllAddresses(tx, true, block_tx_map);
+          Assert.assertNotNull(addrs);
+          //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
           addr_map.put(tx.getHash(), addrs);
 
           for(String addr : addrs)
@@ -484,10 +488,15 @@ public class Importer
 
         }
 
+        Assert.assertEquals(block.getTransactions().size(), addr_map.size());
+
         ctx.setStatus("TX_NOTIFY");
         for(Transaction tx : block.getTransactions())
         {
           Collection<String> addrs = addr_map.get(tx.getHash());
+          
+          //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
+          Assert.assertNotNull(addrs);
           jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
         }
 

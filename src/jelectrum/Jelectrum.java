@@ -86,7 +86,7 @@ public class Jelectrum
         }
         else if (db_type.equals("little"))
         {
-          jelectrum_db = new jelectrum.db.little.LittleDB(config, event_log, bitcoin_rpc);
+          jelectrum_db = new jelectrum.db.little.LittleDB(config, event_log, network_params);
         }
         else if (db_type.equals("memory"))
         {
@@ -114,6 +114,8 @@ public class Jelectrum
         block_chain_cache = BlockChainCache.load(this);
 
         header_chunk_agent = new HeaderChunkAgent(this);
+
+        jelectrum_db.setBlockChainCache(block_chain_cache);
 
 
 

@@ -22,6 +22,7 @@ import jelectrum.SerializedBlock;
 import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
 import jelectrum.Util;
+import jelectrum.BlockChainCache;
 
 
 public abstract class DB implements DBFace
@@ -38,6 +39,7 @@ public abstract class DB implements DBFace
     protected DBMapSet address_to_tx_map;
     protected DBMapSet tx_to_block_map;
     protected NetworkParameters network_params;
+    protected BlockChainCache block_chain_cache;
 
     public DB(Config conf)
     {
@@ -145,5 +147,11 @@ public abstract class DB implements DBFace
     {
       return getTransactionMap().get(hash);
     }
+
+    public void setBlockChainCache(BlockChainCache block_chain_cache)
+    {
+      this.block_chain_cache = block_chain_cache;
+    }
+
 
 }

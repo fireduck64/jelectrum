@@ -33,7 +33,7 @@ public class TXUtil
   {
     if (transaction_cache == null)
     {
-      transaction_cache = new LRUCache<Sha256Hash, Transaction>(32000);
+      transaction_cache = new LRUCache<Sha256Hash, Transaction>(64000);
     }
     transaction_cache.put(tx.getHash(), tx);
 

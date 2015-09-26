@@ -11,6 +11,7 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.NetworkParameters;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.HashMap;
 
 import org.junit.Assert;
 
@@ -103,7 +104,7 @@ public class MapBlockStore implements BlockStore
     public void putAll(List<Block> blks)
         throws org.bitcoinj.store.BlockStoreException
     {
-      TreeMap<Sha256Hash, StoredBlock> insert_map = new TreeMap<>();
+      HashMap<Sha256Hash, StoredBlock> insert_map = new HashMap<>();
 
       StoredBlock last = null;
 

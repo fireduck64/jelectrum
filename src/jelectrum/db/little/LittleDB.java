@@ -13,10 +13,13 @@ import jelectrum.SerializedTransaction;
 import jelectrum.BitcoinRPC;
 import jelectrum.TXUtil;
 import jelectrum.TimeRecord;
+import jelectrum.BlockChainCache;
+import jelectrum.SerializedBlock;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.HashMap;
 import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.Block;
@@ -33,15 +36,19 @@ import org.apache.commons.codec.binary.Hex;
 public class LittleDB extends MongoDB
 {
   private BloomLayerCake cake;
-  private BitcoinRPC bitcoin_rpc;
   private TXUtil tx_util;
+  private NetworkParameters network_parameters;
 
-  public LittleDB(Config conf, EventLog log, BitcoinRPC bitcoin_rpc)
+  private HashMap<Sha256Hash, Transaction> import_tx_cache;
+
+  public LittleDB(Config conf, EventLog log, NetworkParameters network_parameters)
     throws Exception
   {
     super(conf);
 
-    this.bitcoin_rpc = bitcoin_rpc;
+    this.network_parameters = network_parameters;
+
+    import_tx_cache = new HashMap<>();
 
     tx_util = new TXUtil(this, network_params);
 
@@ -55,7 +62,6 @@ public class LittleDB extends MongoDB
 
     cake = new BloomLayerCake(cake_dir, 750000);
 
-    //block_map = new ObjectConversionMap<>(EXISTENCE, openMap("block_map"));
     tx_map = null;
 
     if (conf.getBoolean("utxo_disable"))
@@ -72,6 +78,11 @@ public class LittleDB extends MongoDB
   @Override
   public void addBlockThings(int height, Block b)
   { 
+    System.out.println("Add block: " + height);
+    for(Transaction tx : b.getTransactions())
+    { 
+      import_tx_cache.put(tx.getHash(), tx);
+    }
     HashSet<String> addresses = new HashSet<String>();
     for(Transaction tx : b.getTransactions())
     { 
@@ -92,6 +103,7 @@ public class LittleDB extends MongoDB
   public void commit()
   {
     cake.flush();
+    import_tx_cache.clear();
   }
 
 
@@ -101,33 +113,72 @@ public class LittleDB extends MongoDB
   @Override
   public Set<Sha256Hash> getAddressToTxSet(String address)
   {
-    return new HashSet<Sha256Hash>();
+    Set<Integer> heights = cake.getBlockHeightsForAddress(address);
+    Set<Sha256Hash> blocks = new HashSet<Sha256Hash>();
+
+    for(int height : heights)
+    {
+      Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
+      if (b != null)
+      {
+        blocks.add(b);
+      }
+    }
+
+    return blocks;
+
 
   }
 
   @Override
   public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
   {
-    return new HashSet<Sha256Hash>();
+    Set<Integer> heights = cake.getBlockHeightsForAddress(tx.toString());
+    Set<Sha256Hash> blocks = new HashSet<Sha256Hash>();
+
+    for(int height : heights)
+    {
+      Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
+      if (b != null)
+      {
+        blocks.add(b);
+      }
+    }
+
+    return blocks;
 
   }
 
   @Override
   public SerializedTransaction getTransaction(Sha256Hash hash)
   {
-    try
+    if (import_tx_cache.containsKey(hash))
     {
-      long t1 = System.nanoTime();
-      String tx_hex = bitcoin_rpc.getTransaction(hash);
-      TimeRecord.record(t1, "rpc_get_tx");
-      if (tx_hex == null) return null;
+      return new SerializedTransaction(import_tx_cache.get(hash));
+    }
+    long t1=System.nanoTime();
+    Set<Sha256Hash> block_list = getTxToBlockMap(hash);
 
-      return new SerializedTransaction( Hex.decodeHex(tx_hex.toCharArray()));
-    }
-    catch(Exception e)
+    for(Sha256Hash block_hash : block_list)
     {
-      throw new RuntimeException(e);
+      SerializedBlock sb = getBlockMap().get(block_hash);
+      if (sb != null)
+      {
+        Block b = sb.getBlock(network_parameters);
+
+        for(Transaction tx : b.getTransactions())
+        {
+          if (tx.getHash().equals(hash))
+          {
+            TimeRecord.record(t1, "get_tx_found");
+            return new SerializedTransaction(tx);
+          }
+        }
+
+      }
     }
+    TimeRecord.record(t1, "get_tx_not_found");
+    return null;
 
   }
 
