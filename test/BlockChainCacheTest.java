@@ -41,7 +41,7 @@ public class BlockChainCacheTest
         Assert.assertTrue(jelly.getBlockChainCache().isBlockInMainChain(block_750));
 
         byte[] data = head.getHeader().bitcoinSerialize();
-        Assert.assertEquals(80, data.length);
+        Assert.assertEquals(81, data.length);
  
 
     }

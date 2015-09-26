@@ -110,14 +110,9 @@ public class HeaderChunkAgent extends Thread
                   System.out.println("unable to find hash for height: " + h);
                 }
                 StoredBlock blk = jelly.getBlockStore().get(hash);
-                try
-                {
-                    b_out.write(blk.getHeader().bitcoinSerialize());
-                }
-                catch(java.io.IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
+                byte[] b = blk.getHeader().bitcoinSerialize();
+
+                b_out.write(b,0,80);
             }
 
         }
