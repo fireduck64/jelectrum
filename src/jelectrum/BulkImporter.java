@@ -52,8 +52,6 @@ public class BulkImporter
     
     pack_queue = new LinkedBlockingQueue<>(MAX_QUEUE);
 
-    start_height=200000;
-
 
     int pack_count = getPackList().size();
 
