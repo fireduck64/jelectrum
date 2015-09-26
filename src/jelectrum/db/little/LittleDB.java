@@ -78,7 +78,6 @@ public class LittleDB extends MongoDB
   @Override
   public void addBlockThings(int height, Block b)
   { 
-    System.out.println("Add block: " + height);
     for(Transaction tx : b.getTransactions())
     { 
       import_tx_cache.put(tx.getHash(), tx);

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Collection;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Scanner;
 
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Transaction;
@@ -48,7 +49,7 @@ public class BulkImporter
 
     start_height = jelly.getBlockStore().getChainHead().getHeight() + 1;
 
-    bitcoind_height = jelly.getBitcoinRPC().getBlockHeight();
+    bitcoind_height = getMaxHeight();
     
     pack_queue = new LinkedBlockingQueue<>(MAX_QUEUE);
 
@@ -123,6 +124,19 @@ public class BulkImporter
       }
       try{Thread.sleep(10000);}catch(Throwable t){}
     }
+
+  }
+  
+  private int getMaxHeight()
+    throws Exception
+  {
+    String url = "https://ds73ipzb70zbz.cloudfront.net/blockchunk/"+BLOCKS_PER_CHUNK+"/max";
+    URL u = new URL(url);
+    Scanner scan = new Scanner(u.openStream());
+    
+    int h = scan.nextInt();
+    scan.close();
+    return h;
 
   }
 
