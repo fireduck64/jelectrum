@@ -37,6 +37,8 @@ public class BulkImporter
   int start_height;
   int bitcoind_height;
 
+  double blocks_per_second_running_average=1.0;
+
   public BulkImporter(Jelectrum jelly)
     throws Exception
   {
@@ -99,18 +101,26 @@ public class BulkImporter
       try
       {
         long tx_count = importPackThrows(pack);
+
+        double blocks_to_go = bitcoind_height - pack.getStartHeight() - BLOCKS_PER_CHUNK;
         
         long t2 = System.nanoTime();
         double sec = (t2 - t1) / 1e9;
         double qsec = (queue_wait_time) / 1e9;
         double blks_sec = BLOCKS_PER_CHUNK / (sec + qsec);
         double txs_sec = tx_count / (sec + qsec);
+
+        blocks_per_second_running_average = blocks_per_second_running_average * 0.95 + blks_sec * 0.05;
+
+        double estimate_end_hours = (blocks_to_go / blocks_per_second_running_average) / 3600.0;
         DecimalFormat df = new DecimalFormat("0.000");
+        DecimalFormat df1 = new DecimalFormat("0.0");
         jelly.getEventLog().alarm("Imported pack " + pack.getStartHeight() 
           + " - seconds (" + df.format(sec) + " processing) "
           +"(" + df.format(qsec) + " download wait) "
           +"(" + df.format(blks_sec) + " B/s) "
-          +"(" + df.format(txs_sec) + " Objs/s)"
+          +"(" + df.format(txs_sec) + " Objs/s) "
+          +"(" + df1.format(estimate_end_hours) + " hours left)"
           );
         System.gc();
 
@@ -185,12 +195,12 @@ public class BulkImporter
       }
 
 
-      jelly.getEventLog().alarm("TX Save... " + txs_map.size());
+      //jelly.getEventLog().alarm("TX Save... " + txs_map.size());
       //This way the transactions will be availible if needed
       jelly.getDB().getTransactionMap().putAll(txs_map);
 
       
-      jelly.getEventLog().alarm("Get Addresses...");
+      //jelly.getEventLog().alarm("Get Addresses...");
       for(Transaction tx : tx_map.values())
       {
         Collection<String> addrs = tx_util.getAllAddresses(tx, true, tx_map);
@@ -201,21 +211,21 @@ public class BulkImporter
       }
 
       
-      jelly.getEventLog().alarm("Save addresses... " + addrTxLst.size());
+      //jelly.getEventLog().alarm("Save addresses... " + addrTxLst.size());
       // Add transaction mappings
       jelly.getDB().addAddressesToTxMap(addrTxLst);
-      jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
+      //jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
       jelly.getDB().addTxsToBlockMap(blockTxLst);
 
       
       //Save block headers
-      jelly.getEventLog().alarm("Save headers...");
+      //jelly.getEventLog().alarm("Save headers...");
       jelly.getBlockStore().putAll(ordered_block_list);
 
       
 
       //Save blocks themselves
-      jelly.getEventLog().alarm("Save blocks...");
+      //jelly.getEventLog().alarm("Save blocks...");
       jelly.getDB().getBlockMap().putAll(block_map);
 
 
@@ -253,16 +263,16 @@ public class BulkImporter
 
       //Save block headers
       t1 = System.nanoTime();
-      jelly.getEventLog().alarm("Save headers...");
+      //jelly.getEventLog().alarm("Save headers...");
       jelly.getBlockStore().putAll(ordered_block_list);
       time_rec.addTime(System.nanoTime() - t1, "save_headers");
       
-      jelly.getEventLog().alarm("Doing commit...");
+      //jelly.getEventLog().alarm("Doing commit...");
       jelly.getDB().commit();
 
       //Save blocks themselves
       t1 = System.nanoTime();
-      jelly.getEventLog().alarm("Save blocks...");
+      //jelly.getEventLog().alarm("Save blocks...");
       jelly.getDB().getBlockMap().putAll(block_map);
       time_rec.addTime(System.nanoTime() - t1, "save_blocks");
 
@@ -270,7 +280,7 @@ public class BulkImporter
       jelly.getUtxoTrieMgr().start();
       jelly.getUtxoTrieMgr().notifyBlock(false);
 
-      time_rec.printReport(System.out);
+      //time_rec.printReport(System.out);
 
       return tx_count;
     }
