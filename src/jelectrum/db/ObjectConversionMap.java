@@ -107,61 +107,13 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
     }
     if (mode==ConversionMode.UTXONODE)
     {
-      long ver = buff.asReadOnlyByteBuffer().getLong();
-      if (ver==UtxoTrieNode.serialVersionUID)
-      {
-        return (V) new UtxoTrieNode(buff);
-      }
-      try
-      {
-        ObjectInputStream oin = new ObjectInputStream(buff.newInput());
-        Object o = oin.readObject();
-        return (V) o;
-      }
-      catch(java.io.IOException e)
-      {
-        System.out.println("Exception reading key: " + key);
-        throw new RuntimeException(e);
-      }
-      catch(ClassNotFoundException e)
-      {
-        throw new RuntimeException(e);
-      }
-
+      return (V) new UtxoTrieNode(buff);
 
     }
     if (mode==ConversionMode.STOREDBLOCK)
     {
-      if (buff.size() == StoredBlock.COMPACT_SERIALIZED_SIZE)
-      {
-        ByteBuffer ba = ByteBuffer.wrap(buff.toByteArray());
-        return (V) StoredBlock.deserializeCompact(params, ba);
-      }
-      else
-      {
-
-        try
-        {
-          ObjectInputStream oin = new ObjectInputStream(buff.newInput());
-
-          Object o = oin.readObject();
-
-          inner.put(key.toString(), convertV((V)o));
-
-          return (V) o;
-        }
-        catch(java.io.IOException e)
-        {
-          System.out.println("Exception reading key: " + key);
-          throw new RuntimeException(e);
-        }
-        catch(ClassNotFoundException e)
-        {
-          throw new RuntimeException(e);
-        }
-
-
-      }
+      ByteBuffer ba = ByteBuffer.wrap(buff.toByteArray());
+      return (V) StoredBlock.deserializeCompact(params, ba);
     }
     if (mode==ConversionMode.EXISTENCE)
     {
