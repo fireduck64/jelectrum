@@ -540,8 +540,10 @@ public class Importer
         {
             jelly.getEventLog().alarm("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
         }
-        jelly.getEventLog().log("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
-
+        else
+        {
+          jelly.getEventLog().log("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
+        }
         imported_blocks.incrementAndGet();
 
 

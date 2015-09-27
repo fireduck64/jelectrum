@@ -58,7 +58,6 @@ public class BlockRepoSaver extends Thread
       }
       try{ sleep(600000); } catch(Throwable t){}
     }
-    
 
   }
 
@@ -125,7 +124,6 @@ public class BlockRepoSaver extends Thread
       saveFile("blockchunk/" +BLOCKS_PER_CHUNK+"/max", ByteString.copyFromUtf8(data_str), 300);
     }
 
-
   }
 
   private void saveFeeEstimates()
@@ -148,13 +146,8 @@ public class BlockRepoSaver extends Thread
     }
     obj.put("fees", fees);
 
-
-    saveFile("fee_estimates", ByteString.copyFromUtf8(obj.toString(2) +"\n"), 300);
-
-
-
+    saveFile("fee_estimates", ByteString.copyFromUtf8(obj.toString(2) +"\n"), 30);
   }
-
 
   private void saveFile(String key, ByteString data, int cache_seconds)
   {
@@ -168,9 +161,7 @@ public class BlockRepoSaver extends Thread
     put.setStorageClass(com.amazonaws.services.s3.model.StorageClass.StandardInfrequentAccess.toString());
 
     s3.putObject(put);
-        
 
   }
-
 
 }
