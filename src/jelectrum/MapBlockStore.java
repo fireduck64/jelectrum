@@ -89,6 +89,7 @@ public class MapBlockStore implements BlockStore
                 curr = curr.getPrev(this);
             }
         }
+        setChainHead(curr);
         System.out.println(curr.getHeader().getHash().toString() + " - " + curr.getHeight() + " stepback " + stepback);
         return curr;
     }

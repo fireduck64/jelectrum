@@ -36,6 +36,8 @@ public class ZUtil
     byte[] buff = new byte[r];
     System.arraycopy(b, 0, buff, 0, r);
 
+    def.reset();
+
     return buff;
   }
 
@@ -63,6 +65,7 @@ public class ZUtil
         b_out.write(buff,0,r);
 
       }
+      inf.reset();
 
       return b_out.toByteArray();
     }

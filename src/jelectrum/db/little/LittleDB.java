@@ -81,7 +81,7 @@ public class LittleDB extends LevelDB
   @Override
   public void addBlockThings(int height, Block b)
   { 
-    //System.out.println("Adding block " + height + " " + b.getHash());
+    System.out.println("Adding block " + height + " " + b.getHash());
     for(Transaction tx : b.getTransactions())
     { 
       import_tx_cache.put(tx.getHash(), tx);
@@ -156,6 +156,7 @@ public class LittleDB extends LevelDB
     {
       //System.out.println("Height: " + height);
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
+      //if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
       if (b != null)
       {
         Assert.assertNotNull(b);
@@ -189,6 +190,7 @@ public class LittleDB extends LevelDB
     }
     long t1=System.nanoTime();
     Set<Sha256Hash> block_list = getTxToBlockMap(hash);
+    //System.out.println("Get tx: " + hash + " - blocks: " + block_list);
 
     for(Sha256Hash block_hash : block_list)
     {

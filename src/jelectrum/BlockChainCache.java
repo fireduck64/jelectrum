@@ -56,6 +56,8 @@ public class BlockChainCache implements java.io.Serializable
     public void update(Jelectrum jelly, StoredBlock new_head)
         throws org.bitcoinj.store.BlockStoreException
     {
+      System.out.println("chain update, new head: " + new_head.getHeader().getHash() + " - " + new_head.getHeight());
+
         if (new_head.getHeader().getHash().equals(head)) return;
 
         Sha256Hash genesis_hash = jelly.getNetworkParameters().getGenesisBlock().getHash();

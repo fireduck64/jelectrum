@@ -54,6 +54,7 @@ public class BulkImporter
     bitcoind_height = getMaxHeight();
     
     pack_queue = new LinkedBlockingQueue<>(MAX_QUEUE);
+    //start_height = 367775;
 
 
     int pack_count = getPackList().size();
@@ -130,7 +131,6 @@ public class BulkImporter
           +"(" + df.format(txs_sec) + " Objs/s) "
           +"(" + df1.format(estimate_end_hours) + " hours left)"
           );
-        System.gc();
 
         return;
       }
@@ -288,7 +288,7 @@ public class BulkImporter
       jelly.getUtxoTrieMgr().start();
       jelly.getUtxoTrieMgr().notifyBlock(false);
 
-      //time_rec.printReport(System.out);
+      time_rec.printReport(System.out);
 
       return tx_count;
     }

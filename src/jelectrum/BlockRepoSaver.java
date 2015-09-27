@@ -75,15 +75,7 @@ public class BlockRepoSaver extends Thread
       String key = "blockchunk/" +BLOCKS_PER_CHUNK+"/" + start;
 
       Sha256Hash db_hash = null;
-      try
-      {
-        db_hash = (Sha256Hash) special_object_map.get(key);
-      }
-      catch(Throwable t)
-      {
-        special_object_map.put(key, end_hash);
-        db_hash = end_hash;
-      }
+      db_hash = (Sha256Hash) special_object_map.get(key);
 
       if ((db_hash == null) || (!db_hash.equals(end_hash)))
       {
