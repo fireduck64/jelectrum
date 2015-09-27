@@ -5,6 +5,8 @@ import java.io.ByteArrayOutputStream;
 import com.google.bitcoin.core.StoredBlock;
 import com.google.bitcoin.core.Sha256Hash;
 
+import java.util.HashSet;
+
 
 public class HeaderChunkAgent extends Thread
 {
@@ -88,9 +90,12 @@ public class HeaderChunkAgent extends Thread
 
     }
 
+    private HashSet<Integer> done_chunks=new HashSet<Integer>();
+
     private void checkChunk(int index)
         throws com.google.bitcoin.store.BlockStoreException
     {
+        if (done_chunks.contains(index))
         {
             String old = jelly.getDB().getHeaderChunkMap().get(index);
             if ((old != null) && (old.length() == 2 * 2016 * 80)) return;
@@ -126,6 +131,7 @@ public class HeaderChunkAgent extends Thread
         String chunk = new String(Hex.encodeHex(buff));
         
         jelly.getDB().getHeaderChunkMap().put(index, chunk);
+        done_chunks.add(index);
 
     }
 

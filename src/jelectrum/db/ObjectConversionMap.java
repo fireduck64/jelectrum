@@ -145,6 +145,8 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
           ObjectInputStream oin = new ObjectInputStream(buff.newInput());
 
           Object o = oin.readObject();
+          System.out.println("Rewriting key: " + key);
+          inner.put(key.toString(), convertV((V)o));
 
           return (V) o;
         }
