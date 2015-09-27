@@ -302,10 +302,15 @@ void* handle_connection(void* arg)
 
 int main(int argc, char* argv[])
 {
-  if (argc != 2)
+  if ((argc < 2) || (argc > 3))
   {
-    cout << "Params: ./levelnet path_level_db" << endl;
+    cout << "Params: ./levelnet path_level_db [port]" << endl;
     return -1;
+  }
+  short port = 8844;
+  if (argc==3)
+  {
+    port = atoi(argv[2]);
   }
 
   cout << "LevelDB version " << leveldb::kMajorVersion << "." << leveldb::kMinorVersion << endl;
@@ -329,7 +334,7 @@ int main(int argc, char* argv[])
   bzero((char *) &serv_addr, sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr.s_addr = INADDR_ANY;
-  serv_addr.sin_port = htons(8844);
+  serv_addr.sin_port = htons(port);
   if (bind(sockfd, (struct sockaddr *) &serv_addr,
     sizeof(serv_addr)) < 0) 
     error("ERROR on binding");

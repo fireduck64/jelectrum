@@ -58,11 +58,14 @@ public class LongRandomFile implements LongFile
       random_file.seek(data_pos);
       random_file.readFully(b);
       BitSet bs = BitSet.valueOf(b);
-      bs.set(bit_in_byte);
-      b = bs.toByteArray();
+      if (!bs.get(bit_in_byte))
+      {
+        bs.set(bit_in_byte);
+        b = bs.toByteArray();
 
-      random_file.seek(data_pos);
-      random_file.write(b);
+        random_file.seek(data_pos);
+        random_file.write(b);
+      }
 
 
       TimeRecord.record(t1, "long_file_set_bit");

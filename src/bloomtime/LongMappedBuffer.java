@@ -108,10 +108,13 @@ public class LongMappedBuffer implements LongFile
     b[0]=map.get(file_offset);
 
     BitSet bs = BitSet.valueOf(b);
-    bs.set(bit_in_byte);
-    b = bs.toByteArray();
+    if (!bs.get(bit_in_byte))
+    {
+      bs.set(bit_in_byte);
+      b = bs.toByteArray();
 
-    map.put(file_offset, b[0]);
+      map.put(file_offset, b[0]);
+    }
 
     TimeRecord.record(t1, "long_map_set_bit");
   }
