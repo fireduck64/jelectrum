@@ -113,18 +113,28 @@ public class LittleDB extends MongoDB
   public Set<Sha256Hash> getAddressToTxSet(String address)
   {
     Set<Integer> heights = cake.getBlockHeightsForAddress(address);
-    Set<Sha256Hash> blocks = new HashSet<Sha256Hash>();
+    Set<Sha256Hash> out_list = new HashSet<Sha256Hash>();
 
     for(int height : heights)
     {
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      if (b != null)
+      SerializedBlock sb = getBlockMap().get(b);
+      if (sb != null)
       {
-        blocks.add(b);
+        Block blk = sb.getBlock(network_parameters);
+        for(Transaction btx : blk.getTransactions())
+        {
+          HashSet<String> addrs = tx_util.getAllAddresses(btx, true,null);
+          if (addrs.contains(address))
+          {
+            out_list.add(btx.getHash());
+          }
+
+        }
       }
     }
 
-    return blocks;
+    return out_list;
 
 
   }
@@ -138,9 +148,18 @@ public class LittleDB extends MongoDB
     for(int height : heights)
     {
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      if (b != null)
+      SerializedBlock sb = getBlockMap().get(b);
+      if (sb != null)
       {
-        blocks.add(b);
+        Block blk = sb.getBlock(network_parameters);
+        for(Transaction btx : blk.getTransactions())
+        {
+          if (btx.getHash().equals(tx))
+          {
+            blocks.add(b);
+          }
+
+        }
       }
     }
 

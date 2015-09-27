@@ -37,7 +37,7 @@ public class BulkImporter
   int start_height;
   int bitcoind_height;
 
-  double blocks_per_second_running_average=1.0;
+  double blocks_per_second_running_average=0.0;
 
   public BulkImporter(Jelectrum jelly)
     throws Exception
@@ -70,6 +70,14 @@ public class BulkImporter
       long t2 = System.nanoTime();
       importPack(pack, t2 - t1);
       System.gc();
+
+      /**
+       * We don't have a running peer group yet, but that doesn't stop bitcoinj
+       * from creating a confidence table and filling it with bullshit.
+       * So clear it after each pack and we should be ok.
+       */
+      org.bitcoinj.core.Context.getOrCreate(jelly.getNetworkParameters()).getConfidenceTable().cleanTable();
+      
     }
 
   }

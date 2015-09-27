@@ -39,8 +39,16 @@ public class Bloomtime
     
     long map_len = ((long)slices) * ((long)bloom_len) / 8L;
 
-    //long_map = new LongMappedBuffer(f, map_len);
-    long_map = new LongRandomFile(f, map_len);
+    try
+    {
+      long_map = new LongMappedBuffer(f, map_len);
+    }
+    catch(Throwable t)
+    {
+      System.out.println("Memory map failed, switching to file mode");
+      System.gc();
+      long_map = new LongRandomFile(f, map_len);
+    }
   }
 
   /**

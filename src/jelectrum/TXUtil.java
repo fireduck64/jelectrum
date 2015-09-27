@@ -95,7 +95,7 @@ public class TXUtil
 
     }
 
-    public Collection<String> getAllAddresses(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
+    public HashSet<String> getAllAddresses(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {   
         HashSet<String> lst = new HashSet<String>();
         boolean detail = false;
