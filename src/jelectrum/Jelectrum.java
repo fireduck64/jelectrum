@@ -20,7 +20,6 @@ public class Jelectrum
     public static void main(String args[]) throws Exception
     {
         new Jelectrum(new Config(args[0])).start();
-
     }
 
     private Config config;
@@ -61,8 +60,11 @@ public class Jelectrum
         //jelectrum_db = new JelectrumDBDirect(config);
         //jelectrum_db = new JelectrumDBCloudData(config);
 
-        bitcoin_rpc = new BitcoinRPC(config);
-        bitcoin_rpc.testConnection();
+        if (config.getBoolean("bitcoind_enable"))
+        {
+          bitcoin_rpc = new BitcoinRPC(config);
+          bitcoin_rpc.testConnection();
+        }
 
         if (db_type.equals("mongo"))
         {
@@ -183,7 +185,7 @@ public class Jelectrum
         }
 
 
-        while(bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight())
+        while(peer_group.getMostCommonChainHeight() > notifier.getHeadHeight())
         {
             Thread.sleep(5000);
         }
@@ -210,7 +212,7 @@ public class Jelectrum
 
         while(true)
         {
-            if (bitcoin_rpc.getBlockHeight() > notifier.getHeadHeight()+3)
+            if (peer_group.getMostCommonChainHeight() > notifier.getHeadHeight()+3)
             {
                 event_log.alarm("We are far behind.  Aborting.");
                 System.exit(1);

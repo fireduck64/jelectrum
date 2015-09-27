@@ -4,6 +4,7 @@ import jelectrum.db.DB;
 import jelectrum.db.DBMap;
 import jelectrum.db.DBMapSet;
 import jelectrum.db.mongo.MongoDB;
+import jelectrum.db.level.LevelDB;
 
 import slopbucket.Slopbucket;
 import jelectrum.Config;
@@ -33,7 +34,9 @@ import static jelectrum.db.ObjectConversionMap.ConversionMode.*;
 import jelectrum.db.slopbucket.SlopbucketMap;
 import org.apache.commons.codec.binary.Hex;
 
-public class LittleDB extends MongoDB
+import org.junit.Assert;
+
+public class LittleDB extends LevelDB
 {
   private BloomLayerCake cake;
   private TXUtil tx_util;
@@ -44,7 +47,7 @@ public class LittleDB extends MongoDB
   public LittleDB(Config conf, EventLog log, NetworkParameters network_parameters)
     throws Exception
   {
-    super(conf);
+    super(log, conf);
 
     this.network_parameters = network_parameters;
 
@@ -78,6 +81,7 @@ public class LittleDB extends MongoDB
   @Override
   public void addBlockThings(int height, Block b)
   { 
+    //System.out.println("Adding block " + height + " " + b.getHash());
     for(Transaction tx : b.getTransactions())
     { 
       import_tx_cache.put(tx.getHash(), tx);
@@ -118,18 +122,21 @@ public class LittleDB extends MongoDB
     for(int height : heights)
     {
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      SerializedBlock sb = getBlockMap().get(b);
-      if (sb != null)
+      if (b != null)
       {
-        Block blk = sb.getBlock(network_parameters);
-        for(Transaction btx : blk.getTransactions())
+        SerializedBlock sb = getBlockMap().get(b);
+        if (sb != null)
         {
-          HashSet<String> addrs = tx_util.getAllAddresses(btx, true,null);
-          if (addrs.contains(address))
+          Block blk = sb.getBlock(network_parameters);
+          for(Transaction btx : blk.getTransactions())
           {
-            out_list.add(btx.getHash());
-          }
+            HashSet<String> addrs = tx_util.getAllAddresses(btx, true,null);
+            if (addrs.contains(address))
+            {
+              out_list.add(btx.getHash());
+            }
 
+          }
         }
       }
     }
@@ -147,18 +154,23 @@ public class LittleDB extends MongoDB
 
     for(int height : heights)
     {
+      //System.out.println("Height: " + height);
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      SerializedBlock sb = getBlockMap().get(b);
-      if (sb != null)
+      if (b != null)
       {
-        Block blk = sb.getBlock(network_parameters);
-        for(Transaction btx : blk.getTransactions())
+        Assert.assertNotNull(b);
+        SerializedBlock sb = getBlockMap().get(b);
+        if (sb != null)
         {
-          if (btx.getHash().equals(tx))
+          Block blk = sb.getBlock(network_parameters);
+          for(Transaction btx : blk.getTransactions())
           {
-            blocks.add(b);
-          }
+            if (btx.getHash().equals(tx))
+            {
+              blocks.add(b);
+            }
 
+          }
         }
       }
     }
@@ -170,6 +182,7 @@ public class LittleDB extends MongoDB
   @Override
   public SerializedTransaction getTransaction(Sha256Hash hash)
   {
+    //System.out.println("Looking up tx: " + hash);
     if (import_tx_cache.containsKey(hash))
     {
       return new SerializedTransaction(import_tx_cache.get(hash));

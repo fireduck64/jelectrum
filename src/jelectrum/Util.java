@@ -15,10 +15,14 @@ import java.util.Collection;
 import java.util.ArrayList;
 import org.json.JSONObject;
 import org.json.JSONArray;
-
+import java.util.Scanner;
+import java.util.TreeMap;
+import java.util.Map;
+import java.net.URL;
 
 public class Util
 {
+  public static final long FEE_MAP_UPDATE_TIME=300000L; //5min
 
     public static String getHexString(byte[] data)
     {
@@ -271,6 +275,52 @@ public class Util
       network_params = TestNet3Params.get();
     }
     return network_params;
+
+  }
+
+
+  private static Map<Integer, Double> last_fee_map;
+  private static long last_fee_map_time;
+
+  public static Map<Integer, Double> getFeeEstimateMap()
+  {
+    updateFeeMap();
+    return last_fee_map;
+
+  }
+  private synchronized static void updateFeeMap()
+  {
+    try
+    {
+      if (last_fee_map_time + FEE_MAP_UPDATE_TIME < System.currentTimeMillis())
+      {
+        URL url = new URL("https://ds73ipzb70zbz.cloudfront.net/fee_estimates");
+        Scanner scan = new Scanner(url.openStream());
+        StringBuilder sb = new StringBuilder();
+        while(scan.hasNextLine())
+        {
+          String line = scan.nextLine();
+          sb.append(line);
+        }
+        scan.close();
+        JSONObject obj = new JSONObject(sb.toString());
+        JSONObject fees = obj.getJSONObject("fees");
+
+        TreeMap<Integer, Double> map = new TreeMap<>();
+
+        for(int i=1; i<120; i++)
+        {
+          double v = fees.getDouble("" + i);
+          map.put(i, v);
+        }
+        last_fee_map = map;
+        last_fee_map_time = System.currentTimeMillis();
+      }
+    }
+    catch(Throwable t)
+    {
+      System.out.println("Error getting fee estimates: " + t);
+    }
 
   }
 }

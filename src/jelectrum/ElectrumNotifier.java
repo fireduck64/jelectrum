@@ -356,8 +356,6 @@ public class ElectrumNotifier
         {   
             throw new RuntimeException(e);
         }
-
-
     }
     public void sendUnspent(StratumConnection conn, Object request_id, String address)
       throws AddressFormatException

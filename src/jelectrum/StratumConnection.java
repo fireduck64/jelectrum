@@ -418,8 +418,14 @@ public class StratumConnection
                 byte[] tx_data = new Hex().decode(hex.getBytes());
                 Transaction tx = new Transaction(jelectrum.getNetworkParameters(), tx_data);
 
-                //jelectrum.getPeerGroup().broadcastTransaction(tx);
-                JSONObject res = jelectrum.getBitcoinRPC().submitTransaction(hex);
+                jelectrum.getPeerGroup().broadcastTransaction(tx);
+
+                if (jelectrum.getBitcoinRPC()!=null)
+                {
+                  jelectrum.getBitcoinRPC().submitTransaction(hex);
+                }
+
+                
 
 
                 JSONObject reply = new JSONObject();
@@ -472,7 +478,17 @@ public class StratumConnection
                 JSONArray arr = msg.getJSONArray("params");
                 int block = arr.getInt(0);
 
-                reply.put("result", jelectrum.getBitcoinRPC().getFeeEstimate(block));
+                double fee = -1;
+                if (jelectrum.getBitcoinRPC() != null)
+                {
+                  fee = jelectrum.getBitcoinRPC().getFeeEstimate(block);
+                }
+                else
+                {
+                  fee = Util.getFeeEstimateMap().get(block);
+                }
+
+                reply.put("result", fee);
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }

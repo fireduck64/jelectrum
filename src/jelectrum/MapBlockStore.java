@@ -134,7 +134,7 @@ public class MapBlockStore implements BlockStore
 
       file_db.getBlockStoreMap().putAll(insert_map);
 
-      if (last != null) saveChainHead(last);
+      if (last != null) setChainHead(last);
 
     }
 
@@ -168,7 +168,7 @@ public class MapBlockStore implements BlockStore
     }
 
 
-    private void saveChainHead(StoredBlock block)
+    /*private void saveChainHead(StoredBlock block)
         throws org.bitcoinj.store.BlockStoreException
     {
       Sha256Hash hash = block.getHeader().getHash();
@@ -178,7 +178,7 @@ public class MapBlockStore implements BlockStore
         {
             jelly.getBlockChainCache().update(jelly, block);
         }
-    }
+    }*/
 
 
    
