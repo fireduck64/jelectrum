@@ -364,6 +364,7 @@ public class Importer
     }
     public void putInternal(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
     {
+      if (!file_db.needsDetails()) return;
 
         if (block_hash == null)
         {
@@ -392,7 +393,7 @@ public class Importer
         }
 
         ctx.setStatus("TX_NOTIFY");
-        jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
+        jelly.getElectrumNotifier().notifyNewTransaction(addrs, h);
         ctx.setStatus("TX_DONE");
 
     }
@@ -440,41 +441,41 @@ public class Importer
         ctx.setStatus("BLOCK_ADD_THINGS");
         file_db.addBlockThings(h, block);
 
-
-        LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
-        HashMap<Sha256Hash, Collection<String>> addr_map = new HashMap<>();
-        Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
-        Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
-        Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
-
-        for(Transaction tx : block.getTransactions())
-        {
-          block_tx_map.put(tx.getHash(), tx);
-        }
-
-        ctx.setStatus("BLOCK_GET_ADDRESSES");
-        for(Transaction tx : block.getTransactions())
-        {
-          imported_transactions.incrementAndGet();
-          Collection<String> addrs = tx_util.getAllAddresses(tx, true, block_tx_map);
-          Assert.assertNotNull(addrs);
-          //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
-          addr_map.put(tx.getHash(), addrs);
-
-          for(String addr : addrs)
-          {
-            addrTxLst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
-          }
-
-          txs_map.put(tx.getHash(), new SerializedTransaction(tx));
-
-          tx_list.add(tx.getHash());
-          size++;
-        }
-
-
         if (file_db.needsDetails())
         {
+
+          LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
+          HashMap<Sha256Hash, Collection<String>> addr_map = new HashMap<>();
+          Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
+          Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
+          Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
+
+          for(Transaction tx : block.getTransactions())
+          {
+            block_tx_map.put(tx.getHash(), tx);
+          }
+
+          ctx.setStatus("BLOCK_GET_ADDRESSES");
+          for(Transaction tx : block.getTransactions())
+          {
+            imported_transactions.incrementAndGet();
+            Collection<String> addrs = tx_util.getAllAddresses(tx, true, block_tx_map);
+            Assert.assertNotNull(addrs);
+            //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
+            addr_map.put(tx.getHash(), addrs);
+
+            for(String addr : addrs)
+            {
+              addrTxLst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
+            }
+
+            txs_map.put(tx.getHash(), new SerializedTransaction(tx));
+
+            tx_list.add(tx.getHash());
+            size++;
+          }
+
+
 
 
           ctx.setStatus("TX_SAVEALL");
@@ -485,19 +486,28 @@ public class Importer
 
           ctx.setStatus("ADDR_SAVEALL");
           file_db.addAddressesToTxMap(addrTxLst);
+          Assert.assertEquals(block.getTransactions().size(), addr_map.size());
+          ctx.setStatus("TX_NOTIFY");
+
+          HashSet<String> all_addrs = new HashSet<String>();
+          for(Transaction tx : block.getTransactions())
+          {
+            Collection<String> addrs = addr_map.get(tx.getHash());
+
+            all_addrs.addAll(addrs);
+            
+            //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
+            Assert.assertNotNull(addrs);
+          }
+          jelly.getElectrumNotifier().notifyNewTransaction(all_addrs, h);
+
+
 
         }
-
-        Assert.assertEquals(block.getTransactions().size(), addr_map.size());
-
-        ctx.setStatus("TX_NOTIFY");
-        for(Transaction tx : block.getTransactions())
+        else
         {
-          Collection<String> addrs = addr_map.get(tx.getHash());
-          
-          //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
-          Assert.assertNotNull(addrs);
-          jelly.getElectrumNotifier().notifyNewTransaction(tx, addrs, h);
+          BlockSummary bs = file_db.getBlockSummaryMap().get(hash);
+          jelly.getElectrumNotifier().notifyNewTransaction(bs.getAllAddresses(), h);
         }
 
 
@@ -524,10 +534,10 @@ public class Importer
         }
 
         
-        jelly.getUtxoTrieMgr().notifyBlock(wait_for_utxo);
+        jelly.getUtxoTrieMgr().notifyBlock(wait_for_utxo, hash);
         if (wait_for_utxo)
         {
-          jelly.getEventLog().alarm("UTXO root hash: " + jelly.getUtxoTrieMgr().getRootHash());
+          jelly.getEventLog().alarm("UTXO root hash: " + jelly.getUtxoTrieMgr().getRootHash(hash));
         }
         jelly.getElectrumNotifier().notifyNewBlock(block);
 

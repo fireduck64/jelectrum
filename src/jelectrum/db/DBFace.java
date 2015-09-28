@@ -21,6 +21,8 @@ import jelectrum.SerializedBlock;
 import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
 import jelectrum.BlockChainCache;
+import jelectrum.TransactionSummary;
+import jelectrum.BlockSummary;
 
 
 public interface DBFace
@@ -34,12 +36,14 @@ public interface DBFace
     public Map<String, Object> getSpecialObjectMap();
     public Map<Integer, String> getHeaderChunkMap();
     public Map<String, UtxoTrieNode> getUtxoTrieMap();
+    public Map<Sha256Hash, BlockSummary> getBlockSummaryMap();
 
     public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash);
     public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst);
     public Set<Sha256Hash> getAddressToTxSet(String address);
 
     public SerializedTransaction getTransaction(Sha256Hash hash);
+    public TransactionSummary getTransactionSummary(Sha256Hash hash);
 
 
     /**

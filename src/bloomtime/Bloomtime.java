@@ -61,7 +61,7 @@ public class Bloomtime
    * on fast SSD.  Probably more on worse things. Or nothing.  Maybe 
    * it does nothing.
    */
-  public void accumulateBits(int slice, ByteString data)
+  public synchronized void accumulateBits(int slice, ByteString data)
   {
     long t1 = System.nanoTime();
     Set<Integer> hashes = getHashIndexes(data);
@@ -75,7 +75,7 @@ public class Bloomtime
     }
     TimeRecord.record(t1, "bloom_accumulatebits");
   }
-  public void flushBits()
+  public synchronized void flushBits()
   {
     long t1 = System.nanoTime();
     for(long x : bits_to_set)
@@ -86,7 +86,7 @@ public class Bloomtime
     TimeRecord.record(t1, "bloom_flush");
   }
 
-  public void saveEntry(int slice, ByteString data)
+  public synchronized void saveEntry(int slice, ByteString data)
   {
     long t1 = System.nanoTime();
     Set<Integer> hashes = getHashIndexes(data);

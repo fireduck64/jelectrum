@@ -18,7 +18,7 @@ public class BlockChainCache implements java.io.Serializable
     private transient Object update_lock=new Object();
 
     public static final int HEIGHT_BUCKETS=8;
-    public static final int UPDATES_BEFORE_SAVE=100;
+    public static final int UPDATES_BEFORE_SAVE=5;
     private transient int updates = 0;
     
 
@@ -27,7 +27,6 @@ public class BlockChainCache implements java.io.Serializable
         height_map = new HashMap<Integer, Sha256Hash>(500000, 0.75f);
         main_chain = new HashSet<Sha256Hash>(500000, 0.75f);
         head=null;
-
     }
     public BlockChainCache(ArrayList<HashMap<Integer, Sha256Hash> > lst)
     {
@@ -56,7 +55,7 @@ public class BlockChainCache implements java.io.Serializable
     public void update(Jelectrum jelly, StoredBlock new_head)
         throws org.bitcoinj.store.BlockStoreException
     {
-      System.out.println("chain update, new head: " + new_head.getHeader().getHash() + " - " + new_head.getHeight());
+        System.out.println("chain update, new head: " + new_head.getHeader().getHash() + " - " + new_head.getHeight());
 
         if (new_head.getHeader().getHash().equals(head)) return;
 

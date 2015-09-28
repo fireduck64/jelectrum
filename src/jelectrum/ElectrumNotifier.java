@@ -168,9 +168,8 @@ public class ElectrumNotifier
         }
         
     }
-    public void notifyNewTransaction(Transaction tx, Collection<String> addresses, int height)
+    public void notifyNewTransaction(Collection<String> addresses, int height)
     {
-      Assert.assertNotNull(tx);
       Assert.assertNotNull(addresses);
         synchronized(address_sums)
         {
@@ -289,14 +288,14 @@ public class ElectrumNotifier
         throws org.json.JSONException
     {
         Block header = blk.getHeader();
-                block_data.put("nonce", header.getNonce());
-                block_data.put("prev_block_hash", header.getPrevBlockHash().toString());
-                block_data.put("timestamp", header.getTimeSeconds());
-                block_data.put("merkle_root", header.getMerkleRoot().toString());
-                block_data.put("block_height", blk.getHeight());
-                block_data.put("version",header.getVersion());
-                block_data.put("bits", header.getDifficultyTarget());
-                block_data.put("utxo_root", jelly.getUtxoTrieMgr().getRootHash());
+        block_data.put("nonce", header.getNonce());
+        block_data.put("prev_block_hash", header.getPrevBlockHash().toString());
+        block_data.put("timestamp", header.getTimeSeconds());
+        block_data.put("merkle_root", header.getMerkleRoot().toString());
+        block_data.put("block_height", blk.getHeight());
+        block_data.put("version",header.getVersion());
+        block_data.put("bits", header.getDifficultyTarget());
+        block_data.put("utxo_root", jelly.getUtxoTrieMgr().getRootHash(header.getHash()));
 
 
 

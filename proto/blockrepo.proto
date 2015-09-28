@@ -1,3 +1,6 @@
+
+syntax = "proto2";
+
 package jelectrum.proto;
 
 option java_package="jelectrum.proto";
@@ -16,7 +19,5 @@ message BitcoinBlockPack
   required int32 start_height = 2;
   repeated BitcoinBlock blocks = 3;
 }
-
-
 
 

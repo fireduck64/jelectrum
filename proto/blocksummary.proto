@@ -1,0 +1,34 @@
+syntax = "proto2";
+
+package jelectrum.proto;
+
+option java_package="jelectrum.proto";
+
+message BitcoinBlockSummary
+{
+  required string block_hash = 1;
+  repeated TransactionSummary tx = 2;
+}
+
+message TransactionSummary
+{
+  required string tx_hash = 1;
+  repeated string involved_address = 2;
+  repeated TransactionInSummary in = 3;
+  repeated TransactionOutSummary out = 4;
+}
+message TransactionInSummary
+{
+  required int32 index = 1;
+  required bool is_coinbase = 2 [ default = false ];
+  required string tx_out_hash = 3;
+  required int32 tx_out_index = 4;
+  
+}
+message TransactionOutSummary
+{
+  required int32 index = 1;
+  required string to_address = 2;
+  required int64 value = 3;
+}
+

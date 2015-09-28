@@ -16,6 +16,8 @@ import jelectrum.TXUtil;
 import jelectrum.TimeRecord;
 import jelectrum.BlockChainCache;
 import jelectrum.SerializedBlock;
+import jelectrum.TransactionSummary;
+import jelectrum.BlockSummary;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Set;
@@ -42,7 +44,7 @@ public class LittleDB extends LevelDB
   private TXUtil tx_util;
   private NetworkParameters network_parameters;
 
-  private HashMap<Sha256Hash, Transaction> import_tx_cache;
+  private HashMap<Sha256Hash, TransactionSummary> import_tx_summary_cache;
 
   public LittleDB(Config conf, EventLog log, NetworkParameters network_parameters)
     throws Exception
@@ -51,7 +53,7 @@ public class LittleDB extends LevelDB
 
     this.network_parameters = network_parameters;
 
-    import_tx_cache = new HashMap<>();
+    import_tx_summary_cache = new HashMap<>();
 
     tx_util = new TXUtil(this, network_params);
 
@@ -81,32 +83,26 @@ public class LittleDB extends LevelDB
   @Override
   public void addBlockThings(int height, Block b)
   { 
-    System.out.println("Adding block " + height + " " + b.getHash());
-    for(Transaction tx : b.getTransactions())
-    { 
-      import_tx_cache.put(tx.getHash(), tx);
-    }
-    HashSet<String> addresses = new HashSet<String>();
-    for(Transaction tx : b.getTransactions())
-    { 
-      long t1=System.nanoTime();
-      addresses.addAll(tx_util.getAllAddresses(tx, true, null));
-      TimeRecord.record(t1, "get_all_addresses");
+    //System.out.println("Adding block " + height + " " + b.getHash());
 
-      addresses.add(tx.getHash().toString());
-    }
+    BlockSummary block_summary = new BlockSummary(height, b, tx_util, import_tx_summary_cache);
 
+    getBlockSummaryMap().put(b.getHash(), block_summary);
+    
     long t1=System.nanoTime();
-    cake.addAddresses(height, addresses);
+    cake.addAddresses(height, block_summary.getAllAddresses());
     TimeRecord.record(t1, "cake_add_addresses");
 
   }
 
   @Override
-  public void commit()
+  public synchronized void commit()
   {
     cake.flush();
-    import_tx_cache.clear();
+    synchronized(import_tx_summary_cache)
+    {
+      import_tx_summary_cache.clear();
+    }
   }
 
 
@@ -124,20 +120,9 @@ public class LittleDB extends LevelDB
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
       if (b != null)
       {
-        SerializedBlock sb = getBlockMap().get(b);
-        if (sb != null)
-        {
-          Block blk = sb.getBlock(network_parameters);
-          for(Transaction btx : blk.getTransactions())
-          {
-            HashSet<String> addrs = tx_util.getAllAddresses(btx, true,null);
-            if (addrs.contains(address))
-            {
-              out_list.add(btx.getHash());
-            }
+          BlockSummary bs = getBlockSummaryMap().get(b);
 
-          }
-        }
+          out_list.addAll(bs.getMatchingTransactions(address));
       }
     }
 
@@ -149,6 +134,7 @@ public class LittleDB extends LevelDB
   @Override
   public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
   {
+    long t1=System.nanoTime();
     Set<Integer> heights = cake.getBlockHeightsForAddress(tx.toString());
     Set<Sha256Hash> blocks = new HashSet<Sha256Hash>();
 
@@ -156,38 +142,60 @@ public class LittleDB extends LevelDB
     {
       //System.out.println("Height: " + height);
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      //if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
+      if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
       if (b != null)
       {
         Assert.assertNotNull(b);
-        SerializedBlock sb = getBlockMap().get(b);
-        if (sb != null)
-        {
-          Block blk = sb.getBlock(network_parameters);
-          for(Transaction btx : blk.getTransactions())
-          {
-            if (btx.getHash().equals(tx))
-            {
-              blocks.add(b);
-            }
 
-          }
-        }
+        BlockSummary bs = getBlockSummaryMap().get(b);
+        TransactionSummary ts = bs.getTxMap().get(tx);
+        if (ts != null) blocks.add(b);
+
       }
     }
+    TimeRecord.record(t1, "db_get_tx_to_block_map");
+    
 
     return blocks;
 
   }
 
   @Override
-  public SerializedTransaction getTransaction(Sha256Hash hash)
+  public TransactionSummary getTransactionSummary(Sha256Hash hash)
   {
     //System.out.println("Looking up tx: " + hash);
-    if (import_tx_cache.containsKey(hash))
+    long t1=System.nanoTime();
+    synchronized(import_tx_summary_cache)
     {
-      return new SerializedTransaction(import_tx_cache.get(hash));
+      if (import_tx_summary_cache.containsKey(hash))
+      {
+        TimeRecord.record(t1, "db_get_txsummary_cached");
+        return import_tx_summary_cache.get(hash);
+      }
     }
+    Set<Sha256Hash> block_list = getTxToBlockMap(hash);
+    //System.out.println("Block list: " + block_list);
+
+    for(Sha256Hash block_hash : block_list)
+    {
+      BlockSummary bs = getBlockSummaryMap().get(block_hash);
+      TransactionSummary ts = bs.getTxMap().get(hash);
+
+      TimeRecord.record(t1, "db_get_txsummary_loaded");
+      return ts;
+
+    }
+    TimeRecord.record(t1, "db_get_txsummary_notfound");
+    return null;
+
+  }
+
+
+
+  @Override
+  public SerializedTransaction getTransaction(Sha256Hash hash)
+  {
+    System.out.println("Looking up tx: " + hash);
     long t1=System.nanoTime();
     Set<Sha256Hash> block_list = getTxToBlockMap(hash);
     //System.out.println("Get tx: " + hash + " - blocks: " + block_list);
@@ -203,14 +211,14 @@ public class LittleDB extends LevelDB
         {
           if (tx.getHash().equals(hash))
           {
-            TimeRecord.record(t1, "get_tx_found");
+            TimeRecord.record(t1, "db_get_tx_found");
             return new SerializedTransaction(tx);
           }
         }
 
       }
     }
-    TimeRecord.record(t1, "get_tx_not_found");
+    TimeRecord.record(t1, "db_get_tx_not_found");
     return null;
 
   }

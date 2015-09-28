@@ -183,6 +183,7 @@ public class BulkImporter
 
         jelly.getDB().addBlockThings(bblk.getHeight(), blk);      
 
+
         block_map.put(block_hash, sblk);
         ordered_block_list.add(blk);
 
@@ -236,10 +237,8 @@ public class BulkImporter
       //jelly.getEventLog().alarm("Save blocks...");
       jelly.getDB().getBlockMap().putAll(block_map);
 
-
-
       jelly.getUtxoTrieMgr().start();
-      jelly.getUtxoTrieMgr().notifyBlock(false);
+      jelly.getUtxoTrieMgr().notifyBlock(false,null);
 
       return tx_map.size() + block_map.size() + ordered_block_list.size() + blockTxLst.size() + addrTxLst.size();
     }
@@ -266,6 +265,9 @@ public class BulkImporter
         block_map.put(block_hash, sblk);
         ordered_block_list.add(blk);
 
+        //BlockSummary summary = new BlockSummary(bblk.getHeight(), blk, tx_util);
+        //jelly.getDB().getBlockSummaryMap().put(block_hash, summary); 
+
         tx_count += blk.getTransactions().size();
       }
 
@@ -286,7 +288,7 @@ public class BulkImporter
 
 
       jelly.getUtxoTrieMgr().start();
-      jelly.getUtxoTrieMgr().notifyBlock(false);
+      jelly.getUtxoTrieMgr().notifyBlock(false,null);
 
       time_rec.printReport(System.out);
 

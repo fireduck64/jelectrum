@@ -22,6 +22,9 @@ import jelectrum.SerializedBlock;
 import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
 import jelectrum.Util;
+import jelectrum.TXUtil;
+import jelectrum.TransactionSummary;
+import jelectrum.BlockSummary;
 import jelectrum.BlockChainCache;
 
 
@@ -36,16 +39,19 @@ public abstract class DB implements DBFace
     protected Map<String, Object> special_object_map;
     protected Map<Integer, String> header_chunk_map;
     protected Map<String, UtxoTrieNode> utxo_trie_map;
+    protected Map<Sha256Hash, BlockSummary> block_summary_map;
     protected DBMapSet address_to_tx_map;
     protected DBMapSet tx_to_block_map;
     protected NetworkParameters network_params;
     protected BlockChainCache block_chain_cache;
+    protected TXUtil tx_util;
 
     public DB(Config conf)
     {
       this.conf = conf;
 
       network_params = Util.getNetworkParameters(conf);
+      tx_util = new TXUtil(this, network_params);
     }
 
     public void compact()
@@ -69,11 +75,13 @@ public abstract class DB implements DBFace
         special_object_map = new ObjectConversionMap<>(OBJECT, openMap("special_object_map"));
         header_chunk_map = new ObjectConversionMap<>(STRING, openMap("header_chunk_map"));
         utxo_trie_map = new ObjectConversionMap<>(UTXONODE, openMap("utxo_trie_map"));
+        block_summary_map = new ObjectConversionMap<>(OBJECT, openMap("block_summary_map"));
 
         address_to_tx_map = openMapSet("address_to_tx_map");
         tx_to_block_map = openMapSet("tx_to_block_map");
 
     }
+    public TXUtil getTXUtil(){return tx_util;}
 
     protected abstract DBMap openMap(String name) throws Exception;
     protected abstract DBMapSet openMapSet(String name) throws Exception;
@@ -88,6 +96,7 @@ public abstract class DB implements DBFace
     public Map<String, Object> getSpecialObjectMap() { return special_object_map; }
     public Map<Integer, String> getHeaderChunkMap() {return header_chunk_map; }
     public Map<String, UtxoTrieNode> getUtxoTrieMap() { return utxo_trie_map; } 
+    public Map<Sha256Hash, BlockSummary> getBlockSummaryMap() { return block_summary_map; }
 
     public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash)
     {
@@ -146,6 +155,11 @@ public abstract class DB implements DBFace
     public SerializedTransaction getTransaction(Sha256Hash hash)
     {
       return getTransactionMap().get(hash);
+    }
+
+    public TransactionSummary getTransactionSummary(Sha256Hash hash)
+    {
+      return new TransactionSummary(getTransaction(hash).getTx(network_params), tx_util, null);
     }
 
     public void setBlockChainCache(BlockChainCache block_chain_cache)

@@ -81,7 +81,7 @@ public class MapBlockStore implements BlockStore
 
         while((!file_db.getBlockMap().containsKey(curr.getHeader().getHash())) && (curr.getHeight()>=1))
         {   
-            int step_size=250;
+            int step_size=10;
             if (curr.getHeight() < 1000) step_size=1;
             for(int i=0; i<step_size; i++)
             {

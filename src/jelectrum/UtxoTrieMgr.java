@@ -87,6 +87,8 @@ public class UtxoTrieMgr
   protected static PrintStream debug_out;
 
   private boolean enabled=true;
+  private LRUCache<Sha256Hash, Sha256Hash> root_hash_cache = new LRUCache<>(256);
+
 
   public UtxoTrieMgr(Jelectrum jelly)
     throws java.io.FileNotFoundException
@@ -101,11 +103,7 @@ public class UtxoTrieMgr
       return;
     }
 
-
-
     db_map = jelly.getDB().getUtxoTrieMap();
-
-
 
     if (jelly.getConfig().isSet("utxo_reset") && jelly.getConfig().getBoolean("utxo_reset"))
     {
@@ -360,16 +358,31 @@ public class UtxoTrieMgr
   }
 
 
-  public synchronized Sha256Hash getRootHash()
+  public synchronized Sha256Hash getRootHash(Sha256Hash interest_block)
   {
     if (!enabled)
     {
       byte[] b = new byte[32];
       return new Sha256Hash(b);
     }
-    Sha256Hash root = getByKey("").getHash("", this);
-    if (DEBUG) debug_out.println("Root is now: " + root);
-    return root;
+    if (interest_block != null)
+    {
+      synchronized(root_hash_cache)
+      {
+        if (root_hash_cache.containsKey(interest_block))
+        {
+          return root_hash_cache.get(interest_block);
+        }
+      }
+    }
+
+    if ((interest_block == null) || (last_added_block_hash == null) || (interest_block.equals(last_added_block_hash)))
+    {
+      Sha256Hash root = getByKey("").getHash("", this);
+      if (DEBUG) debug_out.println("Root is now: " + root);
+      return root;
+    }
+    return null;
 
   }
   
@@ -439,25 +452,37 @@ public class UtxoTrieMgr
     }
   }
 
-  public void notifyBlock(boolean wait_for_it)
+  public void notifyBlock(boolean wait_for_it, Sha256Hash wait_for_block)
   {
     synchronized(block_notify)
     {
       block_notify.notifyAll();
     }
 
-      if (wait_for_it)
+    if (wait_for_it)
+    {
+      long end_wait = System.currentTimeMillis() + 15000;
+      while(end_wait > System.currentTimeMillis())
       {
-        try
+        long wait_tm = end_wait - System.currentTimeMillis();
+        if (wait_tm > 0)
         {
-          synchronized(block_done_notify)
+          try
           {
-            block_done_notify.wait(15000);
+            synchronized(root_hash_cache)
+            {
+              if (root_hash_cache.containsKey(wait_for_block)) return;
+            }
+            synchronized(block_done_notify)
+            {
+              block_done_notify.wait(wait_tm);
+            }
           }
+          catch(Throwable t){}
         }
-        catch(Throwable t){}
       }
-    
+    }
+  
   }
 
   public static Sha256Hash getHashFromKey(String key)
@@ -723,7 +748,12 @@ public class UtxoTrieMgr
           t2=System.currentTimeMillis();
 
           add_block_stat.addDataPoint(t2-t1);
-          Sha256Hash root_hash = getRootHash();
+          Sha256Hash root_hash = getRootHash(null);
+
+          synchronized(root_hash_cache)
+          {
+            root_hash_cache.put(block_hash, root_hash);
+          }
 
 
           block_height=i;
