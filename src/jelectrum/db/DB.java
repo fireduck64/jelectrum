@@ -38,6 +38,7 @@ public abstract class DB implements DBFace
     protected Map<Sha256Hash, String> block_rescan_map;
     protected Map<String, Object> special_object_map;
     protected Map<Integer, String> header_chunk_map;
+    protected Map<Integer, Sha256Hash> height_map;
     protected Map<String, UtxoTrieNode> utxo_trie_map;
     protected Map<Sha256Hash, BlockSummary> block_summary_map;
     protected DBMapSet address_to_tx_map;
@@ -74,6 +75,7 @@ public abstract class DB implements DBFace
         block_rescan_map = new ObjectConversionMap<>(STRING, openMap("block_rescan_map"));
         special_object_map = new ObjectConversionMap<>(OBJECT, openMap("special_object_map"));
         header_chunk_map = new ObjectConversionMap<>(STRING, openMap("header_chunk_map"));
+        height_map = new ObjectConversionMap<>(SHA256HASH, openMap("height_map"));
         utxo_trie_map = new ObjectConversionMap<>(UTXONODE, openMap("utxo_trie_map"));
         block_summary_map = new ObjectConversionMap<>(OBJECT, openMap("block_summary_map"));
 
@@ -95,6 +97,7 @@ public abstract class DB implements DBFace
     public Map<Sha256Hash, String> getBlockRescanMap() { return block_rescan_map; }
     public Map<String, Object> getSpecialObjectMap() { return special_object_map; }
     public Map<Integer, String> getHeaderChunkMap() {return header_chunk_map; }
+    public Map<Integer, Sha256Hash> getHeightMap() {return height_map; }
     public Map<String, UtxoTrieNode> getUtxoTrieMap() { return utxo_trie_map; } 
     public Map<Sha256Hash, BlockSummary> getBlockSummaryMap() { return block_summary_map; }
 

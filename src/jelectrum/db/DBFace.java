@@ -35,6 +35,7 @@ public interface DBFace
     public Map<Sha256Hash, String> getBlockRescanMap();
     public Map<String, Object> getSpecialObjectMap();
     public Map<Integer, String> getHeaderChunkMap();
+    public Map<Integer, Sha256Hash> getHeightMap();
     public Map<String, UtxoTrieNode> getUtxoTrieMap();
     public Map<Sha256Hash, BlockSummary> getBlockSummaryMap();
 

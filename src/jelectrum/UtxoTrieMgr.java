@@ -382,7 +382,8 @@ public class UtxoTrieMgr
       if (DEBUG) debug_out.println("Root is now: " + root);
       return root;
     }
-    return null;
+    byte[] b = new byte[32];
+    return new Sha256Hash(b);
 
   }
   

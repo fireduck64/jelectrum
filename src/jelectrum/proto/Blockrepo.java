@@ -47,37 +47,29 @@ public final class Blockrepo {
   /**
    * Protobuf type {@code jelectrum.proto.BitcoinBlock}
    */
-  public static final class BitcoinBlock extends
+  public  static final class BitcoinBlock extends
       com.google.protobuf.GeneratedMessage implements
       // @@protoc_insertion_point(message_implements:jelectrum.proto.BitcoinBlock)
       BitcoinBlockOrBuilder {
     // Use BitcoinBlock.newBuilder() to construct.
     private BitcoinBlock(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
-      this.unknownFields = builder.getUnknownFields();
     }
-    private BitcoinBlock(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
-
-    private static final BitcoinBlock defaultInstance;
-    public static BitcoinBlock getDefaultInstance() {
-      return defaultInstance;
+    private BitcoinBlock() {
+      height_ = 0;
+      hash_ = "";
+      blockData_ = com.google.protobuf.ByteString.EMPTY;
     }
 
-    public BitcoinBlock getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-
-    private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-        getUnknownFields() {
+    getUnknownFields() {
       return this.unknownFields;
     }
     private BitcoinBlock(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      initFields();
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+      this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -115,10 +107,11 @@ public final class Blockrepo {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -134,21 +127,6 @@ public final class Blockrepo {
       return jelectrum.proto.Blockrepo.internal_static_jelectrum_proto_BitcoinBlock_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               jelectrum.proto.Blockrepo.BitcoinBlock.class, jelectrum.proto.Blockrepo.BitcoinBlock.Builder.class);
-    }
-
-    public static com.google.protobuf.Parser<BitcoinBlock> PARSER =
-        new com.google.protobuf.AbstractParser<BitcoinBlock>() {
-      public BitcoinBlock parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new BitcoinBlock(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<BitcoinBlock> getParserForType() {
-      return PARSER;
     }
 
     private int bitField0_;
@@ -168,7 +146,7 @@ public final class Blockrepo {
     }
 
     public static final int HASH_FIELD_NUMBER = 2;
-    private java.lang.Object hash_;
+    private volatile java.lang.Object hash_;
     /**
      * <code>required string hash = 2;</code>
      */
@@ -224,11 +202,6 @@ public final class Blockrepo {
       return blockData_;
     }
 
-    private void initFields() {
-      height_ = 0;
-      hash_ = "";
-      blockData_ = com.google.protobuf.ByteString.EMPTY;
-    }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -253,22 +226,20 @@ public final class Blockrepo {
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeInt32(1, height_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getHashBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 2, hash_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeBytes(3, blockData_);
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
@@ -277,25 +248,18 @@ public final class Blockrepo {
           .computeInt32Size(1, height_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getHashBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, hash_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(3, blockData_);
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
 
     private static final long serialVersionUID = 0L;
-    @java.lang.Override
-    protected java.lang.Object writeReplace()
-        throws java.io.ObjectStreamException {
-      return super.writeReplace();
-    }
-
     public static jelectrum.proto.Blockrepo.BitcoinBlock parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -349,12 +313,17 @@ public final class Blockrepo {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(jelectrum.proto.Blockrepo.BitcoinBlock prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(jelectrum.proto.Blockrepo.BitcoinBlock prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -395,10 +364,6 @@ public final class Blockrepo {
         if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
         }
       }
-      private static Builder create() {
-        return new Builder();
-      }
-
       public Builder clear() {
         super.clear();
         height_ = 0;
@@ -408,10 +373,6 @@ public final class Blockrepo {
         blockData_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
         return this;
-      }
-
-      public Builder clone() {
-        return create().mergeFrom(buildPartial());
       }
 
       public com.google.protobuf.Descriptors.Descriptor
@@ -474,21 +435,19 @@ public final class Blockrepo {
         if (other.hasBlockData()) {
           setBlockData(other.getBlockData());
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
 
       public final boolean isInitialized() {
         if (!hasHeight()) {
-          
           return false;
         }
         if (!hasHash()) {
-          
           return false;
         }
         if (!hasBlockData()) {
-          
           return false;
         }
         return true;
@@ -659,12 +618,48 @@ public final class Blockrepo {
       // @@protoc_insertion_point(builder_scope:jelectrum.proto.BitcoinBlock)
     }
 
+    // @@protoc_insertion_point(class_scope:jelectrum.proto.BitcoinBlock)
+    private static final jelectrum.proto.Blockrepo.BitcoinBlock DEFAULT_INSTANCE;
     static {
-      defaultInstance = new BitcoinBlock(true);
-      defaultInstance.initFields();
+      DEFAULT_INSTANCE = new jelectrum.proto.Blockrepo.BitcoinBlock();
     }
 
-    // @@protoc_insertion_point(class_scope:jelectrum.proto.BitcoinBlock)
+    public static jelectrum.proto.Blockrepo.BitcoinBlock getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<BitcoinBlock>
+        PARSER = new com.google.protobuf.AbstractParser<BitcoinBlock>() {
+      public BitcoinBlock parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new BitcoinBlock(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<BitcoinBlock> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<BitcoinBlock> getParserForType() {
+      return PARSER;
+    }
+
+    public jelectrum.proto.Blockrepo.BitcoinBlock getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
   }
 
   public interface BitcoinBlockPackOrBuilder extends
@@ -721,37 +716,29 @@ public final class Blockrepo {
   /**
    * Protobuf type {@code jelectrum.proto.BitcoinBlockPack}
    */
-  public static final class BitcoinBlockPack extends
+  public  static final class BitcoinBlockPack extends
       com.google.protobuf.GeneratedMessage implements
       // @@protoc_insertion_point(message_implements:jelectrum.proto.BitcoinBlockPack)
       BitcoinBlockPackOrBuilder {
     // Use BitcoinBlockPack.newBuilder() to construct.
     private BitcoinBlockPack(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
-      this.unknownFields = builder.getUnknownFields();
     }
-    private BitcoinBlockPack(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
-
-    private static final BitcoinBlockPack defaultInstance;
-    public static BitcoinBlockPack getDefaultInstance() {
-      return defaultInstance;
+    private BitcoinBlockPack() {
+      newHeadHash_ = "";
+      startHeight_ = 0;
+      blocks_ = java.util.Collections.emptyList();
     }
 
-    public BitcoinBlockPack getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-
-    private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-        getUnknownFields() {
+    getUnknownFields() {
       return this.unknownFields;
     }
     private BitcoinBlockPack(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      initFields();
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+      this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -786,16 +773,17 @@ public final class Blockrepo {
                 blocks_ = new java.util.ArrayList<jelectrum.proto.Blockrepo.BitcoinBlock>();
                 mutable_bitField0_ |= 0x00000004;
               }
-              blocks_.add(input.readMessage(jelectrum.proto.Blockrepo.BitcoinBlock.PARSER, extensionRegistry));
+              blocks_.add(input.readMessage(jelectrum.proto.Blockrepo.BitcoinBlock.parser(), extensionRegistry));
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
+        throw new RuntimeException(e.setUnfinishedMessage(this));
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
+        throw new RuntimeException(
+            new com.google.protobuf.InvalidProtocolBufferException(
+                e.getMessage()).setUnfinishedMessage(this));
       } finally {
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
           blocks_ = java.util.Collections.unmodifiableList(blocks_);
@@ -816,24 +804,9 @@ public final class Blockrepo {
               jelectrum.proto.Blockrepo.BitcoinBlockPack.class, jelectrum.proto.Blockrepo.BitcoinBlockPack.Builder.class);
     }
 
-    public static com.google.protobuf.Parser<BitcoinBlockPack> PARSER =
-        new com.google.protobuf.AbstractParser<BitcoinBlockPack>() {
-      public BitcoinBlockPack parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new BitcoinBlockPack(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<BitcoinBlockPack> getParserForType() {
-      return PARSER;
-    }
-
     private int bitField0_;
     public static final int NEW_HEAD_HASH_FIELD_NUMBER = 1;
-    private java.lang.Object newHeadHash_;
+    private volatile java.lang.Object newHeadHash_;
     /**
      * <code>required string new_head_hash = 1;</code>
      */
@@ -924,11 +897,6 @@ public final class Blockrepo {
       return blocks_.get(index);
     }
 
-    private void initFields() {
-      newHeadHash_ = "";
-      startHeight_ = 0;
-      blocks_ = java.util.Collections.emptyList();
-    }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -955,9 +923,8 @@ public final class Blockrepo {
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getNewHeadHashBytes());
+        com.google.protobuf.GeneratedMessage.writeString(output, 1, newHeadHash_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeInt32(2, startHeight_);
@@ -965,18 +932,16 @@ public final class Blockrepo {
       for (int i = 0; i < blocks_.size(); i++) {
         output.writeMessage(3, blocks_.get(i));
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
 
-    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getNewHeadHashBytes());
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, newHeadHash_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -986,18 +951,12 @@ public final class Blockrepo {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, blocks_.get(i));
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
 
     private static final long serialVersionUID = 0L;
-    @java.lang.Override
-    protected java.lang.Object writeReplace()
-        throws java.io.ObjectStreamException {
-      return super.writeReplace();
-    }
-
     public static jelectrum.proto.Blockrepo.BitcoinBlockPack parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1051,12 +1010,17 @@ public final class Blockrepo {
       return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(jelectrum.proto.Blockrepo.BitcoinBlockPack prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(jelectrum.proto.Blockrepo.BitcoinBlockPack prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
@@ -1098,10 +1062,6 @@ public final class Blockrepo {
           getBlocksFieldBuilder();
         }
       }
-      private static Builder create() {
-        return new Builder();
-      }
-
       public Builder clear() {
         super.clear();
         newHeadHash_ = "";
@@ -1115,10 +1075,6 @@ public final class Blockrepo {
           blocksBuilder_.clear();
         }
         return this;
-      }
-
-      public Builder clone() {
-        return create().mergeFrom(buildPartial());
       }
 
       public com.google.protobuf.Descriptors.Descriptor
@@ -1209,22 +1165,20 @@ public final class Blockrepo {
             }
           }
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
 
       public final boolean isInitialized() {
         if (!hasNewHeadHash()) {
-          
           return false;
         }
         if (!hasStartHeight()) {
-          
           return false;
         }
         for (int i = 0; i < getBlocksCount(); i++) {
           if (!getBlocks(i).isInitialized()) {
-            
             return false;
           }
         }
@@ -1601,20 +1555,56 @@ public final class Blockrepo {
       // @@protoc_insertion_point(builder_scope:jelectrum.proto.BitcoinBlockPack)
     }
 
+    // @@protoc_insertion_point(class_scope:jelectrum.proto.BitcoinBlockPack)
+    private static final jelectrum.proto.Blockrepo.BitcoinBlockPack DEFAULT_INSTANCE;
     static {
-      defaultInstance = new BitcoinBlockPack(true);
-      defaultInstance.initFields();
+      DEFAULT_INSTANCE = new jelectrum.proto.Blockrepo.BitcoinBlockPack();
     }
 
-    // @@protoc_insertion_point(class_scope:jelectrum.proto.BitcoinBlockPack)
+    public static jelectrum.proto.Blockrepo.BitcoinBlockPack getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<BitcoinBlockPack>
+        PARSER = new com.google.protobuf.AbstractParser<BitcoinBlockPack>() {
+      public BitcoinBlockPack parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        try {
+          return new BitcoinBlockPack(input, extensionRegistry);
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof
+              com.google.protobuf.InvalidProtocolBufferException) {
+            throw (com.google.protobuf.InvalidProtocolBufferException)
+                e.getCause();
+          }
+          throw e;
+        }
+      }
+    };
+
+    public static com.google.protobuf.Parser<BitcoinBlockPack> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<BitcoinBlockPack> getParserForType() {
+      return PARSER;
+    }
+
+    public jelectrum.proto.Blockrepo.BitcoinBlockPack getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
   }
 
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_jelectrum_proto_BitcoinBlock_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_jelectrum_proto_BitcoinBlock_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_jelectrum_proto_BitcoinBlockPack_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable

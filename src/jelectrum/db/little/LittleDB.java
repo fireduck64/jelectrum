@@ -73,6 +73,33 @@ public class LittleDB extends LevelDB
     {
       utxo_trie_map = null;
     }
+
+    /*{
+      Sha256Hash h = new Sha256Hash("0000000000000000083fb1d19f7b2feb889a49f0dc25a5c60e5783f3cd4a734d");
+      BlockSummary bs = getBlockSummaryMap().get(h);
+
+      jelectrum.proto.Summary.BitcoinBlockSummary sum = bs.getProto();
+
+      System.out.println("Block summary size protobuf: " + sum.toByteString().size());
+
+      byte[] comp = lobstack.ZUtil.compress(sum.toByteString().toByteArray());
+      System.out.println("Compressed protobuf: " + comp.length);
+
+
+      {
+        java.io.ByteArrayOutputStream b_out = new java.io.ByteArrayOutputStream();
+        java.io.ObjectOutputStream o_steam = new java.io.ObjectOutputStream(b_out);
+        o_steam.writeObject(bs);
+
+        byte[] uncom = b_out.toByteArray();//Array();
+        comp = lobstack.ZUtil.compress(uncom);
+        System.out.println("Compressed object: " + comp.length);
+      }
+
+      getBlockSummaryMap().put(h, bs);
+      System.out.println(bs.toString());
+     
+    }*/
   }
 
 
@@ -103,6 +130,7 @@ public class LittleDB extends LevelDB
     {
       import_tx_summary_cache.clear();
     }
+
   }
 
 
@@ -142,7 +170,7 @@ public class LittleDB extends LevelDB
     {
       //System.out.println("Height: " + height);
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
+      //if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
       if (b != null)
       {
         Assert.assertNotNull(b);

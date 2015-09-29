@@ -16,10 +16,11 @@ import org.bitcoinj.core.TransactionOutput;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import jelectrum.proto.Summary;
 
 public class TransactionSummary implements java.io.Serializable
 {
-
+  private static final long serialVersionUID = 933384464831144891L;
   private Sha256Hash tx_hash;
   private TreeMap<Integer, TransactionOutSummary> outs;
   private TreeMap<Integer, TransactionInSummary> ins;
@@ -56,6 +57,54 @@ public class TransactionSummary implements java.io.Serializable
   public Map<Integer, TransactionOutSummary> getOutputs(){ return ImmutableMap.copyOf(outs); }
   public Map<Integer, TransactionInSummary> getInputs(){ return ImmutableMap.copyOf(ins); }
   public Set<String> getAddresses(){ return ImmutableSet.copyOf(involved_addresses); }
+
+  public Summary.TransactionSummary getProto()
+  {
+    Summary.TransactionSummary.Builder tx_builder = Summary.TransactionSummary.newBuilder();
+
+    tx_builder.setTxHash(getHash().toString());
+    tx_builder.addAllInvolvedAddress(involved_addresses);
+
+    Map<Integer,Summary.TransactionInSummary> in_map = tx_builder.getMutableIn();
+    Map<Integer,Summary.TransactionOutSummary> out_map = tx_builder.getMutableOut();
+
+
+    for(Map.Entry<Integer, TransactionOutSummary> me : outs.entrySet())
+    {
+      Summary.TransactionOutSummary.Builder out_b = Summary.TransactionOutSummary.newBuilder();
+
+      out_b.setIndex(me.getKey());
+      if (me.getValue().getToAddress() != null)
+      {
+        out_b.setToAddress( me.getValue().getToAddress() );
+      }
+      out_b.setValue(me.getValue().getValue());
+
+      out_map.put(me.getKey(), out_b.build());
+    }
+
+    for(Map.Entry<Integer, TransactionInSummary> me : ins.entrySet())
+    {
+      Summary.TransactionInSummary.Builder in_b = Summary.TransactionInSummary.newBuilder();
+
+      in_b.setIndex(me.getKey());
+      in_b.setIsCoinbase(me.getValue().isCoinbase());
+      if (!me.getValue().isCoinbase())
+      {
+        in_b.setTxOutHash(me.getValue().getTxOutHash().toString());
+        in_b.setTxOutIndex(me.getValue().getTxOutIndex());
+        if (me.getValue().getFromAddress() != null)
+        {
+          in_b.setFromAddress(me.getValue().getFromAddress());
+        }
+      }
+
+      in_map.put(me.getKey(), in_b.build());
+    }
+
+    return tx_builder.build();
+
+  }
 
   public String toString()
   {

@@ -71,7 +71,6 @@ public class MapBlockStore implements BlockStore
     public StoredBlock getChainHead()
         throws org.bitcoinj.store.BlockStoreException
     {
-        System.out.print("GET HEAD - ");
         StoredBlock head_blk =  file_db.getSpecialBlockStoreMap().get("head");
 
 
@@ -90,7 +89,7 @@ public class MapBlockStore implements BlockStore
             }
         }
         setChainHead(curr);
-        System.out.println(curr.getHeader().getHash().toString() + " - " + curr.getHeight() + " stepback " + stepback);
+        jelly.getEventLog().alarm("Current Head: " + curr.getHeader().getHash().toString() + " - " + curr.getHeight() + " stepback " + stepback);
         return curr;
     }
 

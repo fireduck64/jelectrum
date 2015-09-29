@@ -176,11 +176,7 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
           oout.flush();
           b = ByteString.copyFrom(bout.toByteArray());
 
-          /*if (value instanceof UtxoTrieNode)
-          {
-            UtxoTrieNode node = (UtxoTrieNode) value;
-            System.out.println("Uxto node: " + b.size() + " " + node.serialize().size());
-          }*/
+          System.out.println("" + value.getClass().getName() + " - " + b.size());
 
         }
         catch(java.io.IOException e)

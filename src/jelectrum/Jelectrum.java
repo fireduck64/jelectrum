@@ -114,6 +114,7 @@ public class Jelectrum
         stratum_server = new StratumServer(this, config);
 
         block_chain_cache = BlockChainCache.load(this);
+        //block_chain_cache.undumbSelf(network_params, block_store);
 
         header_chunk_agent = new HeaderChunkAgent(this);
 

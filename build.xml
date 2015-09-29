@@ -132,7 +132,18 @@
     <delete dir="${build}"/>
     <delete dir="${build_test}"/>
     <delete dir="${jar}"/>
+    <delete dir="javadoc"/>
   </target>
 
+  <target name="javadoc">
+    <javadoc packagenames="jelectrum.*"
+           sourcepath="src"
+           destdir="javadoc">
+      <classpath refid="test.classpath" />
+           <link offline="true" href="http://fireduck.com/java/java-se-7/docs/api/" packagelistLoc="/share/www/fireduck.com/java/java-se-7/docs/api/package-list"/>
+           <link href="http://fireduck.com/java/java-se-7/docs/api/"/>
+           <link offline="true" href="http://fireduck.com/java/bitcoinj/docs/api/" packagelistLoc="/share/www/fireduck.com/java/bitcoinj/docs/api/package-list"/>
+    </javadoc>
+  </target>
 </project>
 
