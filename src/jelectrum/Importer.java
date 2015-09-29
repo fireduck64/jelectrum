@@ -508,8 +508,11 @@ public class Importer
         {
           BlockSummary bs = file_db.getBlockSummaryMap().get(hash);
           jelly.getElectrumNotifier().notifyNewTransaction(bs.getAllAddresses(), h);
+          size = bs.getTxMap().size();
         }
 
+        ctx.setStatus("DB_COMMIT");
+        file_db.commit();
 
         //Once all transactions are in, check for prev block in this store
 
@@ -520,8 +523,6 @@ public class Importer
 
         //System.out.println("Block " + hash + " " + Util.measureSerialization(new SerializedBlock(block)));
 
-        ctx.setStatus("DB_COMMIT");
-        file_db.commit();
 
         ctx.setStatus("BLOCK_SAVE");
         file_db.getBlockMap().put(hash, new SerializedBlock(block));

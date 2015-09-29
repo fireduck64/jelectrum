@@ -112,7 +112,16 @@ public class LittleDB extends LevelDB
   { 
     //System.out.println("Adding block " + height + " " + b.getHash());
 
-    BlockSummary block_summary = new BlockSummary(height, b, tx_util, import_tx_summary_cache);
+    //Make my own copy, which is needed for working in a single block (from importer)
+    HashMap<Sha256Hash, TransactionSummary> import_block_cache = new HashMap<Sha256Hash, TransactionSummary>();
+
+    BlockSummary block_summary = new BlockSummary(height, b, tx_util, import_block_cache);
+
+    // Put everything in the shared cache for other threads, which hit it in getTransactionSummary below
+    synchronized(import_tx_summary_cache)
+    {
+      import_tx_summary_cache.putAll(import_block_cache);
+    }
 
     getBlockSummaryMap().put(b.getHash(), block_summary);
     
