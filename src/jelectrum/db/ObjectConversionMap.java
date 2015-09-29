@@ -176,7 +176,7 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
           oout.flush();
           b = ByteString.copyFrom(bout.toByteArray());
 
-          System.out.println("" + value.getClass().getName() + " - " + b.size());
+          //System.out.println("" + value.getClass().getName() + " - " + b.size());
 
         }
         catch(java.io.IOException e)
