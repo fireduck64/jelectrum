@@ -11,17 +11,34 @@ import java.util.Collection;
 
 import com.google.protobuf.ByteString;
 
+/**
+ * If we used just one "bloomfilter" it would be hard work to check
+ * every time it was wrong.  It would also be hard work to make it
+ * large enough to not be wrong.  So instead we make layers of bloom filters.
+ * Each layer can be wrong, but probably they won't all.  And each layer
+ * is not much work to check.
+ *
+ * So this class is making layers to check.  I did number work to
+ * try to set the sizes to make it work well in space and time.
+ * But they might need to be changed.
+ *
+ * It is guessing that there will be 750,000 blocks and 10000 keys
+ * in each block.
+ */
 public class BloomLayerCake
 {
+  public static final int ESTIMATE_KEYS_PER_BLOCK=10000;
+  public static final int MAX_BLOCKS=750000;
+
   private File dir;
   private int max_blocks;
   private ArrayList<LayerInfo> layers;
 
-  public BloomLayerCake(File dir, int max_blocks)
+  public BloomLayerCake(File dir)
       throws Exception
   {
-    this.max_blocks = max_blocks;
     this.dir = dir;
+    max_blocks=MAX_BLOCKS;
     dir.mkdirs();
 
     layers = new ArrayList<>();
@@ -113,7 +130,6 @@ public class BloomLayerCake
 
   public class LayerInfo
   {
-    public static final int ESTIMATE_KEYS_PER_BLOCK=10000;
     private int blocks_per_layer;
     protected Bloomtime bloomtime;
     protected int layer_no;

@@ -12,6 +12,10 @@ public class TimeRecord
 
   public synchronized void addTime(long tm, String name)
   {
+    addTime(tm, name, 1L);
+  }
+  public synchronized void addTime(long tm, String name, long count)
+  {
     {
       Long prev = times.get(name);
       long p = 0;
@@ -24,7 +28,7 @@ public class TimeRecord
       long p = 0;
       if (prev != null) p = prev;
 
-      counts.put(name, p + 1);
+      counts.put(name, p + count);
 
 
     }
@@ -59,9 +63,13 @@ public class TimeRecord
 
   public static void record(long start, String name)
   {
+    record(start, name, 1L);
+  }
+  public static void record(long start, String name, long count)
+  {
     if (shared != null)
     {
-      shared.addTime(System.nanoTime() - start, name);
+      shared.addTime(System.nanoTime() - start, name, count);
     }
 
   }

@@ -78,7 +78,11 @@ public abstract class DB implements DBFace
         header_chunk_map = new ObjectConversionMap<>(STRING, openMap("header_chunk_map"));
         height_map = new ObjectConversionMap<>(SHA256HASH, openMap("height_map"));
         utxo_trie_map = new ObjectConversionMap<>(UTXONODE, openMap("utxo_trie_map"));
-        block_summary_map = new CacheMap<Sha256Hash,BlockSummary>(16,new ObjectConversionMap<Sha256Hash,BlockSummary>(OBJECT, openMap("block_summary_map")));
+
+        //these chazwogers are big an expensive to parse into memory
+        //so keeping a small cache of them makes sense
+        block_summary_map = new CacheMap<Sha256Hash,BlockSummary>(32,
+          new ObjectConversionMap<Sha256Hash,BlockSummary>(OBJECT, openMap("block_summary_map")));
 
         address_to_tx_map = openMapSet("address_to_tx_map");
         tx_to_block_map = openMapSet("tx_to_block_map");

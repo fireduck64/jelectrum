@@ -9,8 +9,9 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Block;
 import com.google.common.collect.ImmutableMap;
 
-
 import org.junit.Assert;
+import jelectrum.proto.Kraken.ProtoBlockSummary;
+import jelectrum.proto.Kraken.ProtoTxSummary;
 
 public class BlockSummary implements java.io.Serializable
 {
@@ -36,12 +37,28 @@ public class BlockSummary implements java.io.Serializable
       {
         tx_cache.put(tx.getHash(), tx_sum);
       }
-
     }
   }
   public int getHeight() { return height; }
   public Sha256Hash getHash() { return block_hash; }
   public Map<Sha256Hash, TransactionSummary> getTxMap() { return ImmutableMap.copyOf(tx_map);} 
+
+  public ProtoBlockSummary getProto()
+  {
+    ProtoBlockSummary.Builder b_b = ProtoBlockSummary.newBuilder();
+
+    b_b.setHeight(getHeight());
+    b_b.setBlockHash( block_hash.toString() );
+    Map<String,ProtoTxSummary> mut_tx = b_b.getMutableTx();
+
+    for(Map.Entry<Sha256Hash, TransactionSummary> me : tx_map.entrySet())
+    {
+      mut_tx.put(me.getKey().toString(), me.getValue().getProto());
+    }
+
+    return b_b.build();
+
+  }
 
   public Set<String> getAllAddresses()
   {

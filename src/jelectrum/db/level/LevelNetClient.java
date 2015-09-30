@@ -118,6 +118,7 @@ public class LevelNetClient
 
   public ByteString get(String key)
   {
+    //System.out.println("leveldb loading: " + key);
     while(true)
     {
       LevelConnection conn = null;

@@ -46,6 +46,8 @@ public class LittleDB extends LevelDB
 
   private HashMap<Sha256Hash, TransactionSummary> import_tx_summary_cache;
 
+  private boolean debug=false;
+
   public LittleDB(Config conf, EventLog log, NetworkParameters network_parameters)
     throws Exception
   {
@@ -65,7 +67,7 @@ public class LittleDB extends LevelDB
     File cake_dir = new File(dir, "bloom");
     cake_dir.mkdirs();
 
-    cake = new BloomLayerCake(cake_dir, 750000);
+    cake = new BloomLayerCake(cake_dir);
 
     tx_map = null;
 
@@ -149,7 +151,9 @@ public class LittleDB extends LevelDB
   @Override
   public Set<Sha256Hash> getAddressToTxSet(String address)
   {
+    long t1=System.nanoTime();
     Set<Integer> heights = cake.getBlockHeightsForAddress(address);
+    TimeRecord.record(t1, "bloom_cake_get_blocks_for_addr");
     Set<Sha256Hash> out_list = new HashSet<Sha256Hash>();
 
     for(int height : heights)
@@ -157,12 +161,15 @@ public class LittleDB extends LevelDB
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
       if (b != null)
       {
-          BlockSummary bs = getBlockSummaryMap().get(b);
+        long t1_bs=System.nanoTime();
+        BlockSummary bs = getBlockSummaryMap().get(b);
+        TimeRecord.record(t1_bs,"db_get_block_summary");
 
-          out_list.addAll(bs.getMatchingTransactions(address));
+        out_list.addAll(bs.getMatchingTransactions(address));
       }
     }
 
+    TimeRecord.record(t1,"db_get_addr_to_tx");
     return out_list;
 
 
@@ -173,24 +180,31 @@ public class LittleDB extends LevelDB
   {
     long t1=System.nanoTime();
     Set<Integer> heights = cake.getBlockHeightsForAddress(tx.toString());
+    TimeRecord.record(t1, "bloom_cake_get_blocks_for_tx");
     Set<Sha256Hash> blocks = new HashSet<Sha256Hash>();
 
     for(int height : heights)
     {
       //System.out.println("Height: " + height);
       Sha256Hash b = block_chain_cache.getBlockHashAtHeight(height);
-      //if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
+
+      if (debug)
+      {
+        if (b == null) System.out.println("Finding: " + tx + " no hash found for height: " + height + " head is: " + block_chain_cache.getHead());
+      }
       if (b != null)
       {
         Assert.assertNotNull(b);
 
+        long t1_bs=System.nanoTime();
         BlockSummary bs = getBlockSummaryMap().get(b);
+        TimeRecord.record(t1_bs,"db_get_block_summary");
         TransactionSummary ts = bs.getTxMap().get(tx);
         if (ts != null) blocks.add(b);
 
       }
     }
-    TimeRecord.record(t1, "db_get_tx_to_block_map");
+    TimeRecord.record(t1, "db_get_tx_to_block");
     
 
     return blocks;
@@ -200,7 +214,7 @@ public class LittleDB extends LevelDB
   @Override
   public TransactionSummary getTransactionSummary(Sha256Hash hash)
   {
-    //System.out.println("Looking up tx: " + hash);
+    if (debug) System.out.println("Looking up tx summary: " + hash);
     long t1=System.nanoTime();
     synchronized(import_tx_summary_cache)
     {
@@ -211,7 +225,7 @@ public class LittleDB extends LevelDB
       }
     }
     Set<Sha256Hash> block_list = getTxToBlockMap(hash);
-    //System.out.println("Block list: " + block_list);
+    if (debug) System.out.println("Block list: " + block_list);
 
     for(Sha256Hash block_hash : block_list)
     {
@@ -232,7 +246,7 @@ public class LittleDB extends LevelDB
   @Override
   public SerializedTransaction getTransaction(Sha256Hash hash)
   {
-    System.out.println("Looking up tx: " + hash);
+    if (debug) System.out.println("Looking up tx: " + hash);
     long t1=System.nanoTime();
     Set<Sha256Hash> block_list = getTxToBlockMap(hash);
     //System.out.println("Get tx: " + hash + " - blocks: " + block_list);

@@ -57,6 +57,9 @@ public class Importer
 
     private LinkedList<StatusContext> save_thread_list;
 
+    private boolean time_record_print = true;
+
+
 
     public Importer(NetworkParameters params, Jelectrum jelly, BlockStore block_store)
         throws org.bitcoinj.store.BlockStoreException
@@ -625,6 +628,13 @@ public class Importer
 
         public void run()
         {
+            TimeRecord tr = null;
+            if ((delay == 60000L) && (time_record_print))
+            {
+              tr = new TimeRecord();
+              TimeRecord.setSharedRecord(tr);
+
+            }
             long blocks = 0;
             long transactions = 0;
             long last_run = System.currentTimeMillis();
@@ -646,8 +656,7 @@ public class Importer
                 {
                     String rate_log = name + " Block rate: " + df.format(block_rate) + "/s   Transaction rate: " + df.format(tx_rate) + "/s" + "     txq:" + tx_queue.size() + " blkq:" + block_queue.size() ;
 
-                    System.out.println(rate_log );
-                    jelly.getEventLog().log(rate_log);
+                    jelly.getEventLog().alarm(rate_log);
                     String status_report = getThreadStatusReport();
                     
                     jelly.getEventLog().alarm(status_report);
@@ -655,6 +664,12 @@ public class Importer
                     {
                       jelly.getEventLog().alarm("No connected peers - can't get new blocks or transactions");
                     }
+                
+                  if (tr != null)
+                  {
+                    tr.printReport(System.out);
+                    tr.reset();
+                  }
                 }
 
                 blocks = blocks_now;

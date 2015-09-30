@@ -16,6 +16,9 @@ import org.bitcoinj.core.TransactionOutput;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import jelectrum.proto.Kraken.ProtoTxSummary;
+import jelectrum.proto.Kraken.ProtoTxInSummary;
+import jelectrum.proto.Kraken.ProtoTxOutSummary;
 
 public class TransactionSummary implements java.io.Serializable
 {
@@ -52,10 +55,67 @@ public class TransactionSummary implements java.io.Serializable
       idx++;
     }
   }
+
   public Sha256Hash getHash() { return tx_hash; }
   public Map<Integer, TransactionOutSummary> getOutputs(){ return ImmutableMap.copyOf(outs); }
   public Map<Integer, TransactionInSummary> getInputs(){ return ImmutableMap.copyOf(ins); }
   public Set<String> getAddresses(){ return ImmutableSet.copyOf(involved_addresses); }
+
+  public ProtoTxSummary getProto()
+  {
+    ProtoTxSummary.Builder tx_b = ProtoTxSummary.newBuilder();
+
+    tx_b.setTxHash(getHash().toString());
+    tx_b.addAllInvolvedAddress(involved_addresses);
+    
+    Map<Integer,ProtoTxInSummary> mut_in =  tx_b.getMutableIn(); 
+    Map<Integer,ProtoTxOutSummary> mut_out =  tx_b.getMutableOut();
+
+    for(Map.Entry<Integer, TransactionInSummary> me : ins.entrySet())
+    {
+      int idx = me.getKey();
+      TransactionInSummary in = me.getValue();
+      ProtoTxInSummary.Builder in_b = ProtoTxInSummary.newBuilder();
+
+      in_b.setIndex(idx);
+      in_b.setIsCoinbase(in.isCoinbase());
+      if (!in.isCoinbase())
+      {
+        in_b.setTxOutHash( in.getTxOutHash().toString());
+        in_b.setTxOutIndex( in.getTxOutIndex() );
+        if (in.getFromAddress() != null)
+        {
+          in_b.setFromAddress( in.getFromAddress() );
+        }
+      }
+      mut_in.put(idx, in_b.build());
+    }
+
+    for(Map.Entry<Integer, TransactionOutSummary> me : outs.entrySet())
+    {
+      int idx = me.getKey();
+      TransactionOutSummary out = me.getValue();
+
+      ProtoTxOutSummary.Builder out_b = ProtoTxOutSummary.newBuilder();
+      out_b.setIndex(idx);
+      out_b.setValue(out.getValue());
+      if (out.getToAddress() != null)
+      {
+        out_b.setToAddress(out.getToAddress());
+      }
+
+
+
+      mut_out.put(idx, out_b.build());
+
+    }
+
+
+
+
+    return tx_b.build();
+
+  }
 
   public String toString()
   {

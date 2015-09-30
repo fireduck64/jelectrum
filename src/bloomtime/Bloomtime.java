@@ -14,6 +14,14 @@ import java.util.Random;
 import java.security.MessageDigest;
 import jelectrum.TimeRecord;
 
+
+/**
+ * this number bear uses a thing called a "bloom filter" to tell if something is part of the group or not.
+ * Sometimes it is wrong, and thinks something is in the group when it isn't.  But it is never wrong when it says something is not in.
+ * This one uses many bloom filters next to each other so that you can check many groups at once.
+ *
+ * We call the groups slices here.
+ */
 public class Bloomtime
 {
   private LongFile long_map;
@@ -63,11 +71,9 @@ public class Bloomtime
    */
   public synchronized void accumulateBits(int slice, ByteString data)
   {
-    long t1 = System.nanoTime();
     Set<Integer> hashes = getHashIndexes(data);
-    TimeRecord.record(t1, "bloom_get_hash_indexes");
 
-    t1 = System.nanoTime();
+    long t1 = System.nanoTime();
     for(int x : hashes)
     {
       long pos = (long)slices * (long)x + (long)slice;
@@ -78,9 +84,9 @@ public class Bloomtime
   public synchronized void flushBits()
   {
     long t1 = System.nanoTime();
-    for(long x : bits_to_set)
+    for(long bit : bits_to_set)
     {
-      long_map.setBit(x);
+      long_map.setBit(bit);
     }
     bits_to_set.clear();
     TimeRecord.record(t1, "bloom_flush");
@@ -88,11 +94,9 @@ public class Bloomtime
 
   public synchronized void saveEntry(int slice, ByteString data)
   {
-    long t1 = System.nanoTime();
     Set<Integer> hashes = getHashIndexes(data);
-    TimeRecord.record(t1, "bloom_get_hash_indexes");
 
-    t1 = System.nanoTime();
+    long t1 = System.nanoTime();
     for(int x : hashes)
     {
       long pos = (long)slices * (long)x + (long)slice;
@@ -107,6 +111,7 @@ public class Bloomtime
   }
   public Set<Integer> getMatchingSlices(ByteString data, int start_slice, int end_slice)
   {
+    long t1=System.nanoTime();
     while(start_slice % 8 != 0) start_slice--;
     while(end_slice % 8 != 0) end_slice++;
     end_slice = Math.min(end_slice, slices);
@@ -121,7 +126,11 @@ public class Bloomtime
     for(int x : hashes)
     {
       long pos = ((long)slices * (long)x + start_slice) / 8L; 
+      long t1_read = System.nanoTime();
       long_map.getBytes(pos, b);
+      TimeRecord.record(t1_read, "bloom_read");
+
+      long t1_bits = System.nanoTime();
       BitSet bs = BitSet.valueOf(b);
       if (matches == null)
       {
@@ -131,20 +140,49 @@ public class Bloomtime
       {
         matches.and(bs);
       }
-      if (matches.cardinality() == 0) return match_set;
+      TimeRecord.record(t1_bits, "bloom_bitkelp");
+      if (matches.isEmpty())
+      {
+        TimeRecord.record(t1,"bloom_getmatch_short");
+        return match_set;
+      }
     }
 
-    for(int i=0; i<slices; i++)
+    long t1_list=System.nanoTime();
+
+    /*
+     * Reading one bit at a time is slow (it was actually taking measurable clock time on a pi 2).
+     * So splitting the bitset into longs and on a non-zero checking all those bits.  Quite a bit faster.
+     */
+    long[] vals = matches.toLongArray();
+    for(int idx = 0; idx<vals.length; idx++)
+    {
+      if (vals[idx] != 0)
+      {
+        int end = Math.min((idx+1) * 64, slices);
+        for(int i= idx * 64; i<end; i++)
+        {
+          if (matches.get(i)) match_set.add(i + start_slice);
+        }
+
+      }
+
+    }
+    /*for(int i=0; i<slices; i++)
     {
       if (matches.get(i)) match_set.add(i + start_slice);
-    }
+    }*/
+    TimeRecord.record(t1_list, "bloom_list");
+    TimeRecord.record(t1_list, "bloom_slices", slices);
 
+    TimeRecord.record(t1,"bloom_getmatch");
     return match_set;
 
   }
 
   public Set<Integer> getHashIndexes(ByteString data)
   {
+    long t1 = System.nanoTime();
     Set<Integer> set = new HashSet<Integer>();
 
     //TODO - Only using 32 bits of entropy, which is crap
@@ -160,6 +198,7 @@ public class Bloomtime
       Assert.assertTrue(v < bloom_len);
       set.add(v);
     }
+    TimeRecord.record(t1, "bloom_gethashindexes");
 
     return set;
   }
@@ -186,10 +225,16 @@ public class Bloomtime
     {
       try
       {
+        long t1 = System.nanoTime();
         MessageDigest sig=MessageDigest.getInstance("SHA-256");
-        sig.update(in);
+        TimeRecord.record(t1, "hash_instance");
 
-        return sig.digest();
+        long t2 = System.nanoTime();
+        sig.update(in);
+        byte[] d = sig.digest();
+        TimeRecord.record(t2, "hash_digest");
+
+        return d;
       }
       catch (java.security.NoSuchAlgorithmException e)
       {

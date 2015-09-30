@@ -151,7 +151,6 @@ public class TXUtil
                   }
                   System.out.println("Unable to get source transaction: " + out_p.getHash());
                   try{Thread.sleep(500);}catch(Exception e7){}
-                  throw new RuntimeException("ZOMGCRITTENS");
                 }
               }
             }

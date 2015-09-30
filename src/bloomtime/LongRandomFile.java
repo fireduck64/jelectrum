@@ -26,6 +26,7 @@ public class LongRandomFile implements LongFile
 
   public synchronized void getBytes(long position, byte[] buff)
   {
+    long t1 = System.nanoTime();
     try
     {
       random_file.seek(position);
@@ -33,10 +34,14 @@ public class LongRandomFile implements LongFile
     }
     catch(IOException e) { throw new RuntimeException(e);}
 
+    TimeRecord.record(t1, "long_file_get_bytes");
+
+
   }
 
   public synchronized void putBytes(long position, byte[] buff)
   {
+    long t1 = System.nanoTime();
     try
     {
       random_file.seek(position);
@@ -44,6 +49,7 @@ public class LongRandomFile implements LongFile
 
     }
     catch(IOException e) { throw new RuntimeException(e);}
+    TimeRecord.record(t1, "long_file_put_bytes");
   }
 
   public synchronized void setBit(long bit)

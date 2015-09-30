@@ -17,6 +17,7 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.NetworkParameters;
 import org.junit.Assert;
+import jelectrum.TimeRecord;
 
 /**
  * Converts the high level types to and from the simple
@@ -68,58 +69,71 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
 
   public V get(Object key)
   { 
+    long t1 = System.nanoTime();
     String k = key.toString();
     ByteString buff = inner.get(k);
+    TimeRecord.record(t1, "db_get_inner");
+
     if (buff == null) return null;
 
-    if (mode==ConversionMode.STRING)
+    long t1_convert = System.nanoTime();
+
+    
+    try
     {
-      return (V) buff.toStringUtf8();
-    }
-    if (mode==ConversionMode.SHA256HASH)
-    {
-      return (V) new Sha256Hash(buff.toByteArray());
-    }
-    if (mode==ConversionMode.OBJECT)
-    {
-      try
+      if (mode==ConversionMode.STRING)
       {
-        ObjectInputStream oin = new ObjectInputStream(buff.newInput());
-
-        Object o = oin.readObject();
-
-        return (V) o;
+        return (V) buff.toStringUtf8();
       }
-      catch(java.io.IOException e)
+      if (mode==ConversionMode.SHA256HASH)
       {
-        System.out.println("Exception reading key: " + key);
-        throw new RuntimeException(e);
+        return (V) new Sha256Hash(buff.toByteArray());
       }
-      catch(ClassNotFoundException e)
+      if (mode==ConversionMode.OBJECT)
       {
-        throw new RuntimeException(e);
+        try
+        {
+          ObjectInputStream oin = new ObjectInputStream(buff.newInput());
+
+          Object o = oin.readObject();
+
+          return (V) o;
+        }
+        catch(java.io.IOException e)
+        {
+          System.out.println("Exception reading key: " + key);
+          throw new RuntimeException(e);
+        }
+        catch(ClassNotFoundException e)
+        {
+          throw new RuntimeException(e);
+        }
+
       }
+      if (mode==ConversionMode.SERIALIZEDTRANSACTION)
+      {
+        return (V) new SerializedTransaction(buff.toByteArray());
+      }
+      if (mode==ConversionMode.UTXONODE)
+      {
+        return (V) new UtxoTrieNode(buff);
 
+      }
+      if (mode==ConversionMode.STOREDBLOCK)
+      {
+        ByteBuffer ba = ByteBuffer.wrap(buff.toByteArray());
+        return (V) StoredBlock.deserializeCompact(params, ba);
+      }
+      if (mode==ConversionMode.EXISTENCE)
+      {
+        throw new RuntimeException("Get called on existence only map");
+      }
+      throw new RuntimeException("No conversion found");
     }
-    if (mode==ConversionMode.SERIALIZEDTRANSACTION)
+    finally
     {
-      return (V) new SerializedTransaction(buff.toByteArray());
+      TimeRecord.record(t1_convert, "db_get_convert");
     }
-    if (mode==ConversionMode.UTXONODE)
-    {
-      return (V) new UtxoTrieNode(buff);
-
-    }
-    if (mode==ConversionMode.STOREDBLOCK)
-    {
-      ByteBuffer ba = ByteBuffer.wrap(buff.toByteArray());
-      return (V) StoredBlock.deserializeCompact(params, ba);
-    }
-    if (mode==ConversionMode.EXISTENCE)
-    {
-      throw new RuntimeException("Get called on existence only map");
-    }
-    throw new RuntimeException("No conversion found");
 
   }
 
@@ -128,8 +142,12 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
   { 
     try
     { 
+      long t1 = System.nanoTime();
       ByteString b = convertV(value);
+      TimeRecord.record(t1, "db_put_convert");
+      long t1_put = System.nanoTime();
       inner.put(key.toString(), b);
+      TimeRecord.record(t1_put,"db_put_inner");
     }
     catch(java.io.IOException e){throw new RuntimeException(e);}
     return null;

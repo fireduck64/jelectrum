@@ -54,9 +54,13 @@ public class CacheMap<K,V> implements Map<K,V>
 
     public V get(Object key)
     {
+      long t1 = System.nanoTime();
+
         synchronized(cache)
         {
             V val = cache.get(key);
+
+            TimeRecord.record(t1, "cache_map_hit");
             if(val != null) return val;
         }
         V val = inner.get(key);
@@ -67,6 +71,7 @@ public class CacheMap<K,V> implements Map<K,V>
                 cache.put((K)key, val);
             }
         }
+        TimeRecord.record(t1, "cache_map_miss");
         return val;
 
     }

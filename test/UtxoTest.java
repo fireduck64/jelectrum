@@ -109,7 +109,7 @@ public class UtxoTest
 
       if (expected_hash != null)
       {
-        Assert.assertEquals("utxo root on block: " + i, expected_hash, mgr.getRootHash());
+        Assert.assertEquals("utxo root on block: " + i, expected_hash, mgr.getRootHash(null));
       }
 
       if (flush)

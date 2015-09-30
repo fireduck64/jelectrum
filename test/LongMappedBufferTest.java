@@ -7,6 +7,9 @@ import bloomtime.LongMappedBuffer;
 
 import java.io.File;
 import java.util.BitSet;
+import java.util.Random;
+import java.util.TreeSet;
+import jelectrum.TimeRecord;
 
 public class LongMappedBufferTest
 {
@@ -16,9 +19,9 @@ public class LongMappedBufferTest
   public static void loadMap()
     throws Exception
   {
-    new File("/var/ssd/clash/test").mkdirs();
+    new File("/var/hdd/clash/test").mkdirs();
 
-    map = new LongMappedBuffer(new File("/var/ssd/clash/test/longmappedbuffer-test"), 16L*1024L*1024L*1024L);
+    map = new LongMappedBuffer(new File("/var/hdd/clash/test/longmappedbuffer-test"), 16L*1024L*1024L*1024L);
   }
 
   @Test
@@ -50,7 +53,6 @@ public class LongMappedBufferTest
     for(int i=0; i<8; i++)
     {
       map.setBit(91*8 + i);
-      
     }
     map.getBytes(91, b);
     BitSet bs = BitSet.valueOf(b);
@@ -59,6 +61,35 @@ public class LongMappedBufferTest
       Assert.assertTrue(bs.get(i));
     }
   }
+
+  /*@Test
+  public void testBitSetBulk()
+  {
+    TimeRecord tr = new TimeRecord();
+
+    TimeRecord.setSharedRecord(tr);
+    
+    Random rnd = new Random();
+
+    for(int j=0; j<10; j++)
+    {
+
+      TreeSet<Long> bits = new TreeSet<Long>();
+
+      for(int i=0; i<1000; i++)
+      {
+        long gb = rnd.nextInt(16);
+        long pos = rnd.nextInt(1024 * 1024 * 1024) ;
+        pos = pos + gb * 1024L * 1024L * 1024L;
+        long bit =rnd.nextInt(8);
+        pos = bit + pos * 8;
+        bits.add(pos);
+      }
+      map.setBits(bits);
+      tr.printReport(System.out);
+      tr.reset();
+    }
+  }*/
 
 
 
