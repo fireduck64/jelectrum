@@ -213,6 +213,13 @@ public class Jelectrum
 
         while(true)
         {
+          int peer_height = peer_group.getMostCommonChainHeight();
+          int my_height = notifier.getHeadHeight();
+          if (peer_height != my_height)
+          {
+            event_log.log("Peer height is: " + peer_height + " My height is: " + my_height);
+
+          }
             if (peer_group.getMostCommonChainHeight() > notifier.getHeadHeight()+3)
             {
                 event_log.alarm("We are far behind.  Aborting.");
