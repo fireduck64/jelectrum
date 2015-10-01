@@ -275,6 +275,9 @@ public class UtxoTrieMgr
 
     System.out.println("Reading block: " + read_hash);
     int node_count=0;
+
+    TreeMap<String, UtxoTrieNode> save_map = new TreeMap<>();
+
     while(true)
     {
       int size = d_in.readInt();
@@ -283,14 +286,19 @@ public class UtxoTrieMgr
       d_in.readFully(data);
       UtxoTrieNode node = new UtxoTrieNode(ByteString.copyFrom(data));
 
-      db_map.put(node.getPrefix(), node);
+      save_map.put(node.getPrefix(), node);
       node_count++;
       if (node_count % 1000 == 0)
       {
+        db_map.putAll(save_map);
+        save_map.clear();
         System.out.print('.');
       }
 
     }
+    db_map.putAll(save_map);
+    save_map.clear();
+    System.out.print('.');
     System.out.println();
     System.out.println("Saved " + node_count + " nodes");
     

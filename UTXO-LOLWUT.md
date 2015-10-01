@@ -45,4 +45,17 @@ Out Count: 1810
 That means it checked 861 transactions containing 1810 output scripts and found nothing that electrum server resolves to a different public key.
 If you get something that looks different, email fireduck@gmail.com.  Include the output from the command you just ran.
 
+# Want to load a snapshot and move on from there:
+
+Make sure your database has at least up to block 377041 (main database blocks, the UTXO can be behind that)
+```
+wget https://s3-us-west-2.amazonaws.com/bitcoin-blocks/utxo/utxo.377041.db
+java -cp jar/Jelectrum.jar jelectrum.UtxoDump jelly.conf load /var/ssd/utxo.377041.db
+```
+
+Do this without jelectrum running unless you want some awesomely broken results.
+
+
+
+
 
