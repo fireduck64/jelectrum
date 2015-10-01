@@ -41,6 +41,7 @@ import java.text.DecimalFormat;
 import java.util.Random;
 import lobstack.SerialUtil;
 import org.junit.Assert;
+import java.io.OutputStream;
 
  
 /**
@@ -135,6 +136,29 @@ public class UtxoTrieNode implements java.io.Serializable
   public Map<String, Sha256Hash> getSprings()
   {
     return springs;
+  }
+
+  public void dumpDB(OutputStream out, UtxoTrieMgr mgr)
+    throws java.io.IOException
+  {
+    ByteString self = serialize();
+    byte[] sz = new byte[4];
+    ByteBuffer bb = ByteBuffer.wrap(sz);
+    bb.putInt(self.size());
+
+    out.write(sz);
+    out.write(self.toByteArray());
+    for(Map.Entry<String, Sha256Hash> me : springs.entrySet())
+    {
+      String sub = prefix + me.getKey();
+      
+      if (sub.length() < UtxoTrieMgr.ADDR_SPACE*2)
+      {
+        mgr.getByKey(sub).dumpDB(out, mgr);
+      }
+
+    }
+
   }
 
   /**

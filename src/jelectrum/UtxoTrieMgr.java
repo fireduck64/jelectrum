@@ -35,13 +35,17 @@ import java.util.Scanner;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
+import java.io.OutputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.DataInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import java.text.DecimalFormat;
 import java.util.Random;
 import org.junit.Assert;
+import com.google.protobuf.ByteString;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -231,6 +235,68 @@ public class UtxoTrieMgr
     {
       rollTransaction(tx);
     }
+
+  }
+
+  public synchronized void dumpDB(OutputStream out)
+    throws java.io.IOException
+  {
+    UtxoStatus status = getUtxoState();
+
+    if (!status.isConsistent())
+    {
+      throw new RuntimeException("UTXO status inconsistent - unable to dump db");
+    }
+
+    System.out.println("Dumping DB at block: " + status.getBlockHash());
+
+    //write header
+    out.write(status.getBlockHash().getBytes());
+
+    getByKey("").dumpDB(out, this);
+
+    //write end marker
+    byte[] sz = new byte[4];
+    out.write(sz);
+    out.flush();
+
+  }
+  public synchronized void loadDB(InputStream in)
+    throws java.io.IOException
+  {
+    node_map.clear();
+    last_added_block_hash = null;
+    last_flush_block_hash = null;
+    byte[] hash_data = new byte[32];
+
+    DataInputStream d_in = new DataInputStream(in);
+    d_in.readFully(hash_data);
+    Sha256Hash read_hash = new Sha256Hash(hash_data);
+
+    System.out.println("Reading block: " + read_hash);
+    int node_count=0;
+    while(true)
+    {
+      int size = d_in.readInt();
+      if (size == 0) break;
+      byte[] data = new byte[size];
+      d_in.readFully(data);
+      UtxoTrieNode node = new UtxoTrieNode(ByteString.copyFrom(data));
+
+      db_map.put(node.getPrefix(), node);
+      node_count++;
+      if (node_count % 1000 == 0)
+      {
+        System.out.print('.');
+      }
+
+    }
+    System.out.println();
+    System.out.println("Saved " + node_count + " nodes");
+    
+    saveState(new UtxoStatus(read_hash));
+
+    System.out.println("UTXO root hash: " + getRootHash(null));
 
   }
 

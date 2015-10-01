@@ -367,6 +367,8 @@ public class Importer
     }
     public void putInternal(Transaction tx, Sha256Hash block_hash, StatusContext ctx)
     {
+      
+
       if (!file_db.needsDetails()) return;
 
         if (block_hash == null)
@@ -419,6 +421,11 @@ public class Importer
         }
         //Mark block as in progress
 
+        TimeRecord tr = new TimeRecord();
+        if ((time_record_print) && (!run_rates))
+        {
+          tr.setSharedRecord(tr);
+        }
 
         Semaphore block_wait_sem;
         synchronized(in_progress)
@@ -558,6 +565,7 @@ public class Importer
         {
           jelly.getEventLog().log("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
         }
+        tr.printReport(System.out);
         imported_blocks.incrementAndGet();
 
 
