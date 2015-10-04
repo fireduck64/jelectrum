@@ -42,6 +42,7 @@ public class StratumServer
 
     private StratumServer server;
     private Jelectrum jelectrum;
+    private RateLimit global_rate_limit;
     
     public StratumServer(Jelectrum jelectrum, Config config)
     {
@@ -56,6 +57,10 @@ public class StratumServer
             config.require("keystore_path");
             config.require("keystore_store_password");
             config.require("keystore_key_password");
+        }
+        if (config.isSet("global_rate_limit"))
+        {
+          global_rate_limit = new RateLimit(config.getDouble("global_rate_limit"), 2.0);
         }
 
 
@@ -145,6 +150,11 @@ public class StratumServer
       {
         return conn_map.size();
       }
+    }
+    public boolean applyGlobalRateLimit(double bytes)
+    {
+      if (global_rate_limit == null) return false;
+      return global_rate_limit.waitForRate(bytes);
     }
 
     public NetworkParameters getNetworkParameters(){return network_params;}

@@ -411,7 +411,8 @@ public class Importer
     {
         Sha256Hash hash = block.getHash();
         int h = block_store.getHeight(hash);
-        long t1 = System.currentTimeMillis();
+        long t1_block = System.currentTimeMillis();
+        long t1;
 
         ctx.setStatus("BLOCK_CHECK_EXIST");
         if (file_db.getBlockMap().containsKey(hash)) 
@@ -443,13 +444,17 @@ public class Importer
         int size=0;
 
         ctx.setStatus("BLOCK_TX_CACHE_INSERT");
+        t1 = System.nanoTime();
         for(Transaction tx : block.getTransactions())
         {
           tx_util.saveTxCache(SerializedTransaction.scrubTransaction(params, tx));
         }
+        TimeRecord.record(t1, "block_tx_cache_insert");
 
+        t1 = System.nanoTime();
         ctx.setStatus("BLOCK_ADD_THINGS");
         file_db.addBlockThings(h, block);
+        TimeRecord.record(t1, "block_add_things");
 
         if (file_db.needsDetails())
         {
@@ -460,11 +465,14 @@ public class Importer
           Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
           Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
 
+          t1 = System.nanoTime();
           for(Transaction tx : block.getTransactions())
           {
             block_tx_map.put(tx.getHash(), tx);
           }
+          TimeRecord.record(t1, "block_tx_map_build");
 
+          t1 = System.nanoTime();
           ctx.setStatus("BLOCK_GET_ADDRESSES");
           for(Transaction tx : block.getTransactions())
           {
@@ -484,21 +492,29 @@ public class Importer
             tx_list.add(tx.getHash());
             size++;
           }
+          TimeRecord.record(t1, "block_get_addresses");
 
 
 
 
+          t1 = System.nanoTime();
           ctx.setStatus("TX_SAVEALL");
           file_db.getTransactionMap().putAll(txs_map);
+          TimeRecord.record(t1, "block_tx_save");
 
+          t1 = System.nanoTime();
           ctx.setStatus("BLOCK_TX_MAP_ADD");
           file_db.addTxsToBlockMap(tx_list, hash);
+          TimeRecord.record(t1, "block_tx_map_add");
 
+          t1 = System.nanoTime();
           ctx.setStatus("ADDR_SAVEALL");
           file_db.addAddressesToTxMap(addrTxLst);
           Assert.assertEquals(block.getTransactions().size(), addr_map.size());
-          ctx.setStatus("TX_NOTIFY");
+          TimeRecord.record(t1, "block_addr_save");
 
+          t1 = System.nanoTime();
+          ctx.setStatus("TX_NOTIFY");
           HashSet<String> all_addrs = new HashSet<String>();
           for(Transaction tx : block.getTransactions())
           {
@@ -510,6 +526,7 @@ public class Importer
             Assert.assertNotNull(addrs);
           }
           jelly.getElectrumNotifier().notifyNewTransaction(all_addrs, h);
+          TimeRecord.record(t1, "block_notify");
 
 
 
@@ -521,21 +538,28 @@ public class Importer
           size = bs.getTxMap().size();
         }
 
+        t1 = System.nanoTime();
         ctx.setStatus("DB_COMMIT");
         file_db.commit();
+        TimeRecord.record(t1, "block_commit");
 
         //Once all transactions are in, check for prev block in this store
 
+        t1 = System.nanoTime();
         ctx.setStatus("BLOCK_WAIT_PREV");
         Sha256Hash prev_hash = block.getPrevBlockHash();
+        TimeRecord.record(t1, "block_wait_prev");
         
         waitForBlockStored(prev_hash);
 
         //System.out.println("Block " + hash + " " + Util.measureSerialization(new SerializedBlock(block)));
 
 
+        t1 = System.nanoTime();
         ctx.setStatus("BLOCK_SAVE");
         file_db.getBlockMap().put(hash, new SerializedBlock(block));
+        TimeRecord.record(t1, "block_save");
+
 
         block_wait_sem.release(1024);
         boolean wait_for_utxo = false;
@@ -545,16 +569,18 @@ public class Importer
         }
 
         
+        t1 = System.nanoTime();
         jelly.getUtxoTrieMgr().notifyBlock(wait_for_utxo, hash);
         if (wait_for_utxo)
         {
           jelly.getEventLog().alarm("UTXO root hash: " + jelly.getUtxoTrieMgr().getRootHash(hash));
         }
         jelly.getElectrumNotifier().notifyNewBlock(block);
+        TimeRecord.record(t1, "block_utxo_wait");
 
-        long t2 = System.currentTimeMillis();
+        long t2_block = System.currentTimeMillis();
         DecimalFormat df = new DecimalFormat("0.000");
-        double sec = (t2 - t1)/1000.0;
+        double sec = (t2_block - t1_block)/1000.0;
 
 
         if (h % block_print_every ==0)

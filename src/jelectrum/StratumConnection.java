@@ -46,6 +46,7 @@ public class StratumConnection
     private String version_info;
     private String first_address;
     private AtomicInteger subscription_count = new AtomicInteger(0);
+    private RateLimit session_rate_limit;
    
 
     private LinkedBlockingQueue<JSONObject> out_queue = new LinkedBlockingQueue<JSONObject>();
@@ -92,6 +93,10 @@ public class StratumConnection
           banner = new String(b);
           d_in.close();
 
+        }
+        if (jelectrum.getConfig().isSet("session_rate_limit"))
+        {
+          session_rate_limit = new RateLimit(jelectrum.getConfig().getDouble("session_rate_limit"), 2.0);
         }
     
         new OutThread().start();
@@ -175,6 +180,11 @@ public class StratumConnection
                     {
 
                         String msg_str = msg.toString(0);
+                        if (session_rate_limit != null)
+                        {
+                          session_rate_limit.waitForRate(msg_str.length());
+                        }
+                        server.applyGlobalRateLimit(msg_str.length());
                         out.println(msg_str);
                         out.flush();
 
