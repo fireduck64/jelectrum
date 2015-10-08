@@ -8,6 +8,8 @@ import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.VersionMessage;
+import org.bitcoinj.core.Peer;
 import org.apache.commons.codec.binary.Hex;
 import java.net.InetAddress;
 import org.bitcoinj.net.discovery.DnsDiscovery;
@@ -215,11 +217,24 @@ public class Jelectrum
         {
           int peer_height = peer_group.getMostCommonChainHeight();
           int my_height = notifier.getHeadHeight();
-          if (peer_height != my_height)
+          /*if (peer_height != my_height)
           {
             event_log.log("Peer height is: " + peer_height + " My height is: " + my_height);
+            for(Peer p : peer_group.getConnectedPeers())
+            {
+              StringBuilder sb = new StringBuilder();
+              VersionMessage vm = p.getPeerVersionMessage();
+              sb.append("Peer:");
+              sb.append(" " + vm.theirAddr);
+              sb.append(" Height: " + p.getBestHeight());
+              event_log.log(sb.toString());
 
-          }
+
+
+            }
+
+
+          }*/
             if (peer_group.getMostCommonChainHeight() > notifier.getHeadHeight()+3)
             {
                 event_log.alarm("We are far behind.  Aborting.");

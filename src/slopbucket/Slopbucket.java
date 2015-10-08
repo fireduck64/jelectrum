@@ -33,7 +33,7 @@ public class Slopbucket
   private static final int LOCATION_HASH_NEXT=LOCATION_HASH_ITEMS+4;
   private static final int LOCATION_HASH_START=LOCATION_HASH_NEXT+8;
  
-  private static final int HASH_INITAL_SIZE=1024;
+  private static final int HASH_INITAL_SIZE=1024*1024;
   private static final int HASH_MULTIPLCATION=16;
   private static final double HASH_FULL=0.5;
   

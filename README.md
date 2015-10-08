@@ -108,7 +108,7 @@ cp jelly.default.conf jelly.conf
 edit jelly.conf as makes sense
 
 Run:
-java -Xmx8g -jar jar/Jelectrum.jar jelly.conf
+java -Xmx1g -jar jar/Jelectrum.jar jelly.conf
 
 My Instance
 -----------

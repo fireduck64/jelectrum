@@ -32,6 +32,7 @@ public class StratumConnection
   //ghostbird, dirtnerd, beancurd
     public static final String JELECTRUM_VERSION="beancurd";
     public static final String PROTO_VERSION="1.0";
+    public static final boolean use_thread_per_request=false;
 
     private Jelectrum jelectrum;
     private StratumServer server;
@@ -47,6 +48,7 @@ public class StratumConnection
     private String first_address;
     private AtomicInteger subscription_count = new AtomicInteger(0);
     private RateLimit session_rate_limit;
+
    
 
     private LinkedBlockingQueue<JSONObject> out_queue = new LinkedBlockingQueue<JSONObject>();
@@ -238,10 +240,16 @@ public class StratumConnection
                     line = line.trim();
                     if (line.length() > 0)
                     {
-                        
                         JSONObject msg = new JSONObject(line);
-                        //System.out.println("In: " + msg.toString());
-                        processInMessage(msg, input_size);
+                        if (use_thread_per_request)
+                        {
+                          new InWorkerThread(msg, input_size).start();
+                        }
+                        else
+                        {
+
+                          processInMessage(msg, input_size);
+                        }
                     }
 
                 }
@@ -262,6 +270,35 @@ public class StratumConnection
             }
 
         }
+    }
+
+    public class InWorkerThread extends Thread
+    {
+      private JSONObject msg;
+      private int input_size;
+      public InWorkerThread(JSONObject msg, int input_size)
+      {
+        this.msg = msg;
+        this.input_size = input_size;
+        setName("InWorkerThread");
+        setDaemon(true);
+      }
+
+      public void run()
+      {
+        try
+        {
+          processInMessage(msg, input_size);
+        }
+        catch(Throwable t)
+        {
+          if (detail_logs)
+          {
+            jelectrum.getEventLog().log(connection_id + ": error in processing: " + t);
+          }
+          close();
+        }
+      }
     }
 
     private void processInMessage(JSONObject msg, int input_size)

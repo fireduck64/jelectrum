@@ -14,7 +14,7 @@ import com.google.protobuf.ByteString;
 public class SlopbucketDB extends DB
 {
 
-  private static final int SLOP_COUNT=16;
+  private static final int SLOP_COUNT=1;
 
   private ArrayList<Slopbucket> slops;
 
