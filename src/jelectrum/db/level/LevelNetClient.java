@@ -455,7 +455,7 @@ public class LevelNetClient
         {
           Thread.sleep(30000);
           int open = conns.size();
-          log.log("Levelnetclient: checking " + open + " connections");
+          //log.log("Levelnetclient: checking " + open + " connections");
 
           for(int i=0; i<open; i++)
           {
