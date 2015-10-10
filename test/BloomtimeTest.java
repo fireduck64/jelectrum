@@ -125,7 +125,7 @@ public class BloomtimeTest
   public void testLayerCake()
     throws Exception
   {
-    BloomLayerCake cake = new BloomLayerCake(new File("/var/ssd/clash/test/bloom"), 750000);
+    BloomLayerCake cake = new BloomLayerCake(new File("/var/ssd/clash/test/bloom"));
     Random rnd = new Random();
     for(int i=0; i<75000; i+=rnd.nextInt(8192)+1)
     {

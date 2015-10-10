@@ -130,6 +130,7 @@ void* handle_connection(void* arg)
   //          [key_size][keydata][value_size][valuedata] (item times)
   //  4 - getprefix
   //        [size][keydata]
+  //  5 - ping
   // Returns for puts: int status code, 0 = no problems
   // Return for gets: int status code, 0 = no problems, [size][valuedata]
   // Returns for getprefix: int status code
@@ -289,6 +290,12 @@ void* handle_connection(void* arg)
       
 
     }
+    else if (action[0] == 5)
+    {
+      int status=RESULT_GOOD;
+      status=htonl(status);
+      write_fully(fd, (char*)&status, sizeof(status));
+    }
     else
     {
       problems=true;
@@ -339,7 +346,7 @@ int main(int argc, char* argv[])
     sizeof(serv_addr)) < 0) 
     error("ERROR on binding");
 
-  listen(sockfd,16);
+  listen(sockfd,128);
 
   while(true)
   {

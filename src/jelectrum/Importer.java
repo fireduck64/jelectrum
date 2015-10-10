@@ -57,7 +57,7 @@ public class Importer
 
     private LinkedList<StatusContext> save_thread_list;
 
-    private boolean time_record_print = false;
+    private boolean time_record_print = true;
 
 
 

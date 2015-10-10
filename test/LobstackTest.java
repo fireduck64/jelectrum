@@ -22,13 +22,17 @@ public class LobstackTest
     throws Exception
   {
     Config c = new Config("jelly-test.conf");
-    return new Lobstack(new File(c.get("lobstack_path")), "test",true);
+    File f = new File(c.get("lobstack_path"));
+    f.mkdirs();
+    return new Lobstack(f, "test",true);
   }
    private Lobstack openStack(String name)
     throws Exception
   {
     Config c = new Config("jelly-test.conf");
-    return new Lobstack(new File(c.get("lobstack_path")), name, true);
+    File f = new File(c.get("lobstack_path"));
+    f.mkdirs();
+    return new Lobstack(f, name, true);
   }
   
 

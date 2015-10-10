@@ -48,6 +48,10 @@ import org.junit.Assert;
 import com.google.protobuf.ByteString;
 
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
 
 import static org.bitcoinj.script.ScriptOpCodes.*;
 
@@ -59,6 +63,9 @@ import static org.bitcoinj.script.ScriptOpCodes.*;
  */
 public class UtxoTrieMgr
 {
+
+  public static final int UTXO_WORKER_THREADS = 12;
+
   // A key is 20 bytes of public key, 32 bytes of transaction id and 4 bytes of output index
   public static final int ADDR_SPACE = 56;
   public static boolean DEBUG=false;
@@ -93,6 +100,9 @@ public class UtxoTrieMgr
   private boolean enabled=true;
   private LRUCache<Sha256Hash, Sha256Hash> root_hash_cache = new LRUCache<>(256);
 
+  private final Semaphore cache_sem = new Semaphore(0);
+
+  private ThreadPoolExecutor worker_exec;
 
   public UtxoTrieMgr(Jelectrum jelly)
     throws java.io.FileNotFoundException
@@ -107,6 +117,14 @@ public class UtxoTrieMgr
       return;
     }
 
+    worker_exec = new ThreadPoolExecutor(
+      UTXO_WORKER_THREADS, 
+      UTXO_WORKER_THREADS, 
+      2, TimeUnit.DAYS,
+      new LinkedBlockingQueue<Runnable>(),
+      new DaemonThreadFactory());
+
+
     db_map = jelly.getDB().getUtxoTrieMap();
 
     if (jelly.getConfig().isSet("utxo_reset") && jelly.getConfig().getBoolean("utxo_reset"))
@@ -119,6 +137,7 @@ public class UtxoTrieMgr
     {
       debug_out = new PrintStream(new FileOutputStream("utxo-debug.log"));
     }
+
   }
 
   public void setTxUtil(TXUtil tx_util)
@@ -212,11 +231,78 @@ public class UtxoTrieMgr
 
   public synchronized void addBlock(Block b)
   {
+    long t1 = System.nanoTime();
+    LinkedList<String> keys_to_add = new LinkedList<String>();
+    LinkedList<String> keys_to_remove = new LinkedList<String>();
     for(Transaction tx : b.getTransactions())
     {
-      addTransaction(tx);
+      long t2 = System.nanoTime();
+      addTransactionKeys(tx, keys_to_add, keys_to_remove);
+      TimeRecord.record(t2, "utxo_get_tx_keys");
     }
+
+    LinkedList<String> all_keys = new LinkedList<String>();
+    all_keys.addAll(keys_to_add);
+    all_keys.addAll(keys_to_remove);
+
+    final UtxoTrieMgr mgr = this;
+
+    long t1_cache = System.nanoTime();
+
+    for(final String key : all_keys)
+    {
+      worker_exec.execute(
+        new Runnable()
+        {
+          public void run()
+          {
+            try
+            {
+              long t2 = System.nanoTime();
+              getByKey("").cacheNodes(key, mgr);
+              TimeRecord.record(t2, "utxo_cache_nodes");
+            }
+            catch(Throwable t)
+            {
+              t.printStackTrace();
+            }
+            finally
+            {
+              cache_sem.release(1);
+            }
+
+
+          }
+        }
+      );
+    }
+
+    try
+    {
+      cache_sem.acquire(all_keys.size());
+    }
+    catch(InterruptedException e)
+    {
+      throw new RuntimeException(e);
+    }
+    TimeRecord.record(t1_cache, "utxo_cache_walltime");
+
+    for(String key : keys_to_add)
+    {
+      long t2 = System.nanoTime();
+      getByKey("").addHash(key, this);
+      TimeRecord.record(t2, "utxo_add_hash");
+    }
+    for(String key : keys_to_remove)
+    {
+      long t2 = System.nanoTime();
+      getByKey("").removeHash(key, this);
+      TimeRecord.record(t2, "utxo_remove_hash");
+    }
+    long t2 = System.nanoTime();
     last_added_block_hash = b.getHash();
+    TimeRecord.record(t2, "utxo_gethash");
+    TimeRecord.record(t1, "utxo_add_block");
 
   }
 
@@ -310,18 +396,23 @@ public class UtxoTrieMgr
 
   public void putSaveSet(String prefix, UtxoTrieNode node)
   {
-    node_map.put(prefix, node);
+    synchronized(node_map)
+    {
+      node_map.put(prefix, node);
+    }
   }
 
   public UtxoTrieNode getByKey(String prefix)
   {
-    UtxoTrieNode n = node_map.get(prefix);
-    if (n != null) return n;
+    UtxoTrieNode n = null;
+    synchronized(node_map)
+    {
+      n = node_map.get(prefix);
+      if (n != null) return n;
+    }
 
     n = db_map.get(prefix);
     if (n != null) return n;
-
-
 
     jelly.getEventLog().alarm("UTXO node missing: ." + prefix + ".");
 
@@ -337,19 +428,29 @@ public class UtxoTrieMgr
 
   }
 
-  private void addTransaction(Transaction tx)
+  private void addTransactionKeys(Transaction tx, LinkedList<String> keys_to_add, LinkedList<String> keys_to_remove)
   {
     
     int idx=0;
     for(TransactionOutput tx_out : tx.getOutputs())
     {
+      long t1 = System.nanoTime();
       String key = getKeyForOutput(tx_out, idx);
-      if (DEBUG) debug_out.println("Adding key: " + key);
+      TimeRecord.record(t1, "utxo_get_key_for_output");
       if (key != null)
       {
-        getByKey("").addHash(key, this);
-
+        keys_to_add.add(key);
       }
+
+
+      /*if (DEBUG) debug_out.println("Adding key: " + key);
+      if (key != null)
+      {
+        long t2 = System.nanoTime();
+        getByKey("").addHash(key, this);
+        TimeRecord.record(t2, "utxo_addhash");
+
+      }*/
       idx++;
     }
 
@@ -357,10 +458,16 @@ public class UtxoTrieMgr
     {
       if (!tx_in.isCoinBase())
       {
+        long t1 = System.nanoTime();
         String key = getKeyForInput(tx_in);
+        TimeRecord.record(t1, "utxo_get_key_for_input");
+
         if (key != null)
         {
+          keys_to_remove.add(key);
+          /*long t2 = System.nanoTime();
           getByKey("").removeHash(key, this);
+          TimeRecord.record(t2, "utxo_removehash");*/
         }
       }
     }
@@ -729,9 +836,6 @@ public class UtxoTrieMgr
         while(catchup()){}
         waitForBlocks();
       }
-      
-      
-
 
     }
     private void recover()
@@ -881,10 +985,6 @@ public class UtxoTrieMgr
 
       return false;
 
-
-      
-      
-
     }
 
     private void rollback()
@@ -923,13 +1023,11 @@ public class UtxoTrieMgr
         catch(InterruptedException e){}
       }
 
-
     }
-
 
   }
 
-  private LinkedBlockingQueue<UtxoCheckEntry> check_queue = new LinkedBlockingQueue<UtxoCheckEntry>(8);
+  private LinkedBlockingQueue<UtxoCheckEntry> check_queue = new LinkedBlockingQueue<UtxoCheckEntry>(4);
 
   public class UtxoCheckEntry
   {
@@ -979,8 +1077,6 @@ public class UtxoTrieMgr
           String line = scan.nextLine();
           scan.close();
 
-
-
           StringTokenizer stok = new StringTokenizer(line, ",");
           String root_str = stok.nextToken();
           if (!root_str.equals("undetermined"))
@@ -1012,7 +1108,6 @@ public class UtxoTrieMgr
 
       }
 
-
     }
 
   }
@@ -1023,15 +1118,12 @@ public class UtxoTrieMgr
     String config_path = args[0];
     Jelectrum jelly = new Jelectrum(new Config(config_path));
 
-
     int block_number = Integer.parseInt(args[1]);
     
     Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(block_number);
     System.out.println("Block hash: " + block_hash);
     Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
     System.out.println("Inspecting " + block_number + " - " + block_hash);
-
-
 
     int tx_count =0;
     int out_count =0;
@@ -1068,10 +1160,6 @@ public class UtxoTrieMgr
           System.out.println("  Electrum:  " + ele_key);
 
         }
-
-
-
-
 
         out_count++;
         idx++;

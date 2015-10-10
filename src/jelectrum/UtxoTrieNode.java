@@ -240,6 +240,24 @@ public class UtxoTrieNode implements java.io.Serializable
 
   }
 
+  public void cacheNodes(String key, UtxoTrieMgr mgr)
+  {
+    mgr.putSaveSet(prefix, this);
+
+    for(String sub : springs.keySet())
+    {
+      String name = prefix+sub;
+      if (key.startsWith(name))
+      {
+        if (name.length() < UtxoTrieMgr.ADDR_SPACE*2)
+        {
+          UtxoTrieNode n = mgr.getByKey(name);
+          n.cacheNodes(key, mgr);
+        }
+      }
+    }
+  }
+
 
   public void addHash(String key, UtxoTrieMgr mgr)
   {
@@ -251,6 +269,7 @@ public class UtxoTrieNode implements java.io.Serializable
     //Example:
     // If this node is "abc7" and we are adding "abc7f8f8fe"
     // Then next will be "f8f8fe"
+    Assert.assertTrue(key.startsWith(prefix));
     String next = key.substring(prefix.length());
 
 

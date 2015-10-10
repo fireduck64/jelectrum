@@ -57,6 +57,8 @@ public class LevelNetClient
 
     conns = new LinkedBlockingQueue<LevelConnection>();
 
+    new MaintThread().start();
+
   }
 
   private LevelConnection getConnection()
@@ -230,13 +232,11 @@ public class LevelNetClient
     public LevelConnection()
       throws java.io.IOException
     {
-
       try
       {
         sock = new Socket(host, port);
         sock.setTcpNoDelay(true);
         sock.setSoTimeout(SOCKET_TIMEOUT);
-
 
         d_in = new DataInputStream(sock.getInputStream());
       }
@@ -245,7 +245,6 @@ public class LevelNetClient
         throw new RuntimeException(e);
       }
     }
-
 
     private Socket sock;
     private DataInputStream d_in;
@@ -258,7 +257,6 @@ public class LevelNetClient
       }
       catch(Throwable t){}
     }
-
 
     public ByteString get(String key)
       throws java.io.IOException
@@ -279,6 +277,19 @@ public class LevelNetClient
       return readBytes();
     }
 
+    public void ping()
+      throws java.io.IOException
+    {
+      byte cmd[]=new byte[2];
+      cmd[0]=5;
+      cmd[1]=0;
+
+      sock.getOutputStream().write(cmd, 0, 2);
+
+      int status = readInt();
+      if (status != RESULT_GOOD) throw new java.io.IOException("Bad result: " + status);
+
+    }
 
     public void put(String key, ByteString value)
       throws java.io.IOException
@@ -423,6 +434,78 @@ public class LevelNetClient
       writeInt(bb.size());
       bb.writeTo(sock.getOutputStream());
     }
+
+  }
+
+
+  public class MaintThread extends Thread
+  {
+    public MaintThread()
+    {
+      setName("LevelNetClient/MaintThread");
+      setDaemon(true);
+
+    }
+
+    public void run()
+    {
+      while(true)
+      {
+        try
+        {
+          Thread.sleep(30000);
+          int open = conns.size();
+          log.log("Levelnetclient: checking " + open + " connections");
+
+          for(int i=0; i<open; i++)
+          {
+            LevelConnection conn = null;
+            conn = conns.poll();
+            if (conn != null)
+            {
+              try
+              {
+                conn.ping();
+                returnConnection(conn);
+                //log.log("Levelnetclient: ping ok");
+              }
+              catch(java.io.IOException e)
+              {
+                log.log("Levelnetclient: exception: " + e);
+                trashConnection(conn);
+              }
+            }
+          }
+          while(open_sem.tryAcquire())
+          {
+            try
+            {
+              LevelConnection conn = null;
+              conn = new LevelConnection();
+              returnConnection(conn);
+            }
+            catch(Throwable t)
+            {
+              log.log("Levelnetclient: " + t);
+              open_sem.release(1);
+            }
+
+          }
+
+
+        }
+        catch(Throwable t)
+        {
+          log.log("LevelNetClient/MaintThread - " + t);
+        }
+
+
+      }
+
+
+
+    }
+
 
   }
 
