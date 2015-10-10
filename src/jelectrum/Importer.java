@@ -497,10 +497,10 @@ public class Importer
 
 
 
-          t1 = System.nanoTime();
+          /*t1 = System.nanoTime();
           ctx.setStatus("TX_SAVEALL");
           file_db.getTransactionMap().putAll(txs_map);
-          TimeRecord.record(t1, "block_tx_save");
+          TimeRecord.record(t1, "block_tx_save");*/
 
           t1 = System.nanoTime();
           ctx.setStatus("BLOCK_TX_MAP_ADD");

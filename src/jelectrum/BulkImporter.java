@@ -206,9 +206,9 @@ public class BulkImporter
 
       //jelly.getEventLog().alarm("TX Save... " + txs_map.size());
       //This way the transactions will be availible if needed
-      long t1_txput = System.nanoTime();
-      jelly.getDB().getTransactionMap().putAll(txs_map);
-      TimeRecord.record(t1_txput, "bulk_tx_put");
+      //long t1_txput = System.nanoTime();
+      //jelly.getDB().getTransactionMap().putAll(txs_map);
+      //TimeRecord.record(t1_txput, "bulk_tx_put");
       
       //jelly.getEventLog().alarm("Get Addresses...");
       long t1_txinfo = System.nanoTime();

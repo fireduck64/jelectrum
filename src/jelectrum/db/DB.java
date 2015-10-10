@@ -162,7 +162,33 @@ public abstract class DB implements DBFace
 
     public SerializedTransaction getTransaction(Sha256Hash hash)
     {
-      return getTransactionMap().get(hash);
+      SerializedTransaction stx = getTransactionMap().get(hash);
+      if (stx != null) return stx;
+
+      //ok lets try to get it via block
+      Set<Sha256Hash> block_hash_set = getTxToBlockMap(hash);
+      if (block_hash_set == null) return null;
+
+      for(Sha256Hash block_hash : block_hash_set)
+      {
+        SerializedBlock sb = getBlockMap().get(block_hash);
+        if (sb != null)
+        {
+          Block b = sb.getBlock(network_params);
+
+          for(Transaction tx : b.getTransactions())
+          {
+            if (tx.getHash().equals(hash))
+            {
+              return new SerializedTransaction(tx);
+            }
+          }
+
+        }
+ 
+      }
+
+      return null;
     }
 
     public TransactionSummary getTransactionSummary(Sha256Hash hash)
