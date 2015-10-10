@@ -12,6 +12,7 @@ import jelectrum.db.lmdb.LMDB;
 import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.level.LevelDB;
 import jelectrum.db.memory.MemoryDB;
+import jelectrum.db.slopbucket.SlopbucketDB;
 import jelectrum.Config;
 import jelectrum.EventLog;
 import org.bitcoinj.core.Sha256Hash;
@@ -56,6 +57,17 @@ public class DBTest
     testDB(db);
 
   }
+  @Test
+  public void testSlopbucket() throws Exception
+  {
+    Config conf = new Config("jelly-test.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new SlopbucketDB(conf, log);
+    testDB(db);
+
+  }
+
 
   @Test
   public void testLevelDB() throws Exception

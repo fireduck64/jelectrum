@@ -163,6 +163,9 @@ public class BulkImporter
   {
     LinkedList<Block> ordered_block_list = new LinkedList<>();
 
+    TimeRecord time_rec = new TimeRecord();
+    TimeRecord.setSharedRecord(time_rec);
+
     if (jelly.getDB().needsDetails())
     {
       Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<>();
@@ -171,8 +174,6 @@ public class BulkImporter
       Map<Sha256Hash, SerializedBlock> block_map = new HashMap<>();
       Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<>();
       Collection<Map.Entry<Sha256Hash, Sha256Hash> > blockTxLst = new LinkedList<>();
- 
-      jelly.getEventLog().alarm("Block Map...");
 
       for(Blockrepo.BitcoinBlock bblk : pack.getBlocksList())
       {
@@ -189,7 +190,6 @@ public class BulkImporter
 
       }
 
-      jelly.getEventLog().alarm("TX Map...");
       for(Block blk : ordered_block_list)
       {
         Sha256Hash blk_hash = blk.getHash();
@@ -206,10 +206,12 @@ public class BulkImporter
 
       //jelly.getEventLog().alarm("TX Save... " + txs_map.size());
       //This way the transactions will be availible if needed
+      long t1_txput = System.nanoTime();
       jelly.getDB().getTransactionMap().putAll(txs_map);
-
+      TimeRecord.record(t1_txput, "bulk_tx_put");
       
       //jelly.getEventLog().alarm("Get Addresses...");
+      long t1_txinfo = System.nanoTime();
       for(Transaction tx : tx_map.values())
       {
         Collection<String> addrs = tx_util.getAllAddresses(tx, true, tx_map);
@@ -218,13 +220,19 @@ public class BulkImporter
           addrTxLst.add(new SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
         }      
       }
+      TimeRecord.record(t1_txinfo, "bulk_tx_all_addresses");
 
       
       //jelly.getEventLog().alarm("Save addresses... " + addrTxLst.size());
       // Add transaction mappings
+      long t1_addr_to_tx = System.nanoTime();
       jelly.getDB().addAddressesToTxMap(addrTxLst);
+      TimeRecord.record(t1_addr_to_tx, "bulk_addr_to_tx_save");
       //jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
+
+      long t1_tx_to_block = System.nanoTime();
       jelly.getDB().addTxsToBlockMap(blockTxLst);
+      TimeRecord.record(t1_tx_to_block, "bulk_tx_to_block_save");
 
       
       //Save block headers
@@ -240,6 +248,7 @@ public class BulkImporter
       jelly.getUtxoTrieMgr().start();
       jelly.getUtxoTrieMgr().notifyBlock(false,null);
 
+      //time_rec.printReport(System.out);
       return tx_map.size() + block_map.size() + ordered_block_list.size() + blockTxLst.size() + addrTxLst.size();
     }
     else
@@ -247,8 +256,6 @@ public class BulkImporter
       Map<Sha256Hash, SerializedBlock> block_map = new HashMap<>();
 
       long tx_count = 0;
-      TimeRecord time_rec = new TimeRecord();
-      TimeRecord.setSharedRecord(time_rec);
       long t1;
       long t2;
       for(Blockrepo.BitcoinBlock bblk : pack.getBlocksList())
@@ -290,7 +297,7 @@ public class BulkImporter
       jelly.getUtxoTrieMgr().start();
       jelly.getUtxoTrieMgr().notifyBlock(false,null);
 
-      time_rec.printReport(System.out);
+      //time_rec.printReport(System.out);
 
       return tx_count;
     }

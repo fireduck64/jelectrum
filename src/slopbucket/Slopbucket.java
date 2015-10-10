@@ -10,6 +10,10 @@ import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
+import java.nio.ByteBuffer;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import com.google.protobuf.ByteString;
 import org.junit.Assert;
@@ -19,7 +23,6 @@ public class Slopbucket
   private EventLog log;
   private static final long SEGMENT_FILE_SIZE=Integer.MAX_VALUE;
   
-  public static final long MAGIC_LOCATION_ZERO=Long.MAX_VALUE;
   public static final int MAX_TROUGHS=64;
   public static final int MAX_TROUGH_NAME_LEN=64;
 
@@ -33,7 +36,7 @@ public class Slopbucket
   private static final int LOCATION_HASH_NEXT=LOCATION_HASH_ITEMS+4;
   private static final int LOCATION_HASH_START=LOCATION_HASH_NEXT+8;
  
-  private static final int HASH_INITAL_SIZE=1024*1024;
+  private static final int HASH_INITAL_SIZE=64*1024;
   private static final int HASH_MULTIPLCATION=16;
   private static final double HASH_FULL=0.5;
   
@@ -111,7 +114,6 @@ public class Slopbucket
         {
           map.put("__FREE", i);
         }
-
       }
     }
     return map;
@@ -192,7 +194,6 @@ public class Slopbucket
 
   protected long allocateSpace(int size)
   {
-    if (size==0) return MAGIC_LOCATION_ZERO;
 
     synchronized(ptr_lock)
     {
@@ -253,10 +254,47 @@ public class Slopbucket
   public synchronized ByteString getKeyValue(String trough_name, ByteString key)
   {
     long pos = getTroughPtr(trough_name);
-    return getKeyValueTable(pos, key);
+    long data_location = getKeyValueTable(pos, key);
+    if (data_location >= 0) return getValue(data_location);
+    return null;
   }
 
-  protected ByteString getKeyValueTable(long table_pos, ByteString key)
+  public synchronized void addListEntry(String trough_name, ByteString key, ByteString value)
+  {
+    long trough_pos = getTroughPtr(trough_name);
+    long prev_location = getKeyValueTable(trough_pos, key);
+
+    byte[] new_data_buff = new byte[8 + value.size()];
+
+    ByteBuffer bb = ByteBuffer.wrap(new_data_buff);
+    bb.putLong(prev_location);
+    value.copyTo(new_data_buff, 8);
+    ByteString new_data = ByteString.copyFrom(new_data_buff);
+
+    putKeyValueTable(trough_pos, key, new_data);
+    
+  }
+  public synchronized Set<ByteString> getList(String trough_name, ByteString key)
+  {
+    long trough_pos = getTroughPtr(trough_name);
+    long location = getKeyValueTable(trough_pos, key);
+
+    HashSet<ByteString> set = new HashSet<ByteString>();
+    while(location >= 0)
+    {
+      ByteString val_obj = getValue(location);
+
+      ByteString val = val_obj.substring(8);
+      set.add(val);
+      
+      location = val_obj.asReadOnlyByteBuffer().getLong();
+
+
+    }
+    return set;
+  }
+
+  protected long getKeyValueTable(long table_pos, ByteString key)
   {
     int hash_file = (int) (table_pos / SEGMENT_FILE_SIZE);
     MappedByteBuffer hash_mbb = getBufferMap(hash_file);
@@ -293,7 +331,8 @@ public class Slopbucket
 
         if ((ptr != 0) && (getKey(ptr).equals(key)))
         {
-          return getValue(ptr);
+          return ptr;
+          //return getValue(ptr);
         }
         if (ptr == 0)
         {
@@ -303,7 +342,7 @@ public class Slopbucket
           }
           else
           {
-            return null;
+            return -1;
           }
         }
       }
@@ -400,6 +439,8 @@ public class Slopbucket
       mbb.put(value.toByteArray());
     }
   }
+
+
   protected ByteString getKey(long data_loc)
   {
     //System.out.println("data loc: " + data_loc);

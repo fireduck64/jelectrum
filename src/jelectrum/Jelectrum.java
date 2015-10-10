@@ -80,6 +80,10 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.level.LevelDB(event_log, config);
         }
+        else if (db_type.equals("slopbucket"))
+        {
+          jelectrum_db = new jelectrum.db.slopbucket.SlopbucketDB(config, event_log);
+        }
         else if (db_type.equals("lobstack"))
         {
           jelectrum_db = new jelectrum.db.lobstack.LobstackDB(this, config);

@@ -1,4 +1,3 @@
-
 package lobstack;
 
 import java.util.zip.Deflater;
@@ -7,7 +6,6 @@ import java.util.zip.Inflater;
 import java.io.ByteArrayOutputStream;
 
 import org.junit.Assert;
-
 
 public class ZUtil
 {
@@ -63,7 +61,6 @@ public class ZUtil
         int r = inf.inflate(buff);
         if (r ==0) break;
         b_out.write(buff,0,r);
-
       }
       inf.reset();
 

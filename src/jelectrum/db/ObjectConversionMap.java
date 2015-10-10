@@ -157,13 +157,17 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
   { 
     try
     {
+      long t1 = System.nanoTime();
       Map<String, ByteString> write_map = new HashMap<String, ByteString>(m.size()*2, 0.75f);
 
       for(Map.Entry<? extends K,? extends V> me : m.entrySet())
       {
         write_map.put(me.getKey().toString(), convertV(me.getValue()));
       }
+      TimeRecord.record(t1, "db_put_convert");
+      long t1_put = System.nanoTime();
       inner.putAll(write_map);
+      TimeRecord.record(t1_put,"db_put_inner");
     }
     catch(java.io.IOException e){throw new RuntimeException(e);}
 

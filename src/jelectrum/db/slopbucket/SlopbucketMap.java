@@ -6,6 +6,7 @@ import java.util.Map;
 import jelectrum.db.DBMap;
 
 import slopbucket.Slopbucket;
+import java.util.concurrent.Semaphore;
 
 public class SlopbucketMap extends DBMap
 {
@@ -18,12 +19,6 @@ public class SlopbucketMap extends DBMap
     this.slop_db = slop_db;
     this.name = name;
   }
-  public SlopbucketMap(Slopbucket slop, String name)
-  {
-    this.slop_fixed = slop;
-    this.name = name;
-  }
-
 
   public ByteString get(String key)
   {
@@ -43,6 +38,39 @@ public class SlopbucketMap extends DBMap
     if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
 
     slop.putKeyValue(name, key_bytes, value);
+  }
+
+  @Override
+  public void putAll(Map<String, ByteString> m)
+  {
+    final Semaphore sem = new Semaphore(0);
+    int count = 0;
+    for(Map.Entry<String, ByteString> me : m.entrySet())
+    {
+      final String key = me.getKey();
+      final ByteString value = me.getValue();
+
+      slop_db.getExec().execute(
+        new Runnable()
+        {
+          public void run()
+          {
+            put(key, value);
+            sem.release(1);
+          }
+
+        }
+        );
+      count++;
+    }
+    try
+    {
+      sem.acquire(count);
+    }
+    catch(InterruptedException e)
+    {
+      throw new RuntimeException(e);
+    }
 
   }
 
