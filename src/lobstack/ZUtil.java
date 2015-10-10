@@ -5,6 +5,8 @@ import java.util.zip.Inflater;
 
 import java.io.ByteArrayOutputStream;
 
+import com.google.protobuf.ByteString;
+
 import org.junit.Assert;
 
 public class ZUtil
@@ -39,6 +41,15 @@ public class ZUtil
     return buff;
   }
 
+  public static ByteString compress(ByteString in)
+  {
+    return ByteString.copyFrom( compress(in.toByteArray()));
+  }
+
+  public static ByteString decompress(ByteString in)
+  {
+    return ByteString.copyFrom( decompress(in.toByteArray()));
+  }
   public static byte[] decompress(byte[] in)
   {
     try

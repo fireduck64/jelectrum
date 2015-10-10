@@ -28,11 +28,6 @@ public class SlopbucketMapSet extends DBMapSet
     this.slop_db = slop_db;
     this.name = name;
   }
-  public SlopbucketMapSet(Slopbucket slop, String name)
-  {
-    this.slop_fixed = slop;
-    this.name = name;
-  }
 
 
   public void add(String key, Sha256Hash hash)

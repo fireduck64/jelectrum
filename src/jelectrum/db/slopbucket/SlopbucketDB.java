@@ -25,6 +25,7 @@ public class SlopbucketDB extends DB
   private static final int SLOP_COUNT=16;
 
   private ThreadPoolExecutor exec;
+  private EventLog log;
 
 
   private ArrayList<Slopbucket> slops;
@@ -33,6 +34,7 @@ public class SlopbucketDB extends DB
     throws Exception
   {
     super(conf);
+    this.log = log;
 
     conf.require("slopbucket_path");
 
@@ -69,7 +71,9 @@ public class SlopbucketDB extends DB
     {
       slop.addTrough(name);
     }
-    return new SlopbucketMap(this, name);
+    boolean comp = false;
+    if (name.equals("block_map")) comp=true;
+    return new SlopbucketMap(this, name, comp);
   }
 
   protected DBMapSet openMapSet(String name) throws Exception
@@ -87,6 +91,8 @@ public class SlopbucketDB extends DB
     if (h < 0) h = 0;
     return slops.get(h);
   }
+
+  protected EventLog getLog() { return log;}
 
 
 }

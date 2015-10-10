@@ -6,6 +6,7 @@ import java.util.Map;
 import jelectrum.db.DBMap;
 
 import slopbucket.Slopbucket;
+import lobstack.ZUtil;
 import java.util.concurrent.Semaphore;
 
 public class SlopbucketMap extends DBMap
@@ -13,11 +14,17 @@ public class SlopbucketMap extends DBMap
   private SlopbucketDB slop_db;
   private String name;
   private Slopbucket slop_fixed;
+  private boolean compressed;
 
   public SlopbucketMap(SlopbucketDB slop_db, String name)
   {
+    this(slop_db, name, false);
+  }
+  public SlopbucketMap(SlopbucketDB slop_db, String name, boolean compressed)
+  {
     this.slop_db = slop_db;
     this.name = name;
+    this.compressed = compressed;
   }
 
   public ByteString get(String key)
@@ -27,7 +34,13 @@ public class SlopbucketMap extends DBMap
     Slopbucket slop = slop_fixed;
     if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
 
-    return slop.getKeyValue(name, key_bytes);
+    ByteString value = slop.getKeyValue(name, key_bytes);
+    if (value == null) return null;
+    if (compressed)
+    {
+      value = ZUtil.decompress(value);
+    }
+    return value;
 
   }
   public void put(String key, ByteString value)
@@ -36,6 +49,15 @@ public class SlopbucketMap extends DBMap
     
     Slopbucket slop = slop_fixed;
     if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
+
+    if (compressed)
+    {
+      //double old_sz = value.size();
+      value = ZUtil.compress(value);
+      //double new_sz = value.size();
+      //double percent = new_sz / old_sz;
+      //slop_db.getLog().log("Compressed: " + key + " " + old_sz + " " + new_sz + " " + percent);
+    }
 
     slop.putKeyValue(name, key_bytes, value);
   }
