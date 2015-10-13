@@ -227,7 +227,7 @@ public class BulkImporter
       // Add transaction mappings
       long t1_addr_to_tx = System.nanoTime();
       jelly.getDB().addAddressesToTxMap(addrTxLst);
-      TimeRecord.record(t1_addr_to_tx, "bulk_addr_to_tx_save");
+      TimeRecord.record(t1_addr_to_tx, "bulk_addr_to_tx_save", addrTxLst.size());
       //jelly.getEventLog().alarm("Save tx block map... " + blockTxLst.size());
 
       long t1_tx_to_block = System.nanoTime();
@@ -248,7 +248,7 @@ public class BulkImporter
       jelly.getUtxoTrieMgr().start();
       jelly.getUtxoTrieMgr().notifyBlock(false,null);
 
-      //time_rec.printReport(System.out);
+      time_rec.printReport(System.out);
       return tx_map.size() + block_map.size() + ordered_block_list.size() + blockTxLst.size() + addrTxLst.size();
     }
     else

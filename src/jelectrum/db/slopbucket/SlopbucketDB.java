@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class SlopbucketDB extends DB
 {
 
-  private static final int SLOP_COUNT=16;
+  private static final int SLOP_COUNT=64;
 
   private ThreadPoolExecutor exec;
   private EventLog log;
@@ -53,8 +53,8 @@ public class SlopbucketDB extends DB
     }
 
     exec = new ThreadPoolExecutor(
-      SLOP_COUNT*2,
-      SLOP_COUNT*2,
+      SLOP_COUNT,
+      SLOP_COUNT,
       2, TimeUnit.DAYS,
       new LinkedBlockingQueue<Runnable>(),
       new DaemonThreadFactory());
