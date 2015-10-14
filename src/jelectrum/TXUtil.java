@@ -134,6 +134,7 @@ public class TXUtil
             TransactionOutPoint out_p = in.getOutpoint();
 
             Transaction src_tx = null;
+            int fail_count =0;
             while(src_tx == null)
             {
               if (block_tx_map != null)
@@ -149,7 +150,15 @@ public class TXUtil
                   {   
                       return null;
                   }
-                  System.out.println("Unable to get source transaction: " + out_p.getHash());
+                  fail_count++;
+                  if (fail_count > 30)
+                  {
+                    System.out.println("Unable to get source transaction: " + out_p.getHash());
+                  }
+                  if (fail_count > 240)
+                  {
+                    throw new RuntimeException("Waited too long to get transaction: " + out_p.getHash());
+                  }
                   try{Thread.sleep(500);}catch(Exception e7){}
                 }
               }

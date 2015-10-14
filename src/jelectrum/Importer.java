@@ -20,6 +20,7 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.ScriptException;
 import org.bitcoinj.script.Script;
 import java.util.Collection;
@@ -27,6 +28,7 @@ import java.text.DecimalFormat;
 import java.util.concurrent.TimeUnit;
 import java.util.Random;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.TreeMap;
 import java.util.Map;
 import java.util.HashMap;
@@ -38,6 +40,8 @@ public class Importer
 {
     private LinkedBlockingQueue<Block> block_queue;
     private LinkedBlockingQueue<TransactionWork> tx_queue;
+    private LinkedBlockingQueue<Sha256Hash> needed_prev_blocks;
+
 
     private Jelectrum jelly;
     private TXUtil tx_util;
@@ -77,6 +81,8 @@ public class Importer
 
         block_queue = new LinkedBlockingQueue<Block>(8);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(512);
+        needed_prev_blocks = new LinkedBlockingQueue<>();
+
 
         in_progress = new LRUCache<Sha256Hash, Semaphore>(1024);
 
@@ -108,6 +114,7 @@ public class Importer
         new RateThread("1-minute", 60000L).start();
         new RateThread("5-minute", 60000L * 5L).start();
         new RateThread("1-hour", 60000L * 60L).start();
+        new PrevBlockChecker().start();
     }
 
 
@@ -149,7 +156,20 @@ public class Importer
     {
         try
         {
-            block_queue.put(b);
+          Sha256Hash hash = b.getHash();
+          needed_prev_blocks.offer(b.getPrevBlockHash());
+          int h = block_store.getHeight(hash);
+
+          synchronized(in_progress)
+          {
+            if (!in_progress.containsKey(hash))
+            {
+              in_progress.put(hash, new Semaphore(0));
+            }
+          }
+
+          jelly.getEventLog().log("Enqueing block: " + hash + " - " + h); 
+          block_queue.put(b);
         }
         catch(java.lang.InterruptedException e)
         {
@@ -548,9 +568,9 @@ public class Importer
         t1 = System.nanoTime();
         ctx.setStatus("BLOCK_WAIT_PREV");
         Sha256Hash prev_hash = block.getPrevBlockHash();
-        TimeRecord.record(t1, "block_wait_prev");
         
-        waitForBlockStored(prev_hash);
+        waitForBlockStored(prev_hash, h);
+        TimeRecord.record(t1, "block_wait_prev");
 
         //System.out.println("Block " + hash + " " + Util.measureSerialization(new SerializedBlock(block)));
 
@@ -597,40 +617,51 @@ public class Importer
 
     }
 
-    private void waitForBlockStored(Sha256Hash hash)
+    private void waitForBlockStored(Sha256Hash hash, int curr_block)
     {
         if (hash.toString().equals("0000000000000000000000000000000000000000000000000000000000000000")) return;
 
-        try
-        {
-            if( file_db.getBlockMap().containsKey(hash) ) return;
-        }
-        finally
+        while(true)
         {
 
-        }
+          if( file_db.getBlockMap().containsKey(hash) ) return;
 
-        
-        Semaphore block_wait_sem = null;
-        synchronized(in_progress)
-        {
-            block_wait_sem = in_progress.get(hash);
-            if (block_wait_sem == null)
+          
+          Semaphore block_wait_sem = null;
+          synchronized(in_progress)
+          {
+              block_wait_sem = in_progress.get(hash);
+          }
+
+          if (block_wait_sem != null)
+          {
+            jelly.getEventLog().log("Waiting for prev block: " + hash + " to save block " + curr_block);
+            try
             {
-                block_wait_sem = new Semaphore(0);
-                in_progress.put(hash,block_wait_sem);
+                //System.out.println("Waiting for " + hash);
+                block_wait_sem.acquire(1);
+                return;
+                    
             }
-        }
+            catch(java.lang.InterruptedException e)
+            {
+                throw new RuntimeException(e);
+            }
+          }
+          else
+          {
+            jelly.getEventLog().log("Waiting for not started block: " + hash + " to save block " + curr_block);
+            try
+            {
+              Thread.sleep(5000);
+            }
+            catch(java.lang.InterruptedException e)
+            {
+              throw new RuntimeException(e);
+            }
 
-        try
-        {
-            //System.out.println("Waiting for " + hash);
-            block_wait_sem.acquire(1);
-                
-        }
-        catch(java.lang.InterruptedException e)
-        {
-            throw new RuntimeException(e);
+          }
+
         }
 
 
@@ -743,6 +774,96 @@ public class Importer
         return status_map.toString();
 
     }
+
+  public class PrevBlockChecker extends Thread
+  {
+
+    public PrevBlockChecker()
+    {
+      setName("importer/prevblockchecker");
+      setDaemon(true);
+    }
+
+    public void run()
+    {
+      while(true)
+      {
+        try
+        {
+          Sha256Hash hash = needed_prev_blocks.take();
+          checkHash(hash);
+
+          
+
+
+
+        }
+        catch(Throwable t)
+        {
+          jelly.getEventLog().alarm("PrevBlockChecker: " + t);
+        }
+      
+
+      }
+
+    }
+
+    private void checkHash(Sha256Hash hash)
+    {
+      if (file_db.getBlockMap().containsKey(hash))
+      {
+        return;
+      }
+      synchronized(in_progress)
+      {
+        if (in_progress.containsKey(hash))
+        {
+          return;
+        }
+      }
+      jelly.getEventLog().alarm("Block hash seems to be missing from download: " + hash);
+
+
+      while(true)
+      {
+        try
+        {
+          ArrayList<Peer> peers = new ArrayList<>();
+          peers.addAll(jelly.getPeerGroup().getConnectedPeers());
+          if (peers.size()==0)
+          {
+            throw new Exception("no peers to get block from");
+          }
+
+
+          Random rnd = new Random();
+          Peer peer = peers.get(rnd.nextInt(peers.size()));
+          jelly.getEventLog().log("Selected peer: " + peer);
+
+          //Tell that peer to give up the B
+          Block blk = peer.getBlock(hash).get(30, TimeUnit.SECONDS);
+
+          //Profit
+          putInternal(blk);
+          return;
+        }
+        catch(Exception e)
+        {
+          jelly.getEventLog().alarm("PrevBlockChecker: " + e);
+          try
+          {
+            sleep(15000);
+          }
+          catch(InterruptedException ie){throw new RuntimeException(ie);}
+          
+        }
+
+      }
+
+
+    }
+
+  }
 
 
 }

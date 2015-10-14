@@ -51,8 +51,8 @@ public class Jelectrum
 
         config.require("bitcoin_network_use_peers");
         config.require("db_type");
-        config.require("bitcoin_peer_host");
-        config.require("bitcoin_peer_port");
+        //config.require("bitcoin_peer_host");
+        //config.require("bitcoin_peer_port");
 
         event_log = new EventLog(config);
 
@@ -161,8 +161,18 @@ public class Jelectrum
 
         peer_group = new PeerGroup(network_params, block_chain);
 
-        peer_group.setMaxConnections(16);
-        peer_group.addAddress(new PeerAddress(InetAddress.getByName(config.get("bitcoin_peer_host")),config.getInt("bitcoin_peer_port")));
+        peer_group.setMaxPeersToDiscoverCount(256);
+        peer_group.setUseLocalhostPeerWhenPossible(false);
+
+        peer_group.setMaxConnections(60);
+        if (config.isSet("bitcoin_peer_host") && (config.isSet("bitcoin_peer_port")))
+        {
+          peer_group.addAddress(
+            new PeerAddress(
+              InetAddress.getByName(
+                config.get("bitcoin_peer_host")),
+                config.getInt("bitcoin_peer_port")));
+        }
 
         if (config.isSet("bitcoin_peer_list"))
         {
@@ -170,7 +180,6 @@ public class Jelectrum
           {
             event_log.log("Adding additional peer: " + peer);
             peer_group.addAddress(new PeerAddress(InetAddress.getByName(peer),8333));
-          
           }
         }
 
@@ -182,15 +191,29 @@ public class Jelectrum
         peer_group.addOnTransactionBroadcastListener(new ImportEventListener(importer));
         peer_group.setMinBroadcastConnections(1);
 
+        peer_group.waitForPeers(1);
+
         peer_group.start();
-        peer_group.downloadBlockChain();
-        //Thread.sleep(250);
+        Thread.sleep(2500);
+
         while (peer_group.numConnectedPeers() == 0)
         {
           event_log.alarm("No connected peers - can't get new blocks or transactions");
           Thread.sleep(5000);
         }
 
+        event_log.log("Connected peers: " + peer_group.getConnectedPeers().size());
+        for(Peer p : peer_group.getConnectedPeers())
+        {
+          event_log.log("Connected peer: " + p);
+        }
+        event_log.log("Pending peers: " + peer_group.getPendingPeers().size());
+        for(Peer p : peer_group.getPendingPeers())
+        {
+          event_log.log("Pending peer: " + p);
+        }
+
+        peer_group.downloadBlockChain();
 
         while(peer_group.getMostCommonChainHeight() > notifier.getHeadHeight())
         {

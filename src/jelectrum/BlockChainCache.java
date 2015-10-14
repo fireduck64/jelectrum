@@ -31,7 +31,7 @@ public class BlockChainCache
       throws org.bitcoinj.store.BlockStoreException
   {
     last_head = new_head.getHeader().getHash();
-    event_log.log("BlockChainCache: chain update, new head: " + new_head.getHeader().getHash() + " - " + new_head.getHeight());
+    //event_log.log("BlockChainCache: chain update, new head: " + new_head.getHeader().getHash() + " - " + new_head.getHeight());
 
     Sha256Hash genesis_hash = jelly.getNetworkParameters().getGenesisBlock().getHash();
 
@@ -60,7 +60,7 @@ public class BlockChainCache
       cur = cur.getPrev(store);
 
     }
-    if (to_write.size() > 0)
+    if (to_write.size() > 1)
     {
       event_log.log("BlockChainCache: adding " + to_write.size() + " to height map");
     }

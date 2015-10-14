@@ -960,6 +960,7 @@ public class UtxoTrieMgr
         int flush_mod = 1000;
         //After the blocks get bigger, flush more often
         if (block_height > 220000) flush_mod = 100;
+        if (block_height > 350000) flush_mod = 10;
         
         if (i % flush_mod == 0)
         {
