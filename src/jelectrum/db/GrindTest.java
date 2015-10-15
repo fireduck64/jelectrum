@@ -69,6 +69,11 @@ public class GrindTest
     {
       db = new SlopbucketDB(conf, log);
     }
+    if (name.equals("lmdbnet"))
+    {
+      conf = new Config("jelly-lmdbnet.conf");
+      db = new LevelDB(log, conf);
+    }
     log.log("Selected DB: " + name);
 
     db_map = db.openMap("grindtest");

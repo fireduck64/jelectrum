@@ -1,8 +1,5 @@
-#include <leveldb/db.h>
-#include <leveldb/slice.h>
-#include <leveldb/env.h>
-#include <leveldb/write_batch.h>
 
+#include <sys/stat.h>
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
@@ -15,6 +12,9 @@
 #include <time.h>
 #include <netinet/tcp.h>
 #include <list>
+#include <lmdb.h>
+#include <strings.h>
+#include <string.h>
 
 using namespace std;
 
@@ -22,9 +22,11 @@ static const int RESULT_GOOD = 1273252631;
 static const int RESULT_BAD = 9999;
 static const int RESULT_NOTFOUND = 133133;
 
+MDB_env *env;
+MDB_dbi dbi;
 
-leveldb::DB* db;
-leveldb::WriteOptions write_options;
+pthread_mutex_t db_lock;
+
 
 void error(const char *msg)
 {
@@ -69,7 +71,7 @@ int write_fully(int fd, const char* buffer, int len)
 /*
  * The data in the slice will need to be freed
  */ 
-int read_slice(int fd, leveldb::Slice &s)
+int read_slice(int fd, MDB_val &s)
 {
   int sz;
   if(read_fully(fd, (char*)&sz, sizeof(sz)) <= 0) return -1;
@@ -88,27 +90,26 @@ int read_slice(int fd, leveldb::Slice &s)
     }
   }
 
-  s = leveldb::Slice(data,sz);
+  s.mv_size = sz;
+  s.mv_data = data;
 
-  //delete data;
   return 0;
 }
 
-int write_slice(int fd, leveldb::Slice &s)
+int write_slice(int fd, MDB_val &s)
 {
-  int sz = htonl(s.size());
+  int sz = htonl(s.mv_size);
 
   if (write_fully(fd, (char*)&sz, sizeof(sz)) < 0) return -1;
-  if (write_fully(fd, s.data(), s.size()) < 0) return -1;
+  if (write_fully(fd, (const char*)s.mv_data, s.mv_size) < 0) return -1;
   return 0;
 }
 
-leveldb::Slice cloneSlice(leveldb::Slice a)
+bool startsWith(MDB_val prefix, MDB_val key)
 {
-  char* b = new char[a.size()];
-  memcpy(b, a.data(), a.size());
-
-  return leveldb::Slice(b, a.size());
+  if (key.mv_size < prefix.mv_size) return false;
+  
+  return (strncmp((char*)prefix.mv_data, (char*)key.mv_data, prefix.mv_size) == 0);
 }
 
 void* handle_connection(void* arg)
@@ -138,64 +139,89 @@ void* handle_connection(void* arg)
   //     [key_size][keydata][value_size][valuedata] (item times)
 
   bool problems=false;
+  string pr="";
 
   while(!problems)
   {
     char action[2];
 
-    if (read_fully(fd, action, 2) <= 0) { problems=true; break;}
+    if (read_fully(fd, action, 2) <= 0) { problems=true; pr="action_read"; break;}
 
     if (action[0] == 1)
     {
-      leveldb::Slice key;
-      if (read_slice(fd, key) < 0) { problems=true; break;}
-      string value;
-      leveldb::Status db_stat = db->Get(leveldb::ReadOptions(),key, &value);
+      MDB_val key;
+      if (read_slice(fd, key) < 0) { problems=true; pr="get_key_read"; break;}
 
-      delete []key.data();
+      //pthread_mutex_lock(&db_lock);
+
+      MDB_val value;
+
+      MDB_txn *txn;
+      mdb_txn_begin(env,NULL,MDB_RDONLY,&txn);
+      int get_return = mdb_get(txn, dbi, &key, &value);
+      mdb_txn_commit(txn);
+
+      //pthread_mutex_unlock(&db_lock);
 
       int status=RESULT_GOOD;
 
-      if (db_stat.IsNotFound())
+      if (get_return == 0)
+      {
+        status = RESULT_GOOD;
+      }
+      else if (get_return == MDB_NOTFOUND)
       {
         status=RESULT_NOTFOUND;
       }
+      else
+      {
+        cout << "DB get error: " << mdb_strerror(get_return) << endl;
+        problems=true;
+        pr="get_db_error";
+        status=RESULT_BAD;
+      }
+
       
       int net_status=htonl(status);
       write_fully(fd, (char*)&net_status, sizeof(net_status));
 
       if (status==RESULT_GOOD)
       {
-        leveldb::Slice s = leveldb::Slice(value);
-        if (write_slice(fd, s) < 0) { problems=true; break;}
+        if (write_slice(fd, value) < 0) { problems=true; pr="write_get_slice"; break;}
       }
 
+      delete[] (char*) key.mv_data;
       fsync(fd);
 
     }
     else if (action[0] == 2)
     {
-      leveldb::Slice key;
-      leveldb::Slice value;
+      MDB_val key;
+      MDB_val value;
 
-      if (read_slice(fd, key) < 0) { problems=true; break;}
-      if (read_slice(fd, value) < 0) { problems=true; break;}
+      if (read_slice(fd, key) < 0) { problems=true; pr="read_put_key"; break;}
+      if (read_slice(fd, value) < 0) { problems=true; pr="read_put_value"; break;}
 
-      leveldb::Status db_stat = db->Put(write_options,key, value);
+      MDB_txn *txn;
+      mdb_txn_begin(env,NULL,0,&txn);
+      int put_return = mdb_put(txn, dbi, &key, &value,0);
+      mdb_txn_commit(txn);
       
-      delete[] key.data();
-      delete[] value.data();
+      delete[] (char*) key.mv_data;
+      delete[] (char*) value.mv_data;
 
       int status=RESULT_BAD;
 
-      if (db_stat.ok())
+      if (put_return == 0)
       {
         status=RESULT_GOOD;
       }
       else
       {
-        cout << db_stat.ToString() << endl;
-        if (db_stat.IsCorruption() || db_stat.IsIOError()) exit(10);
+        cout << "DB put error: " << mdb_strerror(put_return) << endl;
+        problems=true;
+        pr="db_put_error";
+        status=RESULT_BAD;
       }
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
@@ -206,45 +232,39 @@ void* handle_connection(void* arg)
     else if (action[0] == 3)
     {
       int items;
-      if(read_fully(fd, (char*)&items, sizeof(items)) <= 0) { problems=true; break;}
+      if(read_fully(fd, (char*)&items, sizeof(items)) <= 0) { problems=true; pr="putall_read_item_count"; break;}
       items = ntohl(items);
 
-      leveldb::WriteBatch write_batch;
+      int status=RESULT_GOOD;
 
-      list<leveldb::Slice> slices;
-
+      MDB_txn *txn;
+      mdb_txn_begin(env,NULL,0,&txn);
       for(int i = 0; i<items; i++)
       {
-
-        leveldb::Slice key;
-        leveldb::Slice value;
+        MDB_val key;
+        MDB_val value;
 
         if (read_slice(fd, key) < 0) { problems=true; break;}
         if (read_slice(fd, value) < 0) { problems=true; break;}
 
-        write_batch.Put(key, value);
-        slices.push_back(key);
-        slices.push_back(value);
+        int put_return = mdb_put(txn, dbi, &key, &value,0);
+        
+        delete[] (char*) key.mv_data;
+        delete[] (char*) value.mv_data;
+        if (put_return != 0)
+        {
+          cout << "DB put error: " << mdb_strerror(put_return) << endl;
+          problems=true;
+          pr="db_put_error";
+          status=RESULT_BAD;
+          break;
+        }
+
       }
+
+      mdb_txn_commit(txn);
      
       if (problems) break;
-      leveldb::Status db_stat = db->Write(write_options, &write_batch);
-
-      int status=RESULT_BAD;
-      if (db_stat.ok())
-      {
-        status=RESULT_GOOD;
-      }
-      else
-      {
-        cout << db_stat.ToString() << endl;
-        if (db_stat.IsCorruption() || db_stat.IsIOError()) exit(10);
-      }
- 
-      for(list<leveldb::Slice>::iterator I = slices.begin(); I!=slices.end(); I++)
-      {
-        delete[] I->data();
-      }
 
       status=htonl(status);
       write_fully(fd, (char*)&status, sizeof(status));
@@ -253,23 +273,62 @@ void* handle_connection(void* arg)
     }
     else if (action[0] == 4)
     {
-      leveldb::Slice prefix;
+      MDB_val prefix;
 
       if (read_slice(fd, prefix) < 0) { problems=true; break;}
 
-      list<leveldb::Slice> slices;
-      slices.clear();
-
-      leveldb::Iterator* I = db->NewIterator(leveldb::ReadOptions());
-
       int items=0;
-      for(I->Seek(prefix); I->Valid() && I->key().starts_with(prefix) ;I->Next())
+
+      MDB_txn *txn;
+      MDB_cursor *cursor;
+
+      mdb_txn_begin(env,NULL,MDB_RDONLY,&txn);
+      mdb_cursor_open(txn,dbi,&cursor);
+
+      MDB_val key = prefix;
+      MDB_val value;
+
+      list<MDB_val> slices;
+      int ret = mdb_cursor_get(cursor, &key, &value, MDB_SET_RANGE);
+      if (ret == MDB_NOTFOUND)
       {
-      
-        slices.push_back(cloneSlice(I->key()));
-        slices.push_back(cloneSlice(I->value()));
-        items++;
       }
+      else if (ret != 0)
+      {
+        cout << "DB cursor error: " << mdb_strerror(ret) << endl;
+        problems=true;
+        pr="db_cursor_error";
+      }
+
+
+      if (ret == 0)
+      while(startsWith(prefix, key))
+      {
+        slices.push_back(key);
+        slices.push_back(value);
+        items++;
+ 
+        ret = mdb_cursor_get(cursor, &key, &value, MDB_NEXT);
+        if (ret == MDB_NOTFOUND)
+        {
+          break;
+        }
+        if (ret != 0)
+        {
+          cout << "DB cursor error: " << mdb_strerror(ret) << endl;
+          problems=true;
+          pr="db_cursor_error";
+          break;
+        }
+
+
+      }
+
+      mdb_cursor_close(cursor);
+      mdb_txn_abort(txn);
+
+      delete[] (char*) prefix.mv_data;
+
 
       int status=RESULT_GOOD;
       status=htonl(status);
@@ -278,16 +337,11 @@ void* handle_connection(void* arg)
       items=htonl(items);
       write_fully(fd, (char*)&items, sizeof(items));
 
-      for(list<leveldb::Slice>::iterator it = slices.begin(); it!=slices.end(); it++)
+      for(list<MDB_val>::iterator it = slices.begin(); it!=slices.end(); it++)
       {
-        leveldb::Slice s=*it;
-        if (write_slice(fd, s) < 0) { problems=true; break;}
-        delete[] s.data();
+        MDB_val s=*it;
+        if (write_slice(fd, s) < 0) { problems=true; pr="get_prefix_write_slice"; break;}
       }
-
-      delete[] prefix.data();
-      delete I;
-      
 
     }
     else if (action[0] == 5)
@@ -299,12 +353,15 @@ void* handle_connection(void* arg)
     else
     {
       problems=true;
+      pr="unexpected action: " + (int)action[0];
     }
 
   }
-  //cout << "Closing socket with problems" << endl;
+
+  cout << "closing socket with "<<  pr << endl;
   close(fd);
   return NULL;
+
 }
 
 int main(int argc, char* argv[])
@@ -319,18 +376,26 @@ int main(int argc, char* argv[])
   {
     port = atoi(argv[2]);
   }
+  cout << MDB_VERSION_STRING << endl;
 
-  cout << "LevelDB version " << leveldb::kMajorVersion << "." << leveldb::kMinorVersion << endl;
+  pthread_mutex_init(&db_lock, NULL);
+
+  mkdir(argv[1], 0775);
+
+  mdb_env_create(&env);
+  size_t k = 1024;
+  size_t max_size = k * k * k * k; //1 TB
+  mdb_env_set_mapsize(env, max_size);
+  mdb_env_open(env, argv[1], 0, 0644);
+
+  MDB_txn *txn;
+  mdb_txn_begin(env,NULL,0,&txn);
+  mdb_open(txn,NULL,0,&dbi);
+  mdb_txn_commit(txn);
+
+  //cout << "LevelDB version " << leveldb::kMajorVersion << "." << leveldb::kMinorVersion << endl;
 
   
-  leveldb::Options options;
-  options.create_if_missing = true;
-  leveldb::Status status = leveldb::DB::Open(options, argv[1], &db);
-  
-  //write_options.sync = true;
-
-  if (!status.ok()) cerr << status.ToString() << endl;
-
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in serv_addr;
   int yes=1;

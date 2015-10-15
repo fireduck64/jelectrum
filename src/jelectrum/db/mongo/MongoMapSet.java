@@ -78,16 +78,20 @@ public class MongoMapSet extends DBMapSet
         lst.add(new MongoEntry(me.getKey(), me.getValue().toString(), KEY));
       }
 
-      try
-      { 
+      if (lst.size() > 0)
+      {
 
-        collection.insert(lst, WriteConcern.ACKNOWLEDGED);
-      }
-      catch(com.mongodb.DuplicateKeyException e)
-      { 
-        for(MongoEntry entry : lst)
-        {
-          collection.save(entry, WriteConcern.ACKNOWLEDGED);
+        try
+        { 
+
+          collection.insert(lst, WriteConcern.ACKNOWLEDGED);
+        }
+        catch(com.mongodb.DuplicateKeyException e)
+        { 
+          for(MongoEntry entry : lst)
+          {
+            collection.save(entry, WriteConcern.ACKNOWLEDGED);
+          }
         }
       }
 

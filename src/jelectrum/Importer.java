@@ -828,6 +828,9 @@ public class Importer
       {
         try
         {
+
+          // Randomly pick a peer, probably drunk
+
           ArrayList<Peer> peers = new ArrayList<>();
           peers.addAll(jelly.getPeerGroup().getConnectedPeers());
           if (peers.size()==0)
@@ -836,14 +839,17 @@ public class Importer
           }
 
 
+
           Random rnd = new Random();
           Peer peer = peers.get(rnd.nextInt(peers.size()));
           jelly.getEventLog().log("Selected peer: " + peer);
 
-          //Tell that peer to give up the B
+          // Tell that peer to give up the B
           Block blk = peer.getBlock(hash).get(30, TimeUnit.SECONDS);
 
-          //Profit
+          // Profit
+          // Can't hand off to threads because the threads
+          // are probably all blocked waiting on this block or each other
           putInternal(blk);
           return;
         }

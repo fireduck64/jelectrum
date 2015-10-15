@@ -80,6 +80,17 @@ public class DBTest
 
   }
   @Test
+  public void testLmdbNet() throws Exception
+  {
+    Config conf = new Config("jelly-lmdbnet.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new LevelDB(log, conf);
+    testDB(db);
+
+  }
+ 
+  @Test
   public void testMemoryDB() throws Exception
   {
     Config conf = new Config("jelly-test.conf");
