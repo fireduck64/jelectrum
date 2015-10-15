@@ -15,6 +15,8 @@ import com.google.protobuf.ByteString;
 
 import slopbucket.Slopbucket;
 import java.util.concurrent.Semaphore;
+import jelectrum.db.DBTooManyResultsException;
+
 
 
 public class SlopbucketMapSet extends DBMapSet
@@ -42,7 +44,7 @@ public class SlopbucketMapSet extends DBMapSet
     slop.addListEntry(name, key_bytes, hash_bytes);
 
   }
-  public Set<Sha256Hash> getSet(String key)
+  public Set<Sha256Hash> getSet(String key, int max_results)
   {
     ByteString key_bytes = ByteString.copyFrom(key.getBytes());
 
@@ -53,10 +55,15 @@ public class SlopbucketMapSet extends DBMapSet
 
     Set<Sha256Hash> set = new HashSet<Sha256Hash>();
 
+    int count =0;
+
     for(ByteString bs : entries)
     {
       Sha256Hash h = new Sha256Hash(bs.toByteArray());
       set.add(h);
+      count ++;
+
+      if (count > max_results) throw new DBTooManyResultsException();
     }
 
     return set;

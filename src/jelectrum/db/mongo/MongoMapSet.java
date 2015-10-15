@@ -24,6 +24,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.BasicDBObject;
 import org.bitcoinj.core.Sha256Hash;
 import jelectrum.db.DBMapSet;
+import jelectrum.db.DBTooManyResultsException;
 
 public class MongoMapSet extends DBMapSet
 {
@@ -50,14 +51,19 @@ public class MongoMapSet extends DBMapSet
     }
 
 
-    public Set<Sha256Hash> getSet(String key)
+    public Set<Sha256Hash> getSet(String key, int max_results)
     {
         Set<Sha256Hash> ret = new HashSet<Sha256Hash>();
 
         DBCursor c = collection.find(new BasicDBObject(KEY, key));
+
+        int count =0;
+
         while(c.hasNext())
         {
           ret.add(new Sha256Hash( MongoEntry.getValueString(c.next())));
+          count++;
+          if (count > max_results) throw new DBTooManyResultsException();
         }
 
         return ret;

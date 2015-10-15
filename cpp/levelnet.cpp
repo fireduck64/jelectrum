@@ -21,6 +21,9 @@ using namespace std;
 static const int RESULT_GOOD = 1273252631;
 static const int RESULT_BAD = 9999;
 static const int RESULT_NOTFOUND = 133133;
+static const int RESULT_TOO_MANY = 28365921;
+
+static const char OP_MAX_RESULTS = 1;
 
 
 leveldb::DB* db;
@@ -129,6 +132,7 @@ void* handle_connection(void* arg)
   //        [items]
   //          [key_size][keydata][value_size][valuedata] (item times)
   //  4 - getprefix
+  //        (max_results) - only if OP_MAX_RESULTS is set
   //        [size][keydata]
   //  5 - ping
   // Returns for puts: int status code, 0 = no problems
@@ -253,6 +257,12 @@ void* handle_connection(void* arg)
     }
     else if (action[0] == 4)
     {
+      int max_results = 1000000000;
+      if (action[1] & OP_MAX_RESULTS)
+      {
+        if(read_fully(fd, (char*)&max_results, sizeof(max_results)) <= 0) { problems=true; break;}
+        max_results = ntohl(max_results);
+      }
       leveldb::Slice prefix;
 
       if (read_slice(fd, prefix) < 0) { problems=true; break;}
@@ -263,26 +273,44 @@ void* handle_connection(void* arg)
       leveldb::Iterator* I = db->NewIterator(leveldb::ReadOptions());
 
       int items=0;
+      int status=RESULT_GOOD;
       for(I->Seek(prefix); I->Valid() && I->key().starts_with(prefix) ;I->Next())
       {
       
         slices.push_back(cloneSlice(I->key()));
         slices.push_back(cloneSlice(I->value()));
         items++;
+        if (items > max_results)
+        {
+          status=RESULT_TOO_MANY;
+          break;
+        }
+
       }
 
-      int status=RESULT_GOOD;
-      status=htonl(status);
-      write_fully(fd, (char*)&status, sizeof(status));
+      if (status==RESULT_GOOD)
+      {
+        status=htonl(status);
+        write_fully(fd, (char*)&status, sizeof(status));
 
-      items=htonl(items);
-      write_fully(fd, (char*)&items, sizeof(items));
+        items=htonl(items);
+        write_fully(fd, (char*)&items, sizeof(items));
 
+        for(list<leveldb::Slice>::iterator it = slices.begin(); it!=slices.end(); it++)
+        {
+          leveldb::Slice s=*it;
+          if (write_slice(fd, s) < 0) { problems=true; break;}
+        }
+      }
+      else
+      {
+        status=htonl(status);
+        write_fully(fd, (char*)&status, sizeof(status));
+      }
       for(list<leveldb::Slice>::iterator it = slices.begin(); it!=slices.end(); it++)
       {
-        leveldb::Slice s=*it;
-        if (write_slice(fd, s) < 0) { problems=true; break;}
-        delete[] s.data();
+          leveldb::Slice s=*it;
+          delete[] s.data();
       }
 
       delete[] prefix.data();

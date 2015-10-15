@@ -48,6 +48,9 @@ public abstract class DB implements DBFace
     protected BlockChainCache block_chain_cache;
     protected TXUtil tx_util;
 
+    protected int max_set_return_count=10000;
+
+
     public DB(Config conf)
     {
       this.conf = conf;
@@ -98,7 +101,7 @@ public abstract class DB implements DBFace
     public Map<String, StoredBlock> getSpecialBlockStoreMap() { return special_block_store_map; }
     public Map<Sha256Hash, SerializedTransaction> getTransactionMap() { return tx_map; }
     public Map<Sha256Hash, SerializedBlock> getBlockMap(){ return block_map; }
-    public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx) { return tx_to_block_map.getSet(tx.toString()); }
+    public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx) { return tx_to_block_map.getSet(tx.toString(), max_set_return_count); }
     public Map<Sha256Hash, String> getBlockRescanMap() { return block_rescan_map; }
     public Map<String, Object> getSpecialObjectMap() { return special_object_map; }
     public Map<Integer, String> getHeaderChunkMap() {return header_chunk_map; }
@@ -126,7 +129,7 @@ public abstract class DB implements DBFace
 
     public Set<Sha256Hash> getAddressToTxSet(String address)
     {
-      return address_to_tx_map.getSet(address);
+      return address_to_tx_map.getSet(address, max_set_return_count);
     }
 
 

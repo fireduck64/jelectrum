@@ -12,6 +12,8 @@ import java.nio.ByteBuffer;
 import org.bitcoinj.core.Sha256Hash;
 import lobstack.Lobstack;
 
+import jelectrum.db.DBTooManyResultsException;
+
 public class LobstackMapSet extends DBMapSet
 {
   private Lobstack stack;
@@ -21,16 +23,19 @@ public class LobstackMapSet extends DBMapSet
       this.stack = stack;
     }
 
-    public Set<Sha256Hash> getSet(String p)
+    public Set<Sha256Hash> getSet(String p, int max_results)
     {
       try
       {
         HashSet<Sha256Hash> ret = new HashSet<Sha256Hash>();
         String search = p + "/";
         int len = search.length();
+        int count = 0;
         for(String s : stack.getByPrefix(search).keySet())
         {
           ret.add(new Sha256Hash(s.substring(len)));
+          count ++;
+          if (count > max_results) throw new DBTooManyResultsException();
         }
         return ret;
       }

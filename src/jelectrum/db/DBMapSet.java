@@ -22,5 +22,5 @@ public abstract class DBMapSet
     TimeRecord.record(t1, "db_putset_seq");
   }
 
-  public abstract Set<Sha256Hash> getSet(String key);
+  public abstract Set<Sha256Hash> getSet(String key, int max_reply);
 }

@@ -21,6 +21,9 @@ using namespace std;
 static const int RESULT_GOOD = 1273252631;
 static const int RESULT_BAD = 9999;
 static const int RESULT_NOTFOUND = 133133;
+static const int RESULT_TOO_MANY = 28365921;
+static const char OP_MAX_RESULTS = 1;
+
 
 MDB_env *env;
 MDB_dbi dbi;
@@ -273,6 +276,13 @@ void* handle_connection(void* arg)
     }
     else if (action[0] == 4)
     {
+      int max_results = 1000000000;
+      if (action[1] & OP_MAX_RESULTS)
+      { 
+        if(read_fully(fd, (char*)&max_results, sizeof(max_results)) <= 0) { problems=true; break;}
+        max_results = ntohl(max_results);
+      }
+
       MDB_val prefix;
 
       if (read_slice(fd, prefix) < 0) { problems=true; break;}
@@ -300,6 +310,7 @@ void* handle_connection(void* arg)
         pr="db_cursor_error";
       }
 
+      int status=RESULT_GOOD;
 
       if (ret == 0)
       while(startsWith(prefix, key))
@@ -307,6 +318,12 @@ void* handle_connection(void* arg)
         slices.push_back(key);
         slices.push_back(value);
         items++;
+        if (items > max_results)
+        {
+          status=RESULT_TOO_MANY;
+          
+          break;
+        }
  
         ret = mdb_cursor_get(cursor, &key, &value, MDB_NEXT);
         if (ret == MDB_NOTFOUND)
@@ -329,18 +346,26 @@ void* handle_connection(void* arg)
 
       delete[] (char*) prefix.mv_data;
 
-
-      int status=RESULT_GOOD;
-      status=htonl(status);
-      write_fully(fd, (char*)&status, sizeof(status));
-
-      items=htonl(items);
-      write_fully(fd, (char*)&items, sizeof(items));
-
-      for(list<MDB_val>::iterator it = slices.begin(); it!=slices.end(); it++)
+      if (status==RESULT_GOOD)
       {
-        MDB_val s=*it;
-        if (write_slice(fd, s) < 0) { problems=true; pr="get_prefix_write_slice"; break;}
+
+        status=htonl(status);
+        write_fully(fd, (char*)&status, sizeof(status));
+
+        items=htonl(items);
+        write_fully(fd, (char*)&items, sizeof(items));
+
+        for(list<MDB_val>::iterator it = slices.begin(); it!=slices.end(); it++)
+        {
+          MDB_val s=*it;
+          if (write_slice(fd, s) < 0) { problems=true; pr="get_prefix_write_slice"; break;}
+        }
+      }
+      else
+      {
+
+        status=htonl(status);
+        write_fully(fd, (char*)&status, sizeof(status));
       }
 
     }

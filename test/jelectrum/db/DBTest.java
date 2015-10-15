@@ -6,6 +6,7 @@ import org.junit.Test;
 import jelectrum.db.DBMap;
 import jelectrum.db.DBMapSet;
 import jelectrum.db.DB;
+import jelectrum.db.DBTooManyResultsException;
 
 import jelectrum.db.mongo.MongoDB;
 import jelectrum.db.lmdb.LMDB;
@@ -79,6 +80,7 @@ public class DBTest
     testDB(db);
 
   }
+
   @Test
   public void testLmdbNet() throws Exception
   {
@@ -165,6 +167,7 @@ public class DBTest
     testSetBasic(set);    
     testSetBulk(set);
     testSetPrefix(set);
+    testSetPrefixLimit(set);
     
 
   }
@@ -177,7 +180,7 @@ public class DBTest
     set.add(prefix + "a",TestUtil.randomHash());
     set.add(prefix + "a",TestUtil.randomHash());
 
-    Assert.assertEquals(3, set.getSet(prefix+"a").size());
+    Assert.assertEquals(3, set.getSet(prefix+"a", 10000).size());
 
   }
   public static void testSetPrefix(DBMapSet set)
@@ -191,8 +194,31 @@ public class DBTest
     set.add(prefix + "ab",TestUtil.randomHash());
     set.add(prefix + "ab",TestUtil.randomHash());
 
-    Assert.assertEquals(2, set.getSet(prefix+"a").size());
-    Assert.assertEquals(4, set.getSet(prefix+"ab").size());
+    Assert.assertEquals(2, set.getSet(prefix+"a", 10000).size());
+    Assert.assertEquals(4, set.getSet(prefix+"ab", 10000).size());
+
+  }
+
+  public static void testSetPrefixLimit(DBMapSet set)
+  {
+    String prefix=TestUtil.randomHash().toString().substring(0,8);
+    for(int i=0; i<100; i++)
+    {
+      set.add(prefix, TestUtil.randomHash());
+    }
+    Assert.assertEquals(100, set.getSet(prefix, 100).size());
+    set.add(prefix, TestUtil.randomHash());
+    try
+    {
+      set.getSet(prefix, 100);
+      Assert.fail();
+    }
+    catch(DBTooManyResultsException e)
+    {
+    }
+
+
+
 
   }
   public static void testSetBulk(DBMapSet set)
@@ -211,9 +237,9 @@ public class DBTest
 
     set.addAll(lst);
 
-    Assert.assertEquals(1, set.getSet(prefix+"a").size());
-    Assert.assertEquals(4, set.getSet(prefix+"b").size());
-    Assert.assertEquals(2, set.getSet(prefix+"c").size());
+    Assert.assertEquals(1, set.getSet(prefix+"a", 1000).size());
+    Assert.assertEquals(4, set.getSet(prefix+"b", 1000).size());
+    Assert.assertEquals(2, set.getSet(prefix+"c", 1000).size());
 
   }
 

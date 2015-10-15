@@ -15,6 +15,8 @@ import org.fusesource.lmdbjni.Transaction;
 import org.fusesource.lmdbjni.Entry;
 import org.fusesource.lmdbjni.EntryIterator;
 
+import jelectrum.db.DBTooManyResultsException;
+
 
 public class LMDBMapSet extends DBMapSet
 {
@@ -46,7 +48,7 @@ public class LMDBMapSet extends DBMapSet
   }
 
 
-  public Set<Sha256Hash> getSet(String key)
+  public Set<Sha256Hash> getSet(String key, int max_results)
   {
     String k = key + "/";
     Transaction tx = env.createTransaction(true);
@@ -54,6 +56,7 @@ public class LMDBMapSet extends DBMapSet
     EntryIterator i = db.seek(tx, k.getBytes());
 
     Set<Sha256Hash> out = new TreeSet<Sha256Hash>();
+    int count = 0;
 
     while(i.hasNext())
     {
@@ -63,6 +66,8 @@ public class LMDBMapSet extends DBMapSet
       {
         String h = s.substring(k.length());
         out.add(new Sha256Hash(h));
+        count++;
+        if (count > max_results) throw new DBTooManyResultsException();
       }
     }
     tx.abort();

@@ -14,6 +14,7 @@ import java.util.TreeMap;
 import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.LinkedBlockingQueue;
+import jelectrum.db.DBTooManyResultsException;
 
 import jelectrum.EventLog;
 import jelectrum.Config;
@@ -24,8 +25,12 @@ public class LevelNetClient
 {
   public static final int RESULT_GOOD = 1273252631;
   public static final int RESULT_BAD = 9999;
+  public static final int RESULT_TOO_MANY = 28365921;
   public static final int RESULT_NOTFOUND = 133133;
   public static final int SOCKET_TIMEOUT = 45000;
+
+  public static final byte OP_MAX_RESULTS=1;
+
 
   private EventLog log;
 
@@ -201,7 +206,7 @@ public class LevelNetClient
   
   }
 
-  public Map<String, ByteString> getByPrefix(String prefix)
+  public Map<String, ByteString> getByPrefix(String prefix, int max_results)
   {
     while(true)
     {
@@ -209,7 +214,7 @@ public class LevelNetClient
       try
       {
         conn = getConnection();
-        return conn.getByPrefix(prefix);
+        return conn.getByPrefix(prefix, max_results);
       }
       catch(java.io.IOException e)
       {
@@ -330,18 +335,23 @@ public class LevelNetClient
 
     }
 
-    public Map<String, ByteString> getByPrefix(String prefix)
+    public Map<String, ByteString> getByPrefix(String prefix,int max_results)
       throws java.io.IOException
     {
       byte cmd[]=new byte[2];
       cmd[0]=4;
-      cmd[1]=0;
+      cmd[1]=OP_MAX_RESULTS;
 
       sock.getOutputStream().write(cmd, 0, 2);
+      writeInt(max_results);
 
       writeString(prefix);
 
       int status = readInt();
+      if (status == RESULT_TOO_MANY)
+      {
+        throw new DBTooManyResultsException();
+      }
       int items = readInt();
 
       Map<String,ByteString> m = new TreeMap<>();

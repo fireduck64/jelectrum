@@ -59,6 +59,8 @@ public class MongoMap extends DBMap
     }
     public void putAll(Map<String, ByteString> m) 
     {
+      if (m.size() ==0) return;
+
       try
       {
         LinkedList<MongoEntry> lst = new LinkedList<MongoEntry>();

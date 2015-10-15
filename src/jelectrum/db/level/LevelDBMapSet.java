@@ -14,9 +14,12 @@ import java.io.ByteArrayInputStream;
 
 import org.junit.Assert;
 
+
+
 import java.nio.ByteBuffer;
 import org.bitcoinj.core.Sha256Hash;
 import jelectrum.db.DBMapSet;
+import jelectrum.db.DBTooManyResultsException;
 import com.google.protobuf.ByteString;
 
 public class LevelDBMapSet extends DBMapSet
@@ -30,12 +33,12 @@ public class LevelDBMapSet extends DBMapSet
       this.prefix=prefix + "/";
     }
 
-    public Set<Sha256Hash> getSet(String p)
+    public Set<Sha256Hash> getSet(String p, int max_replies)
     {
       HashSet<Sha256Hash> ret = new HashSet<Sha256Hash>();
       String search=prefix + p + "/";
       int len = search.length();
-      for(String s : c.getByPrefix(search).keySet())
+      for(String s : c.getByPrefix(search, max_replies).keySet())
       {
         Assert.assertEquals(search, s.substring(0, search.length()));
         ret.add(new Sha256Hash(s.substring(len)));

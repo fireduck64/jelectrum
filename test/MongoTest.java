@@ -62,7 +62,7 @@ public class MongoTest implements java.io.Serializable
         m.add("a",TestUtil.randomHash());
         m.add("a",TestUtil.randomHash());
 
-        Set<Sha256Hash> s = m.getSet("a");
+        Set<Sha256Hash> s = m.getSet("a",10000);
         Assert.assertEquals(4, s.size());
 
         Sha256Hash h = TestUtil.randomHash();
@@ -72,7 +72,7 @@ public class MongoTest implements java.io.Serializable
         m.add("a",h);
         m.add("a",h);
 
-        s = m.getSet("a");
+        s = m.getSet("a",10000);
         Assert.assertEquals(5, s.size());
             
 

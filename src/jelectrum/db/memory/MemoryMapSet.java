@@ -7,6 +7,7 @@ import org.bitcoinj.core.Sha256Hash;
 import java.util.TreeMap;
 import java.util.HashSet;
 import java.util.Set;
+import jelectrum.db.DBTooManyResultsException;
 
 
 public class MemoryMapSet extends DBMapSet
@@ -20,14 +21,16 @@ public class MemoryMapSet extends DBMapSet
     m.get(key).add(hash);
 
   }
-  public synchronized Set<Sha256Hash> getSet(String key)
+  public synchronized Set<Sha256Hash> getSet(String key, int max_results)
   {
     HashSet<Sha256Hash> ret = new HashSet<Sha256Hash>();
-
+  
+    
     if (m.containsKey(key))
     {
       ret.addAll(m.get(key));
     }
+    if (ret.size() > max_results) throw new DBTooManyResultsException();
     return ret;
   }
 
