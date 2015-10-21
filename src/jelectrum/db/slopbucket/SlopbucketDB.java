@@ -81,9 +81,8 @@ public class SlopbucketDB extends DB
     synchronized(slops)
     {
       if (slops.containsKey(name)) return slops.get(name);
-      File subdir = new File(dir, name);
-      subdir.mkdirs();
-      Slopbucket slop = new Slopbucket(subdir, log);
+      File subfile = new File(dir, name +".slop");
+      Slopbucket slop = new Slopbucket(subfile, log);
       slops.put(name, slop);
       return slop;
     }

@@ -20,6 +20,8 @@ import org.junit.Assert;
 import jelectrum.TimeRecord;
 
 import bloomtime.DeterministicStream;
+import java.nio.channels.FileChannel;
+
 
 public class Slopbucket
 {
@@ -49,35 +51,35 @@ public class Slopbucket
   private Map<String, Integer> trough_map;
   
 
-  private File slop_dir;
+  private File slop_file;
+  private FileChannel file_channel; 
 
-  public Slopbucket(File slop_dir, EventLog log)
+
+  public Slopbucket(File slop_file, EventLog log)
+    throws IOException
   {
     this.log = log;
-    this.slop_dir = slop_dir;
+    this.slop_file = slop_file;
+    RandomAccessFile raf = new RandomAccessFile(slop_file, "rw");
+
+    file_channel = raf.getChannel();
     open_buffers = new TreeMap<>();
 
   }
 
-  protected long getCurrentWriteLocation()
+  private long getCurrentWriteLocation()
   {
     MappedByteBuffer mbb = getBufferMap(0);
     long v;
-    synchronized(mbb)
-    {
-      v = mbb.getLong((int)LOCATION_NEXT_FREE);
-    }
+    v = mbb.getLong((int)LOCATION_NEXT_FREE);
     if (v == 0) return LOCATION_FIRST_FREE;
     return v;
 
   }
-  protected void setCurrentWriteLocation(long v)
+  private void setCurrentWriteLocation(long v)
   {
     MappedByteBuffer mbb = getBufferMap(0);
-    synchronized(mbb)
-    {
-      mbb.putLong((int)LOCATION_NEXT_FREE, v);
-    }
+    mbb.putLong((int)LOCATION_NEXT_FREE, v);
   }
 
   public Map<String, Integer> getTroughMap()
@@ -236,12 +238,8 @@ public class Slopbucket
   {
     try
     {
-      String name = "" + idx;
-      while (name.length() < 4) name = "0" + name;
-      File f = new File(slop_dir, "data_" + name);
-
-      RandomAccessFile raf = new RandomAccessFile(f, "rw");
-      return raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, SEGMENT_FILE_SIZE);
+      long pos = idx * SEGMENT_FILE_SIZE;
+      return file_channel.map(FileChannel.MapMode.READ_WRITE, pos, SEGMENT_FILE_SIZE);
     }
     catch(java.io.IOException e)
     {
@@ -346,6 +344,7 @@ public class Slopbucket
       {
         hash_mbb.position(file_offset + LOCATION_HASH_START + loc * 8);
         long ptr = hash_mbb.getLong();
+      
 
         if ((ptr != 0) && (getKey(ptr).equals(key)))
         {
@@ -364,6 +363,7 @@ public class Slopbucket
           }
         }
       }
+    
       //loc = det_stream.nextInt(max);
       loc = (loc + 131 ) % max;
     }
