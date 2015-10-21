@@ -16,15 +16,16 @@ public class SlopbucketMap extends DBMap
   private Slopbucket slop_fixed;
   private boolean compressed;
 
-  public SlopbucketMap(SlopbucketDB slop_db, String name)
+  public SlopbucketMap(SlopbucketDB slop_db, String name, Slopbucket slop_fixed)
   {
-    this(slop_db, name, false);
+    this(slop_db, name, slop_fixed, false);
   }
-  public SlopbucketMap(SlopbucketDB slop_db, String name, boolean compressed)
+  public SlopbucketMap(SlopbucketDB slop_db, String name, Slopbucket slop_fixed, boolean compressed)
   {
     this.slop_db = slop_db;
     this.name = name;
     this.compressed = compressed;
+    this.slop_fixed = slop_fixed;
   }
 
   public ByteString get(String key)
@@ -32,7 +33,7 @@ public class SlopbucketMap extends DBMap
     ByteString key_bytes = ByteString.copyFrom(key.getBytes());
 
     Slopbucket slop = slop_fixed;
-    if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
+    //if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
 
     ByteString value = slop.getKeyValue(name, key_bytes);
     if (value == null) return null;
@@ -48,7 +49,7 @@ public class SlopbucketMap extends DBMap
     ByteString key_bytes = ByteString.copyFrom(key.getBytes());
     
     Slopbucket slop = slop_fixed;
-    if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
+    //if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
 
     if (compressed)
     {

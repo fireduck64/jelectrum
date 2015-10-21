@@ -17,6 +17,9 @@ import java.util.Set;
 
 import com.google.protobuf.ByteString;
 import org.junit.Assert;
+import jelectrum.TimeRecord;
+
+import bloomtime.DeterministicStream;
 
 public class Slopbucket
 {
@@ -37,7 +40,7 @@ public class Slopbucket
   private static final int LOCATION_HASH_START=LOCATION_HASH_NEXT+8;
  
   private static final int HASH_INITAL_SIZE=64*1024;
-  private static final int HASH_MULTIPLCATION=16;
+  private static final int HASH_MULTIPLCATION=64;
   private static final double HASH_FULL=0.5;
   
   private Object ptr_lock = new Object();
@@ -248,8 +251,17 @@ public class Slopbucket
 
   public synchronized void putKeyValue(String trough_name, ByteString key, ByteString value)
   {
+    long t1 = System.nanoTime();
     long pos = getTroughPtr(trough_name);
-    putKeyValueTable(pos, key, value);
+    TimeRecord.record(t1, "slop_get_trough_ptr");
+
+
+    long t1_save = System.nanoTime();
+    long data_loc = allocateSpace(key.size() + 2 + value.size() + 4);
+    putKeyValue(data_loc, key, value);
+    TimeRecord.record(t1_save, "slop_save_key_value");
+
+    putKeyValueTable(pos, key, data_loc);
   }
   public synchronized ByteString getKeyValue(String trough_name, ByteString key)
   {
@@ -270,8 +282,11 @@ public class Slopbucket
     bb.putLong(prev_location);
     value.copyTo(new_data_buff, 8);
     ByteString new_data = ByteString.copyFrom(new_data_buff);
+    
+    long data_loc = allocateSpace(key.size() + 2 + new_data.size() + 4);;
+    putKeyValue(data_loc, key, new_data);
 
-    putKeyValueTable(trough_pos, key, new_data);
+    putKeyValueTable(trough_pos, key, data_loc);
     
   }
   public synchronized Set<ByteString> getList(String trough_name, ByteString key)
@@ -300,6 +315,7 @@ public class Slopbucket
     MappedByteBuffer hash_mbb = getBufferMap(hash_file);
     int file_offset = (int) (table_pos % SEGMENT_FILE_SIZE);
 
+
     int max;
     int items;
     long next_ptr;
@@ -319,6 +335,8 @@ public class Slopbucket
     int hash = key.hashCode();
     int loc = Math.abs(hash % max);
     if (loc < 0) loc = 0;
+    //DeterministicStream det_stream = new DeterministicStream(key);
+    //int loc = det_stream.nextInt(max);
 
     while(true)
     {
@@ -346,16 +364,19 @@ public class Slopbucket
           }
         }
       }
+      //loc = det_stream.nextInt(max);
       loc = (loc + 131 ) % max;
     }
 
   }
 
-  protected void putKeyValueTable(long table_pos, ByteString key, ByteString value)
+  protected void putKeyValueTable(long table_pos, ByteString key, long data_loc)
   {
+    long t1=System.nanoTime();
     int hash_file = (int) (table_pos / SEGMENT_FILE_SIZE);
     MappedByteBuffer hash_mbb = getBufferMap(hash_file);
     int file_offset = (int) (table_pos % SEGMENT_FILE_SIZE);
+    
 
     int max;
     int items;
@@ -373,14 +394,15 @@ public class Slopbucket
     Assert.assertTrue(max > 4);
     Assert.assertTrue(items >= 0);
 
+    //DeterministicStream det_stream = new DeterministicStream(key);
+    //int loc = det_stream.nextInt(max);
     int hash = key.hashCode();
     int loc = Math.abs(hash % max);
     if (loc < 0) loc = 0;
 
     double full = (double) items / (double) max;
 
-    long data_loc = allocateSpace(key.size() + 2 + value.size() + 4);
-    putKeyValue(data_loc, key, value);
+
 
     while(true)
     {
@@ -388,8 +410,10 @@ public class Slopbucket
       Assert.assertTrue(loc < max);
       synchronized(hash_mbb)
       {
+        long t1_check = System.nanoTime();
         hash_mbb.position(file_offset + LOCATION_HASH_START + loc * 8);
         long ptr = hash_mbb.getLong();
+        TimeRecord.record(t1_check, "slop_get_ptr");
 
         if ((ptr == 0) && (full >= HASH_FULL))
         { 
@@ -401,7 +425,8 @@ public class Slopbucket
             hash_mbb.position(file_offset + (int) LOCATION_HASH_NEXT);
             hash_mbb.putLong(next_ptr);
           }
-          putKeyValueTable(next_ptr, key, value);
+          TimeRecord.record(t1, "slop_put_key_value_table_rec");
+          putKeyValueTable(next_ptr, key, data_loc);
           return;
      
         }
@@ -417,10 +442,12 @@ public class Slopbucket
             items++;
             hash_mbb.putInt(items);
           }
+          TimeRecord.record(t1, "slop_put_key_value_table_add");
           return;
         }
       }
       
+      //loc = det_stream.nextInt(max);
       loc = (loc + 131 ) % max;
     }
 
@@ -443,6 +470,7 @@ public class Slopbucket
 
   protected ByteString getKey(long data_loc)
   {
+    long t1 = System.nanoTime();
     //System.out.println("data loc: " + data_loc);
     int file = (int) (data_loc / SEGMENT_FILE_SIZE);
     MappedByteBuffer mbb = getBufferMap(file);
@@ -454,7 +482,9 @@ public class Slopbucket
       int sz = mbb.getShort();
       byte[] b = new byte[sz];
       mbb.get(b);
-      return ByteString.copyFrom(b);
+      ByteString bs = ByteString.copyFrom(b);
+      TimeRecord.record(t1, "slop_get_key");
+      return bs;
 
     }
   }

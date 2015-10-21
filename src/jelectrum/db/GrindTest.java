@@ -18,6 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.text.DecimalFormat;
 import org.bitcoinj.core.Sha256Hash;
 import jelectrum.EventLog;
+import jelectrum.TimeRecord;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class GrindTest
@@ -188,6 +189,8 @@ public class GrindTest
             DecimalFormat df =new DecimalFormat("0.000");
             while(true)
             {
+                TimeRecord tr = new TimeRecord();
+                TimeRecord.setSharedRecord(tr);
                 System.gc();
                 try{Thread.sleep(delay);}catch(Exception e){}
 
@@ -200,6 +203,8 @@ public class GrindTest
                 String rate_log = "Rate: " + df.format(items_rate) + "/s";
 
                 log.log(rate_log);
+
+                tr.printReport(System.out);
 
                 items = items_now;
                 last_run= now;

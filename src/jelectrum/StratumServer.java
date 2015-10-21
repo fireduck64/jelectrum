@@ -245,13 +245,11 @@ public class StratumServer
                 }
 
                 try{Thread.sleep(15000);}catch(Throwable t){}
-                
 
             }
 
         }
 
     }
-
 
 }

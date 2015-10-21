@@ -25,10 +25,11 @@ public class SlopbucketMapSet extends DBMapSet
   private String name;
   private Slopbucket slop_fixed;
 
-  public SlopbucketMapSet(SlopbucketDB slop_db, String name)
+  public SlopbucketMapSet(SlopbucketDB slop_db, String name, Slopbucket slop_fixed)
   {
     this.slop_db = slop_db;
     this.name = name;
+    this.slop_fixed = slop_fixed;
   }
 
 
@@ -37,7 +38,7 @@ public class SlopbucketMapSet extends DBMapSet
     ByteString key_bytes = ByteString.copyFrom(key.getBytes());
 
     Slopbucket slop = slop_fixed;
-    if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
+    //if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
 
     ByteString hash_bytes = ByteString.copyFrom(hash.getBytes());
 
@@ -49,7 +50,7 @@ public class SlopbucketMapSet extends DBMapSet
     ByteString key_bytes = ByteString.copyFrom(key.getBytes());
 
     Slopbucket slop = slop_fixed;
-    if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
+    //if (slop == null) slop = slop_db.getBucketForKey(key_bytes);
     
     Set<ByteString> entries = slop.getList(name, key_bytes);
 
