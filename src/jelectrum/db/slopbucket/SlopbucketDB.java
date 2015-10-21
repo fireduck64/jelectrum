@@ -77,6 +77,7 @@ public class SlopbucketDB extends DB
   }
 
   protected Slopbucket getBucketForName(String name)
+    throws Exception
   {
     synchronized(slops)
     {
