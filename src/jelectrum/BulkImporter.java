@@ -319,8 +319,8 @@ public class BulkImporter
       List<Integer> dl_lst = getPackList();
       for(int pack_no : dl_lst)
       {
-        String url = "https://ds73ipzb70zbz.cloudfront.net/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
-        //String url = "https://s3-us-west-2.amazonaws.com/bitcoin-blocks/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
+        //String url = "https://ds73ipzb70zbz.cloudfront.net/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
+        String url = "https://s3-us-west-2.amazonaws.com/bitcoin-blocks/blockchunk/" +BLOCKS_PER_CHUNK+"/" + pack_no;
         
         download(url);
 

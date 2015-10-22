@@ -253,26 +253,27 @@ public class Slopbucket
     long pos = getTroughPtr(trough_name);
     TimeRecord.record(t1, "slop_get_trough_ptr");
 
-
-    long t1_save = System.nanoTime();
-    long data_loc = allocateSpace(key.size() + 2 + value.size() + 4);
-    putKeyValue(data_loc, key, value);
-    TimeRecord.record(t1_save, "slop_save_key_value");
-
-    putKeyValueTable(pos, key, data_loc);
+    putKeyValueTable(pos, new RecordEntry(key, value));
   }
+
   public synchronized ByteString getKeyValue(String trough_name, ByteString key)
   {
     long pos = getTroughPtr(trough_name);
-    long data_location = getKeyValueTable(pos, key);
-    if (data_location >= 0) return getValue(data_location);
-    return null;
+    RecordEntry re = getKeyValueTable(pos, key);
+    if (re == null) return null;
+    return re.getValue();
+
   }
 
   public synchronized void addListEntry(String trough_name, ByteString key, ByteString value)
   {
     long trough_pos = getTroughPtr(trough_name);
-    long prev_location = getKeyValueTable(trough_pos, key);
+    RecordEntry prev_entry = getKeyValueTable(trough_pos, key);
+    long prev_location = 0;
+    if (prev_entry != null)
+    {
+      prev_location = prev_entry.getDataLoc();
+    }
 
     byte[] new_data_buff = new byte[8 + value.size()];
 
@@ -280,34 +281,40 @@ public class Slopbucket
     bb.putLong(prev_location);
     value.copyTo(new_data_buff, 8);
     ByteString new_data = ByteString.copyFrom(new_data_buff);
-    
-    long data_loc = allocateSpace(key.size() + 2 + new_data.size() + 4);;
-    putKeyValue(data_loc, key, new_data);
 
-    putKeyValueTable(trough_pos, key, data_loc);
+    RecordEntry re = new RecordEntry(key, new_data);
+    re.storeItem(0L);
+
+
+    putKeyValueTable(trough_pos, re);
     
   }
   public synchronized Set<ByteString> getList(String trough_name, ByteString key)
   {
     long trough_pos = getTroughPtr(trough_name);
-    long location = getKeyValueTable(trough_pos, key);
+    RecordEntry re = getKeyValueTable(trough_pos, key);
 
     HashSet<ByteString> set = new HashSet<ByteString>();
-    while(location >= 0)
+    while(re != null)
     {
-      ByteString val_obj = getValue(location);
+      ByteString val_obj = re.getValue();
 
       ByteString val = val_obj.substring(8);
       set.add(val);
       
-      location = val_obj.asReadOnlyByteBuffer().getLong();
+      long location = val_obj.asReadOnlyByteBuffer().getLong();
 
+      re = null;
+      if (location > 0)
+      {
+        re = new RecordEntry(location);
+      }
 
     }
     return set;
   }
 
-  protected long getKeyValueTable(long table_pos, ByteString key)
+  protected RecordEntry getKeyValueTable(long table_pos, ByteString key)
   {
     int hash_file = (int) (table_pos / SEGMENT_FILE_SIZE);
     MappedByteBuffer hash_mbb = getBufferMap(hash_file);
@@ -346,10 +353,10 @@ public class Slopbucket
         long ptr = hash_mbb.getLong();
       
 
-        if ((ptr != 0) && (getKey(ptr).equals(key)))
+        if (ptr != 0)
         {
-          return ptr;
-          //return getValue(ptr);
+          RecordEntry re = new RecordEntry(ptr);
+          if (re.getKey().equals(key)) return re;
         }
         if (ptr == 0)
         {
@@ -359,7 +366,7 @@ public class Slopbucket
           }
           else
           {
-            return -1;
+            return null;
           }
         }
       }
@@ -370,7 +377,7 @@ public class Slopbucket
 
   }
 
-  protected void putKeyValueTable(long table_pos, ByteString key, long data_loc)
+  protected void putKeyValueTable(long table_pos, RecordEntry put_re)
   {
     long t1=System.nanoTime();
     int hash_file = (int) (table_pos / SEGMENT_FILE_SIZE);
@@ -396,7 +403,7 @@ public class Slopbucket
 
     //DeterministicStream det_stream = new DeterministicStream(key);
     //int loc = det_stream.nextInt(max);
-    int hash = key.hashCode();
+    int hash = put_re.getKey().hashCode();
     int loc = Math.abs(hash % max);
     if (loc < 0) loc = 0;
 
@@ -426,13 +433,24 @@ public class Slopbucket
             hash_mbb.putLong(next_ptr);
           }
           TimeRecord.record(t1, "slop_put_key_value_table_rec");
-          putKeyValueTable(next_ptr, key, data_loc);
+          putKeyValueTable(next_ptr, put_re);
           return;
      
         }
-        if ((ptr == 0) || (getKey(ptr).equals(key)))
+        RecordEntry re = null;
+        if (ptr != 0)
+        {
+          re = new RecordEntry(ptr);
+          if (!re.getKey().equals(put_re.getKey()))
+          {
+            re = null;
+          }
+        }
+        if ((ptr == 0) || (re!=null))
         {
           //If we have an empty or a key match
+          long data_loc = put_re.storeItem(ptr);
+
           hash_mbb.position(file_offset + LOCATION_HASH_START + loc * 8);
           hash_mbb.putLong(data_loc);
 
@@ -451,60 +469,6 @@ public class Slopbucket
       loc = (loc + 131 ) % max;
     }
 
-  }
-  protected void putKeyValue(long data_loc, ByteString key, ByteString value)
-  {
-    int file = (int) (data_loc / SEGMENT_FILE_SIZE);
-    MappedByteBuffer mbb = getBufferMap(file);
-    int offset = (int) (data_loc % SEGMENT_FILE_SIZE);
-    synchronized(mbb)
-    {
-      mbb.position(offset);
-      mbb.putShort((short)key.size());
-      mbb.put(key.toByteArray());
-      mbb.putInt(value.size());
-      mbb.put(value.toByteArray());
-    }
-  }
-
-
-  protected ByteString getKey(long data_loc)
-  {
-    long t1 = System.nanoTime();
-    //System.out.println("data loc: " + data_loc);
-    int file = (int) (data_loc / SEGMENT_FILE_SIZE);
-    MappedByteBuffer mbb = getBufferMap(file);
-    int offset = (int) (data_loc % SEGMENT_FILE_SIZE);
-    //System.out.println("Data loc: " + data_loc + " File: " + file + " Offset: " + offset);
-    synchronized(mbb)
-    {
-      mbb.position(offset);
-      int sz = mbb.getShort();
-      byte[] b = new byte[sz];
-      mbb.get(b);
-      ByteString bs = ByteString.copyFrom(b);
-      TimeRecord.record(t1, "slop_get_key");
-      return bs;
-
-    }
-  }
-  protected ByteString getValue(long data_loc)
-  {
-    int file = (int) (data_loc / SEGMENT_FILE_SIZE);
-    MappedByteBuffer mbb = getBufferMap(file);
-    int offset = (int) (data_loc % SEGMENT_FILE_SIZE);
-    synchronized(mbb)
-    {
-      mbb.position(offset);
-      int sz = mbb.getShort();
-      byte[] b = new byte[sz];
-      mbb.get(b);
-      sz = mbb.getInt();
-      b = new byte[sz];
-      mbb.get(b);
-      return ByteString.copyFrom(b);
-
-    }
   }
 
   private Map<String, Long> getStats(String trough_name)
@@ -547,8 +511,9 @@ public class Slopbucket
         long ptr = hash_mbb.getLong(file_offset + LOCATION_HASH_START + i*8);
         if (ptr != 0)
         {
-          ByteString key = getKey(ptr);
-          ByteString value = getValue(ptr);
+          RecordEntry re = new RecordEntry(ptr);
+          ByteString key = re.getKey();
+          ByteString value = re.getValue();
           map.put("key_size", map.get("key_size") + key.size());
           map.put("data_size", map.get("data_size") + value.size());
           
@@ -579,6 +544,119 @@ public class Slopbucket
 
 
     }
+
+  }
+
+  public class RecordEntry
+  {
+    int max_data_size; //Size of entire alloc
+    ByteString key;
+    ByteString value;
+    long data_loc;
+
+    public RecordEntry(long data_loc)
+    {
+      int file = (int) (data_loc / SEGMENT_FILE_SIZE);
+      MappedByteBuffer mbb = getBufferMap(file);
+      int offset = (int) (data_loc % SEGMENT_FILE_SIZE);
+      synchronized(mbb)
+      {
+        mbb.position(offset);
+        max_data_size = mbb.getInt();
+
+        int sz = mbb.getShort();
+        byte[] b = new byte[sz];
+        mbb.get(b);
+        key = ByteString.copyFrom(b);
+
+        sz = mbb.getInt();
+        b = new byte[sz];
+        mbb.get(b);
+        value = ByteString.copyFrom(b);
+
+      }
+      this.data_loc = data_loc;
+ 
+    }
+    public RecordEntry(ByteString key, ByteString value)
+    {
+      data_loc = 0;
+      max_data_size = 0;
+      this.key = key;
+      this.value = value;
+    }
+
+    public int getMaxDataSize() { return max_data_size; }
+    public ByteString getKey() { return key; }
+    public ByteString getValue() { return value; }
+    public long getDataLoc() { return data_loc; }
+    public int getMinAlloc()
+    {
+      return 4 + 2 + 4 + key.size() + value.size();
+    }
+
+    private void save()
+    {
+      Assert.assertTrue(max_data_size >= getMinAlloc());
+      Assert.assertNotEquals(0, data_loc);
+      Assert.assertNotNull(key);
+      Assert.assertNotNull(value);
+
+
+      int file = (int) (data_loc / SEGMENT_FILE_SIZE);
+      MappedByteBuffer mbb = getBufferMap(file);
+      int offset = (int) (data_loc % SEGMENT_FILE_SIZE);
+      synchronized(mbb)
+      {
+        mbb.position(offset);
+        mbb.putInt(max_data_size);
+        mbb.putShort((short)key.size());
+        mbb.put(key.toByteArray());
+        mbb.putInt(value.size());
+        mbb.put(value.toByteArray());
+      }
+
+    }
+
+    public long storeItem(long prev_ptr)
+    {
+      //If someone already stored it, just return that location
+      if (data_loc > 0) return data_loc;
+
+      //If the prev_ptr is set and can store my item, use that
+
+      if (prev_ptr > 0 )
+      {
+        RecordEntry prev_entry = new RecordEntry(prev_ptr);
+        if (getMinAlloc() <= prev_entry.getMaxDataSize())
+        {
+          data_loc=prev_ptr;
+          max_data_size = prev_entry.getMaxDataSize();
+          save();
+          return data_loc;
+        }
+        else
+        {
+          //If we have already stored it once and it doesn't fit in that space
+          //go bigger so hopefully if it changes again it will fit
+          max_data_size = getMinAlloc() * 2;
+          data_loc = allocateSpace(max_data_size);
+          save();
+          return data_loc;
+
+        }
+
+      }
+
+      //If not, make a new space
+      long t1_save = System.nanoTime();
+      max_data_size = getMinAlloc();
+      data_loc = allocateSpace(getMinAlloc());
+      save();
+      TimeRecord.record(t1_save, "slop_save_key_value");
+      return data_loc;
+    }
+
 
   }
 

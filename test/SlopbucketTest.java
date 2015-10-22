@@ -13,6 +13,7 @@ public class SlopbucketTest
 
   @BeforeClass
   public static void load()
+    throws Exception
   {
     File f = new File("/var/ssd/clash/slop");
     f.mkdirs();

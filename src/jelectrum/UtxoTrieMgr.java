@@ -363,6 +363,7 @@ public class UtxoTrieMgr
     int node_count=0;
 
     TreeMap<String, UtxoTrieNode> save_map = new TreeMap<>();
+    StatData size_info = new StatData();
 
     while(true)
     {
@@ -372,25 +373,30 @@ public class UtxoTrieMgr
       d_in.readFully(data);
       UtxoTrieNode node = new UtxoTrieNode(ByteString.copyFrom(data));
 
+      size_info.addDataPoint(size);
+
+
       save_map.put(node.getPrefix(), node);
       node_count++;
       if (node_count % 1000 == 0)
       {
-        db_map.putAll(save_map);
+        //db_map.putAll(save_map);
         save_map.clear();
         System.out.print('.');
       }
 
     }
-    db_map.putAll(save_map);
+    //db_map.putAll(save_map);
     save_map.clear();
     System.out.print('.');
     System.out.println();
     System.out.println("Saved " + node_count + " nodes");
     
-    saveState(new UtxoStatus(read_hash));
+    //saveState(new UtxoStatus(read_hash));
 
     System.out.println("UTXO root hash: " + getRootHash(null));
+
+    size_info.print("sizes", new DecimalFormat("0.0"));
 
   }
 
