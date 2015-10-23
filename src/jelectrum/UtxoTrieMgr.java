@@ -380,19 +380,19 @@ public class UtxoTrieMgr
       node_count++;
       if (node_count % 1000 == 0)
       {
-        //db_map.putAll(save_map);
+        db_map.putAll(save_map);
         save_map.clear();
         System.out.print('.');
       }
 
     }
-    //db_map.putAll(save_map);
+    db_map.putAll(save_map);
     save_map.clear();
     System.out.print('.');
     System.out.println();
     System.out.println("Saved " + node_count + " nodes");
     
-    //saveState(new UtxoStatus(read_hash));
+    saveState(new UtxoStatus(read_hash));
 
     System.out.println("UTXO root hash: " + getRootHash(null));
 
