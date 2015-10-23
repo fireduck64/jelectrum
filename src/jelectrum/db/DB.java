@@ -183,7 +183,7 @@ public abstract class DB implements DBFace
           {
             if (tx.getHash().equals(hash))
             {
-              return new SerializedTransaction(tx);
+              return new SerializedTransaction(tx, b.getTime().getTime());
             }
           }
 

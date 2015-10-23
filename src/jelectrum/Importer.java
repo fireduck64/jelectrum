@@ -394,7 +394,7 @@ public class Importer
         if (block_hash == null)
         {
           ctx.setStatus("TX_SERIALIZE");
-          SerializedTransaction s_tx = new SerializedTransaction(tx);
+          SerializedTransaction s_tx = new SerializedTransaction(tx, System.currentTimeMillis());
           ctx.setStatus("TX_PUT");
           file_db.getTransactionMap().put(tx.getHash(), s_tx);
         }
@@ -483,7 +483,6 @@ public class Importer
           HashMap<Sha256Hash, Collection<String>> addr_map = new HashMap<>();
           Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
           Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
-          Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<Sha256Hash,SerializedTransaction>();
 
           t1 = System.nanoTime();
           for(Transaction tx : block.getTransactions())
@@ -507,7 +506,6 @@ public class Importer
               addrTxLst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
             }
 
-            txs_map.put(tx.getHash(), new SerializedTransaction(tx));
 
             tx_list.add(tx.getHash());
             size++;
@@ -516,11 +514,6 @@ public class Importer
 
 
 
-
-          /*t1 = System.nanoTime();
-          ctx.setStatus("TX_SAVEALL");
-          file_db.getTransactionMap().putAll(txs_map);
-          TimeRecord.record(t1, "block_tx_save");*/
 
           t1 = System.nanoTime();
           ctx.setStatus("BLOCK_TX_MAP_ADD");

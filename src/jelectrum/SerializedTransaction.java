@@ -14,10 +14,10 @@ public class SerializedTransaction implements java.io.Serializable
     private long saved_time=0L;
     private static int VERSION_MAGIC=1839345191;
 
-    public SerializedTransaction(Transaction tx)
+    public SerializedTransaction(Transaction tx, long saved_time)
     {
         this.tx = tx;
-        saved_time=System.currentTimeMillis();
+        this.saved_time=saved_time;
 
         byte[] tx_bytes = tx.bitcoinSerialize();
         bytes = new byte[tx_bytes.length + 8 + 4];

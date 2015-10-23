@@ -747,8 +747,11 @@ public class ElectrumNotifier
                 
                 for(Sha256Hash block_hash : block_list)
                 {
+                  if (jelly.getBlockChainCache().isBlockInMainChain(block_hash))
+                  {
                     block = jelly.getDB().getBlockStoreMap().get(block_hash);
                     height = block.getHeight();
+                  }
                 }
 
             }

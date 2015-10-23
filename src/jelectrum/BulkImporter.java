@@ -168,7 +168,6 @@ public class BulkImporter
 
     if (jelly.getDB().needsDetails())
     {
-      Map<Sha256Hash, SerializedTransaction> txs_map = new HashMap<>();
       Map<Sha256Hash, Transaction> tx_map = new HashMap<>();
 
       Map<Sha256Hash, SerializedBlock> block_map = new HashMap<>();
@@ -197,7 +196,6 @@ public class BulkImporter
         for(Transaction tx : blk.getTransactions())
         {
           tx_map.put(tx.getHash(), tx);
-          txs_map.put(tx.getHash(), new SerializedTransaction(tx));
 
           blockTxLst.add(new SimpleEntry<Sha256Hash, Sha256Hash>(tx.getHash(), blk_hash));
         }

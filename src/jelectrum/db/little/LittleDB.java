@@ -263,7 +263,7 @@ public class LittleDB extends LevelDB
           if (tx.getHash().equals(hash))
           {
             TimeRecord.record(t1, "db_get_tx_found");
-            return new SerializedTransaction(tx);
+            return new SerializedTransaction(tx, b.getTime().getTime());
           }
         }
 
