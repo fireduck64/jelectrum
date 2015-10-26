@@ -100,6 +100,10 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.memory.MemoryDB(config);
         }
+        else if (db_type.equals("redis"))
+        {
+          jelectrum_db = new jelectrum.db.jedis.JedisDB(config);
+        }
         else
         {
           System.out.println("Unknown db_type: " + db_type);

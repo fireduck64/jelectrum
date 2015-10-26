@@ -18,7 +18,13 @@ Reasons to exist
 DB Options
 ----------
 
-Not sure what to use?  Use lmdb. 
+Not sure what to use?  Use slopbucket 
+
+Slopbucket
+----------
+
+Slopbucket is a simple memory mapped hash table implementation.  It is fast and simple
+and supports only the features required by jelectrum.
 
 
 LMDB
@@ -77,13 +83,6 @@ MongoDB: Install and setup mongodb.  A single node instance is just fine.  Run m
 On startup, jelectrum will create tables as needed.
 
 
-PostgreSQL
-----------
-
-PostgreSQL: Install and setup postgresql.
-On startup, jelectrum will create tables and indexes needed.  You'll need to create the database and a user and put it in the config.
-
-
 Lobstack
 --------
 Lobstack: Copy the lobstack config entries and modify them.  
@@ -108,7 +107,7 @@ cp jelly.default.conf jelly.conf
 edit jelly.conf as makes sense
 
 Run:
-java -Xmx1g -jar jar/Jelectrum.jar jelly.conf
+java -Xmx3g -jar jar/Jelectrum.jar jelly.conf
 
 My Instance
 -----------
@@ -145,8 +144,4 @@ If you are going to run it, monitor it!
 I've made a monitoring tool that anyone to can use to monitor their electrum server (jelectrum or otherwise):
 
 https://1209k.com/bitcoin-eye/ele.php
-
-
-
-
 

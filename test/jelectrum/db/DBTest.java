@@ -14,6 +14,7 @@ import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.level.LevelDB;
 import jelectrum.db.memory.MemoryDB;
 import jelectrum.db.slopbucket.SlopbucketDB;
+import jelectrum.db.jedis.JedisDB;
 import jelectrum.Config;
 import jelectrum.EventLog;
 import org.bitcoinj.core.Sha256Hash;
@@ -103,6 +104,19 @@ public class DBTest
 
   }
 
+  @Test
+  public void testJedisDB() throws Exception
+  {
+    Config conf = new Config("jelly-test.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new JedisDB(conf);
+    testDB(db);
+
+  }
+
+
+
 
 
 
@@ -123,6 +137,7 @@ public class DBTest
     testMapGrow(map);
     testMapZero(map);
     testMapNull(map);
+    testMapContains(map);
     testShortKey(map);
 
   }
@@ -140,6 +155,18 @@ public class DBTest
   public static void testMapNull(DBMap map)
   {
     Assert.assertNull(map.get("thingthatneverexists"));
+  }
+  public static void testMapContains(DBMap map)
+  {
+    
+    ByteString str = TestUtil.randomByteString(100);
+    Assert.assertFalse(map.containsKey(str + "/nono"));
+
+    map.put(str+"/yes", TestUtil.randomByteString(1024));
+
+    Assert.assertTrue(map.containsKey(str + "/yes"));
+
+
   }
   public static void testMapZero(DBMap map)
   {

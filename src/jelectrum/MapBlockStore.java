@@ -38,6 +38,9 @@ public class MapBlockStore implements BlockStore
 
         genisis_hash = params.getGenesisBlock().getHash();
 
+        Assert.assertNotNull(file_db);
+        Assert.assertNotNull(file_db.getSpecialBlockStoreMap());
+
 
         if (!file_db.getSpecialBlockStoreMap().containsKey("head"))
         {

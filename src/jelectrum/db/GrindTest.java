@@ -7,6 +7,7 @@ import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.level.LevelDB;
 import jelectrum.db.lmdb.LMDB;
 import jelectrum.db.slopbucket.SlopbucketDB;
+import jelectrum.db.jedis.JedisDB;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -74,6 +75,10 @@ public class GrindTest
     {
       conf = new Config("jelly-lmdbnet.conf");
       db = new LevelDB(log, conf);
+    }
+    if (name.equals("redis"))
+    {
+      db = new JedisDB(conf);
     }
     log.log("Selected DB: " + name);
 
