@@ -26,7 +26,6 @@ Slopbucket
 Slopbucket is a simple memory mapped hash table implementation.  It is fast and simple
 and supports only the features required by jelectrum.
 
-
 LMDB
 ----
 
@@ -144,4 +143,15 @@ If you are going to run it, monitor it!
 I've made a monitoring tool that anyone to can use to monitor their electrum server (jelectrum or otherwise):
 
 https://1209k.com/bitcoin-eye/ele.php
+
+UTXO Troublehsooting
+--------------------
+
+[UTXO LOLWUT](UTXO-LOLWUT.md)
+
+Mini Server Instructions
+------------------------
+
+[Mini Server Instructions](MINI-SERVER.md)
+
 
