@@ -57,6 +57,8 @@ public abstract class DB implements DBFace
 
       network_params = Util.getNetworkParameters(conf);
       tx_util = new TXUtil(this, network_params);
+
+      Runtime.getRuntime().addShutdownHook(new DBShutdownThread());
     }
 
     public void compact()
@@ -205,4 +207,31 @@ public abstract class DB implements DBFace
     }
 
 
+    /** Override if the database needs to do soemthing on shutdown */
+    protected void dbShutdownHandler() throws Exception
+    {
+
+    }
+
+  public class DBShutdownThread extends Thread
+  {
+    public DBShutdownThread()
+    {
+      setName("DBShutdownHandler");
+    }
+
+    public void run()
+    {
+      try
+      {
+        dbShutdownHandler();
+      }
+      catch(Throwable t)
+      {
+        System.out.println("Exception in DB shutdown: " + t);
+        t.printStackTrace();
+      }
+    }
+
+  }
 }

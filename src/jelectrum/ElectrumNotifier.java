@@ -228,6 +228,10 @@ public class ElectrumNotifier
         {
             throw new RuntimeException(e);
         }
+        catch(jelectrum.db.DBTooManyResultsException e)
+        {
+          //LOL
+        }
 
     }
 

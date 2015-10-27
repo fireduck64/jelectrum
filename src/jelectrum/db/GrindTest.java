@@ -22,6 +22,8 @@ import jelectrum.EventLog;
 import jelectrum.TimeRecord;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.Assert;
+
 public class GrindTest
 {
   private static final long ITEMS_TO_ADD = 100L * 1000000L;
@@ -80,6 +82,13 @@ public class GrindTest
     {
       db = new JedisDB(conf);
     }
+    if (name.equals("rocksdb"))
+    {
+      db = new jelectrum.db.rocksdb.JRocksDB(conf, log);
+    }
+
+    Assert.assertNotNull("DB must not be null", db);
+
     log.log("Selected DB: " + name);
 
     db_map = db.openMap("grindtest");

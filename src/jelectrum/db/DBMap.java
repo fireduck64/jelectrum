@@ -8,11 +8,12 @@ public abstract class DBMap
 {
 
   public abstract ByteString get(String key);
+  public abstract void put(String key, ByteString value);
+
   public boolean containsKey(String key)
   {
     return get(key) != null;
   }
-  public abstract void put(String key, ByteString value);
 
   /** Implementing class should override this if they have something better to do */
   public void putAll(Map<String, ByteString> m)

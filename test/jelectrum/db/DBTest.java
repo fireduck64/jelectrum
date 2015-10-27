@@ -71,7 +71,7 @@ public class DBTest
   }
 
 
-  @Test
+  /*@Test
   public void testLevelDB() throws Exception
   {
     Config conf = new Config("jelly-test.conf");
@@ -91,7 +91,7 @@ public class DBTest
     DB db = new LevelDB(log, conf);
     testDB(db);
 
-  }
+  }*/
  
   @Test
   public void testMemoryDB() throws Exception
@@ -104,7 +104,7 @@ public class DBTest
 
   }
 
-  @Test
+  /*@Test
   public void testJedisDB() throws Exception
   {
     Config conf = new Config("jelly-test.conf");
@@ -113,9 +113,17 @@ public class DBTest
     DB db = new JedisDB(conf);
     testDB(db);
 
+  }*/
+
+  @Test
+  public void testRocksDB() throws Exception
+  {
+    Config conf = new Config("jelly-test.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new jelectrum.db.rocksdb.JRocksDB(conf, log);
+    testDB(db);
   }
-
-
 
 
 

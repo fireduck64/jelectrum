@@ -660,4 +660,20 @@ public class Slopbucket
 
   }
 
+  public synchronized void flush(boolean close)
+    throws java.io.IOException
+  {
+    for(MappedByteBuffer mbb : open_buffers.values())
+    {
+      mbb.force();
+    }
+    if (close)
+    {
+      open_buffers.clear();
+      file_channel.close();
+    }
+       
+  }
+  
+
 }

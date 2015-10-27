@@ -104,10 +104,14 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.jedis.JedisDB(config);
         }
+        else if (db_type.equals("rocksdb"))
+        {
+          jelectrum_db = new jelectrum.db.rocksdb.JRocksDB(config, event_log);
+        }
         else
         {
           System.out.println("Unknown db_type: " + db_type);
-          System.out.println("Try mongo or sql or leveldb or lobstack");
+          System.out.println("Try mongo or sql or leveldb or lobstack or slopbucket or rocksdb");
           System.exit(-1);
         }
         

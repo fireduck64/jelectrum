@@ -11,6 +11,7 @@ import jelectrum.DaemonThreadFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.TreeMap;
+import java.util.Map;
 import com.google.protobuf.ByteString;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -100,4 +101,22 @@ public class SlopbucketDB extends DB
   protected EventLog getLog() { return log;}
 
 
+
+  @Override
+  protected void dbShutdownHandler()
+    throws Exception
+  {
+    log.alarm("Slopbucket: flushing");
+    for(Map.Entry<String, Slopbucket> me : slops.entrySet())
+    {
+      String name = me.getKey();
+      Slopbucket bucket = me.getValue();
+      log.log("Slopbucket: flushing " + name);
+      bucket.flush(true);
+    }
+    log.alarm("Slopbucket: Complete");
+  }
+        
+
 }
+
