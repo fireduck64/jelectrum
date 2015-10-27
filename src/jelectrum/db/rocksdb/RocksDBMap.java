@@ -75,7 +75,6 @@ public class RocksDBMap extends DBMap
       write_options.setDisableWAL(true);
       write_options.setSync(false);
 
-
       db.write(write_options, batch);
 
     }

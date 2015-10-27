@@ -46,12 +46,12 @@ public class SlopbucketDB extends DB
 
     slops=new TreeMap<>();
 
-    exec = new ThreadPoolExecutor(
+    /*exec = new ThreadPoolExecutor(
       16,
       16,
       2, TimeUnit.DAYS,
       new LinkedBlockingQueue<Runnable>(),
-      new DaemonThreadFactory());
+      new DaemonThreadFactory());*/
 
     open();
   }

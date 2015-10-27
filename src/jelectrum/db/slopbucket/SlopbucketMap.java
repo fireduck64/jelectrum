@@ -63,7 +63,7 @@ public class SlopbucketMap extends DBMap
     slop.putKeyValue(name, key_bytes, value);
   }
 
-  @Override
+  /*@Override
   public void putAll(Map<String, ByteString> m)
   {
     final Semaphore sem = new Semaphore(0);
@@ -95,6 +95,6 @@ public class SlopbucketMap extends DBMap
       throw new RuntimeException(e);
     }
 
-  }
+  }*/
 
 }

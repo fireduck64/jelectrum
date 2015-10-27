@@ -70,7 +70,7 @@ public class SlopbucketMapSet extends DBMapSet
     return set;
   }
 
-  @Override
+  /*@Override
   public void addAll(Collection<Map.Entry<String, Sha256Hash> > lst)
   {
     HashMap<String, List<Sha256Hash> > map_view = new HashMap<>();
@@ -116,6 +116,6 @@ public class SlopbucketMapSet extends DBMapSet
       throw new RuntimeException(e);
     }
 
-  }
+  }*/
 
 }

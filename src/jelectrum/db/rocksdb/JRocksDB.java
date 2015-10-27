@@ -29,7 +29,12 @@ public class JRocksDB extends DB
     String path = config.get("rocksdb_path");
 
     RocksDB.loadLibrary();
-    Options options = new Options().setCreateIfMissing(true);
+    Options options = new Options();
+
+    options.setIncreaseParallelism(16);
+    options.setCreateIfMissing(true);
+    options.setAllowMmapReads(true);
+    //options.setAllowMmapWrites(true);
 
     db = RocksDB.open(options, path);
 
