@@ -1,6 +1,7 @@
 package jelectrum.db.rocksdb;
 
 import jelectrum.db.DBMap;
+import jelectrum.db.DBMapThreaded;
 
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -8,16 +9,19 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 import java.util.Map;
 
+import java.util.concurrent.Executor;
+
 import com.google.protobuf.ByteString;
 
 
-public class RocksDBMap extends DBMap
+public class RocksDBMap extends DBMapThreaded
 {
   RocksDB db;
   String name;
 
-  public RocksDBMap(RocksDB db, String name)
+  public RocksDBMap(Executor exec, RocksDB db, String name)
   {
+    super(exec);
     this.db = db;
     this.name = name;
   }

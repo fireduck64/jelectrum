@@ -28,6 +28,14 @@ import jelectrum.BlockSummary;
 import jelectrum.BlockChainCache;
 import jelectrum.CacheMap;
 
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+import jelectrum.DaemonThreadFactory;
+
 
 public abstract class DB implements DBFace
 {
@@ -49,6 +57,8 @@ public abstract class DB implements DBFace
     protected TXUtil tx_util;
 
     protected int max_set_return_count=10000;
+
+    protected Executor exec;
 
 
     public DB(Config conf)
@@ -212,6 +222,21 @@ public abstract class DB implements DBFace
     {
 
     }
+
+  protected synchronized Executor getExec()
+  {
+    if (exec == null)
+    {
+      exec = new ThreadPoolExecutor(
+        32,
+        32,
+        2, TimeUnit.DAYS,
+        new LinkedBlockingQueue<Runnable>(),
+        new DaemonThreadFactory());
+    }
+    return exec;
+
+  }
 
   public class DBShutdownThread extends Thread
   {

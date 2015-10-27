@@ -44,11 +44,11 @@ public class JRocksDB extends DB
 
   protected DBMap openMap(String name) throws Exception
   {
-    return new RocksDBMap(db, name);
+    return new RocksDBMap(getExec(), db, name);
   }
   protected DBMapSet openMapSet(String name) throws Exception
   {
-    return new RocksDBMapSet(db, name);
+    return new RocksDBMapSet(getExec(), db, name);
   }
 
 

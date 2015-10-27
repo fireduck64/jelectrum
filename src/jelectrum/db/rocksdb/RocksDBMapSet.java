@@ -1,6 +1,7 @@
 package jelectrum.db.rocksdb;
 
 import jelectrum.db.DBMapSet;
+import jelectrum.db.DBMapSetThreaded;
 import jelectrum.db.DBTooManyResultsException;
 
 import org.rocksdb.RocksDB;
@@ -17,14 +18,18 @@ import jelectrum.TimeRecord;
 
 import org.bitcoinj.core.Sha256Hash;
 
+import java.util.concurrent.Executor;
 
-public class RocksDBMapSet extends DBMapSet
+
+public class RocksDBMapSet extends DBMapSetThreaded
 { 
   RocksDB db;
   String name;
 
-  public RocksDBMapSet(RocksDB db, String name)
+
+  public RocksDBMapSet(Executor exec, RocksDB db, String name)
   { 
+    super(exec);
     this.db = db;
     this.name = name;
   }

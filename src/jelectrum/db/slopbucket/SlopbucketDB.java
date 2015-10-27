@@ -7,25 +7,17 @@ import jelectrum.db.DBMapSet;
 import slopbucket.Slopbucket;
 import jelectrum.Config;
 import jelectrum.EventLog;
-import jelectrum.DaemonThreadFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.TreeMap;
 import java.util.Map;
 import com.google.protobuf.ByteString;
 
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
 
 public class SlopbucketDB extends DB
 {
 
 
-  private ThreadPoolExecutor exec;
   private EventLog log;
 
   private TreeMap<String, Slopbucket> slops;
@@ -46,17 +38,8 @@ public class SlopbucketDB extends DB
 
     slops=new TreeMap<>();
 
-    /*exec = new ThreadPoolExecutor(
-      16,
-      16,
-      2, TimeUnit.DAYS,
-      new LinkedBlockingQueue<Runnable>(),
-      new DaemonThreadFactory());*/
-
     open();
   }
-
-  protected Executor getExec(){return exec;}
 
 
   protected DBMap openMap(String name) throws Exception
