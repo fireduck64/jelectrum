@@ -41,7 +41,12 @@ public class RocksDBMapSet extends DBMapSetThreaded
     byte b[]=new byte[0];
     try
     {
-      db.put(s.getBytes(), b);
+
+      WriteOptions write_options = new WriteOptions();
+      write_options.setDisableWAL(true);
+      write_options.setSync(false);
+
+      db.put(write_options, s.getBytes(), b);
     }
     catch(RocksDBException e)
     {

@@ -52,7 +52,11 @@ public class RocksDBMap extends DBMapThreaded
     {
       String key_str = name + "/" + key;
 
-      db.put(key_str.getBytes(), value.toByteArray());
+      WriteOptions write_options = new WriteOptions();
+      write_options.setDisableWAL(true);
+      write_options.setSync(false);
+
+      db.put(write_options, key_str.getBytes(), value.toByteArray());
 
     }
     catch(RocksDBException e)
@@ -61,7 +65,7 @@ public class RocksDBMap extends DBMapThreaded
     }
   }
 
-  @Override
+  /*@Override
   public void putAll(Map<String, ByteString> m)
   {
     try
@@ -87,7 +91,7 @@ public class RocksDBMap extends DBMapThreaded
       throw new RuntimeException(e);
     }
 
-  }
+  }*/
 
 
 }
