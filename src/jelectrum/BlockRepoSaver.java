@@ -22,6 +22,7 @@ public class BlockRepoSaver extends Thread
 
   private AmazonS3Client s3;
   private String bucket;
+  private int save_after = -1;
 
   public BlockRepoSaver(Jelectrum jelly, int BLOCKS_PER_CHUNK)
   {
@@ -38,6 +39,11 @@ public class BlockRepoSaver extends Thread
 
     s3 = new AmazonS3Client(new BasicAWSCredentials(config.get("block_repo_saver_aws_id"), config.get("block_repo_saver_aws_key")));
     bucket = config.get("block_repo_saver_bucket");
+
+    if (config.isSet("block_repo_saver_save_after"))
+    {
+      save_after = config.getInt("block_repo_saver_save_after");
+    }
 
   }
 
@@ -75,6 +81,14 @@ public class BlockRepoSaver extends Thread
       String key = "blockchunk/" +BLOCKS_PER_CHUNK+"/" + start;
 
       Sha256Hash db_hash = null;
+
+      // Catch up DB
+      if (start < save_after)
+      {
+        continue;
+        //special_object_map.put(key, end_hash);
+      }
+
       db_hash = (Sha256Hash) special_object_map.get(key);
 
       if ((db_hash == null) || (!db_hash.equals(end_hash)))
