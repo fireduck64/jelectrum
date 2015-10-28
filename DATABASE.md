@@ -1,3 +1,10 @@
+# History
+
+This list details some of the fun with my search for the perfect key value store.
+
+My experience is that many things can store data, but few seem to continue to perform
+well after you store a few hundred million entries.
+
 # Requirements
 
 The jelectrum database requirements are simple.
