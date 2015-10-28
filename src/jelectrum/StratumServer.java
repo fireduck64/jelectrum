@@ -43,6 +43,9 @@ public class StratumServer
     private StratumServer server;
     private Jelectrum jelectrum;
     private RateLimit global_rate_limit;
+
+    private int tcp_port = -1;
+    private int ssl_port = -1;
     
     public StratumServer(Jelectrum jelectrum, Config config)
     {
@@ -62,11 +65,10 @@ public class StratumServer
         {
           global_rate_limit = new RateLimit(config.getDouble("global_rate_limit"), 2.0);
         }
-
-
         server = this;
 
     }
+
     public void start()
         throws java.net.SocketException, java.io.IOException, java.security.GeneralSecurityException
     {
@@ -76,12 +78,11 @@ public class StratumServer
 
         if (config.isSet("tcp_port"))
         {
-
-
             List<String> ports = config.getList("tcp_port");
             for(String s : ports)
             {
                 int port = Integer.parseInt(s);
+                if (tcp_port < 0) tcp_port = port;
 
                 ServerSocket ss = new ServerSocket(port, 256);
                 ss.setReuseAddress(true);
@@ -95,7 +96,6 @@ public class StratumServer
             KeyStore ks = KeyStore.getInstance("JKS");
             ks.load(new FileInputStream(config.get("keystore_path")), ks_pass);
 
-
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
             kmf.init(ks, key_pass);
             SSLContext sc = SSLContext.getInstance("TLS");
@@ -107,7 +107,7 @@ public class StratumServer
             for(String s : ports)
             {
                 int port = Integer.parseInt(s);
-
+                if (ssl_port < 0) ssl_port = port;
 
                 SSLServerSocket ss = (SSLServerSocket)ssf.createServerSocket(port, 256);
                 ss.setWantClientAuth(false);
@@ -116,8 +116,6 @@ public class StratumServer
                 new ListenThread(ss).start();
             }
         }
-
-
 
     }
 
@@ -143,6 +141,9 @@ public class StratumServer
     {
         return event_log;
     }
+
+    public int getTcpPort() {return tcp_port;}
+    public int getSslPort() {return ssl_port;}
 
     public int getConnectionCount()
     {

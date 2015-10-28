@@ -65,7 +65,7 @@ public class RocksDBMap extends DBMapThreaded
     }
   }
 
-  /*@Override
+  @Override
   public void putAll(Map<String, ByteString> m)
   {
     try
@@ -91,7 +91,7 @@ public class RocksDBMap extends DBMapThreaded
       throw new RuntimeException(e);
     }
 
-  }*/
+  }
 
 
 }

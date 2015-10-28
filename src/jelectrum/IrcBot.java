@@ -58,13 +58,26 @@ public class IrcBot extends PircBot
   }
   public String getAdvertString()
   {
+    //hostmame v1.0 p10000 t s
+    //hostname v1.0 p10000 t50003 s50004
+
     StringBuilder sb=new StringBuilder();
     sb.append(advert_host);
     sb.append(" v");
     sb.append(StratumConnection.PROTO_VERSION);
     sb.append(" p10000");
-    if (config.isSet("tcp_port")) sb.append(" t");
-    if (config.isSet("ssl_port")) sb.append(" s");
+    if (config.isSet("tcp_port")) 
+    {
+      sb.append(" t");
+      int port = jelly.getStratumServer().getTcpPort();
+      if (port != 50001) sb.append("" + port);
+    }
+    if (config.isSet("ssl_port"))
+    {
+      sb.append(" s");
+      int port = jelly.getStratumServer().getSslPort();
+      if (port != 50002) sb.append("" + port);
+    }
 
     return sb.toString();
 
