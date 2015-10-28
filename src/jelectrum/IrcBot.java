@@ -209,8 +209,16 @@ public class IrcBot extends PircBot
       setVersion(getAdvertString());
       connect("irc.freenode.net");
 
-      joinChannel("#electrum");
-      joinChannel("#jelectrum");
+      if (config.getBoolean("testnet"))
+      {
+        joinChannel("#electrum-testnet");
+        joinChannel("#jelectrum-testnet");
+      }
+      else
+      {
+        joinChannel("#electrum");
+        joinChannel("#jelectrum");
+      }
 
       synchronized(connection_lock)
       {
