@@ -3,6 +3,9 @@ package jelectrum;
 import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.IrcException;
 
+import java.util.Scanner;
+import java.net.URL;
+
 
 public class IrcBot extends PircBot
 {
@@ -26,8 +29,17 @@ public class IrcBot extends PircBot
       {
         config.require("irc_nick");
         config.require("irc_advertise_host");
-        nick = ("E_j_" + config.get("irc_nick"));
         advert_host = config.get("irc_advertise_host");
+
+        String config_nick = config.get("irc_nick");
+
+        if (config_nick.equals("auto"))
+        {
+          String seed = getHostSeed(advert_host);
+          config_nick = WordList.getWords(2, "_", seed);
+        }
+
+        nick = "E_j_" + config_nick;
 
         setName(nick);
         setLogin(nick);
@@ -42,8 +54,17 @@ public class IrcBot extends PircBot
         config.require("irc_nick_"+mode);
         config.require("irc_advertise_host_"+mode);
 
-        nick = "E_j_" + config.get("irc_nick_"+mode);
         advert_host = config.get("irc_advertise_host_"+mode);
+
+        String config_nick = config.get("irc_nick_"+mode);
+
+        if (config_nick.equals("auto"))
+        {
+          String seed = getHostSeed(advert_host);
+          config_nick = WordList.getWords(2, "_", seed);
+        }
+
+        nick = "E_j_" + config_nick;
 
         setName(nick);
         setLogin(nick);
@@ -56,13 +77,38 @@ public class IrcBot extends PircBot
     this.jelly = jelly;
 
   }
+
+  public String getHostSeed(String h)
+  { 
+    try
+    {
+      if (h.equals("auto"))
+      {
+        h = lookupMyIp();
+      }
+    }
+    catch(java.io.IOException e)
+    {
+      return null;
+    }
+    return h;
+
+
+  }
   public String getAdvertString()
+    throws java.io.IOException
   {
     //hostmame v1.0 p10000 t s
     //hostname v1.0 p10000 t50003 s50004
+    String host = advert_host;
+
+    if (advert_host.equals("auto"))
+    {
+      host = lookupMyIp();
+    }
 
     StringBuilder sb=new StringBuilder();
-    sb.append(advert_host);
+    sb.append(host);
     sb.append(" v");
     sb.append(StratumConnection.PROTO_VERSION);
     sb.append(" p10000");
@@ -179,6 +225,21 @@ public class IrcBot extends PircBot
       disconnect();
 
     }
+  }
+
+
+  public static String lookupMyIp()
+    throws java.io.IOException
+  {
+    String url = "https://jelectrum-1022.appspot.com/myip";
+
+    URL u = new URL(url);
+    Scanner scan =new Scanner(u.openStream());
+    String line = scan.nextLine();
+    scan.close();
+
+    return line.trim();
+
   }
 
 
