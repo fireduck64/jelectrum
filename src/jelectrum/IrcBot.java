@@ -5,7 +5,7 @@ import org.jibble.pircbot.IrcException;
 
 import java.util.Scanner;
 import java.net.URL;
-
+import java.util.Random;
 
 public class IrcBot extends PircBot
 {
@@ -18,9 +18,13 @@ public class IrcBot extends PircBot
   private String advert_host = null;
   private String nick = null;
 
+  private String chatChannel;
+  private boolean gossip=false;
+
   public IrcBot(Jelectrum jelly, String mode)
   {
     config = jelly.getConfig();
+    this.jelly = jelly;
 
     if (mode == null)
     {
@@ -73,8 +77,7 @@ public class IrcBot extends PircBot
       }
  
     }
-
-    this.jelly = jelly;
+    new GossipThread().start();
 
   }
 
@@ -190,6 +193,7 @@ public class IrcBot extends PircBot
         {
           t.printStackTrace();
         }
+        gossip=false;
 
         try { sleep(600000);} catch(Throwable t){}
 
@@ -213,17 +217,22 @@ public class IrcBot extends PircBot
       {
         joinChannel("#electrum-testnet");
         joinChannel("#jelectrum-testnet");
+        chatChannel="#jelectrum-testnet";
       }
       else
       {
         joinChannel("#electrum");
         joinChannel("#jelectrum");
+        chatChannel="#jelectrum";
       }
+      gossip=true;
 
       synchronized(connection_lock)
       {
         connection_lock.wait();
       }
+
+      gossip=false;
 
       while (System.currentTimeMillis() < kickWaitTime)
       {
@@ -250,5 +259,39 @@ public class IrcBot extends PircBot
 
   }
 
+  public class GossipThread extends Thread
+  {
+    public GossipThread()
+    {
+      setName("IrcBot/Gossip");
+      setDaemon(false);
+
+    }
+
+    public void run()
+    {
+      Random rnd = new Random();
+      while(true)
+      {
+        int sleep_max = 3 * 3600 * 1000;
+        try
+        {
+          sleep(rnd.nextInt(sleep_max));
+          if (gossip)
+          {
+            int word_count = 1 + rnd.nextInt(5);
+            sendMessage(chatChannel, WordList.getWords(word_count, " ", null));
+          }
+        }
+        catch(Throwable t)
+        {
+          t.printStackTrace();
+        }
+
+      }
+
+    }
+
+  }
 
 }
