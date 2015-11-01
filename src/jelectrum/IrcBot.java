@@ -273,7 +273,7 @@ public class IrcBot extends PircBot
       Random rnd = new Random();
       while(true)
       {
-        int sleep_max = 3 * 3600 * 1000;
+        int sleep_max = 6 * 3600 * 1000;
         try
         {
           sleep(rnd.nextInt(sleep_max));
