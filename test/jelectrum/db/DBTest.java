@@ -27,7 +27,7 @@ import com.google.protobuf.ByteString;
 public class DBTest
 {
 
-  @Test
+  /*@Test
   public void testMongo() throws Exception
   {
     Config conf = new Config("jelly-test.conf");
@@ -36,7 +36,7 @@ public class DBTest
     DB db = new MongoDB(conf);
     testDB(db);
 
-  }
+  }*/
 
   @Test
   public void testLMDB() throws Exception

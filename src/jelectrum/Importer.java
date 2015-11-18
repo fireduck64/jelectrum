@@ -598,7 +598,8 @@ public class Importer
 
         if (h % block_print_every ==0)
         {
-            jelly.getEventLog().alarm("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
+          jelly.getEventLog().alarm("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
+          System.gc();
         }
         else
         {

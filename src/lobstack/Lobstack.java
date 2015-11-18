@@ -29,12 +29,12 @@ import java.text.SimpleDateFormat;
 /**
  * Limitations: 
  *  - Don't store null.  Zero length should be fine.
- *  - Don't store strings that end with ♥ (don't ask)
+ *  - Don't store strings that end with | (don't ask)
  *  - Puts lock things, try to use putAll as much as you can
  */
 public class Lobstack
 {
-  public static String DATA_TAG="♥";
+  public static String DATA_TAG="|";
   public static long SEGMENT_FILE_SIZE=256L * 1024L * 1024L;
 
   public static final int MAX_OPEN_FILES=2048;
