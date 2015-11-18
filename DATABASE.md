@@ -29,11 +29,13 @@ Overview: Continued development of LevelDB by engineers at Facebook.
 Downside: Used JNI so might have problems on other platforms or if the linux binaries doesn't match up correctly.
 
 If you have a problem with strange error messages, try rebuilding the library on your system:
+ * apt-get install libsnappy-dev curl
  * git clone https://github.com/facebook/rocksdb.git
  * Build java library - details on [RocksJava-Basics](https://github.com/facebook/rocksdb/wiki/RocksJava-Basics)
         export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+        export DEBUG_LEVEL=0
         make rocksdbjava
- * copy java/target/rocksdbjni-4.2.0-linux64.jar (or whatever it gets named) into your jelectrum lib directory
+ * copy java/target/rocksdbjni-4.3.0-linux64.jar (or whatever it gets named) into your jelectrum lib directory
 
 ## Slopbucket
 
