@@ -15,7 +15,8 @@ Requirements
 Current Hardware Recommendations
 --------------------------------
 
-This is the hardware running mashtk6hmnysevfj.onion listed on [Electrum Server Monitor](https://1209k.com/bitcoin-eye/ele.php).
+This is the hardware running mashtk6hmnysevfj.onion and mash.1209k.com (IPv6 only)listed on 
+[Electrum Server Monitor](https://1209k.com/bitcoin-eye/ele.php).
 All links are Amazon Affiliate links, so purchasing through the links will help fund this project.
 
  * [Gigabyte Intel Celeron N2807 Mini PC Barebones GB-BXBT-2807](http://amzn.to/1kIEPB7)
@@ -24,9 +25,9 @@ All links are Amazon Affiliate links, so purchasing through the links will help 
 
 Right now, this totals to about $221 before tax and shipping.
 
-You'll need to install an OS via a USB drive.  You'll need a USB keyboard and something that can display
-HDMI to complete the install.  I'd just connect it to ethernet if you can.  I haven't tried the wireless
-on this box.  Other than that, this is all the hardware that you will need.
+You'll need to install an OS via a USB stick.  You'll need a USB keyboard and something that can display
+HDMI or VGA to complete the install.  I'd just connect it to ethernet if you can.  I haven't tried the 
+wireless on this box.  Other than that, this is all the hardware that you will need.
 
 Software Setup
 --------------
