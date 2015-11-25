@@ -26,7 +26,7 @@ public class BulkImporter
   private Jelectrum jelly;
   private TXUtil tx_util;
 
-  private int BLOCKS_PER_CHUNK=100;
+  private int BLOCKS_PER_CHUNK=10;
 
   //At 1mb per block, and 100 blocks per chunk, it is 100mb
   //per queue pack.  So memory can fill up fast.

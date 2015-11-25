@@ -62,10 +62,10 @@ public class RocksDBMapSet extends DBMapSetThreaded
 
     HashSet<Sha256Hash> set = new HashSet<Sha256Hash>();
     int count = 0;
+    RocksIterator it = db.newIterator();
 
-    //try
+    try
     {
-      RocksIterator it = db.newIterator();
       it.seek(s.getBytes());
 
       while(it.isValid())
@@ -84,6 +84,10 @@ public class RocksDBMapSet extends DBMapSetThreaded
       }
 
     }
+    finally
+    {
+      it.dispose();
+    } 
     /*catch(RocksDBException e)
     { 
       throw new RuntimeException(e);

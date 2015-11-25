@@ -36,7 +36,10 @@ cp jelly.default.conf jelly.conf
 edit jelly.conf as makes sense
 
 Run:
+while true
+do
 java -Xmx3g -jar jar/Jelectrum.jar jelly.conf
+done
 
 My Instance
 -----------
@@ -78,6 +81,12 @@ UTXO Troublehsooting
 --------------------
 
 [UTXO LOLWUT](UTXO-LOLWUT.md)
+
+Getting a heap dump
+-------------------
+
+Example command:
+jmap -dump:live,format=b,file=jelectrum-20151124.bin 19958
 
 Mini Server Instructions
 ------------------------
