@@ -414,6 +414,21 @@ public class StratumConnection
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }
+            else if (method.equals("server.donation_address"))
+            {
+             
+              JSONObject reply = new JSONObject();
+              reply.put("id", id);
+              String addr = "";
+              if (config.isSet("donation_address"))
+              {
+                addr = config.get("donation_address");
+              }
+              reply.put("result", addr);
+              logRequest(method, input_size, reply.toString().length());
+
+              sendMessage(reply);
+            }
             else if (method.equals("blockchain.transaction.get"))
             {
                 JSONObject reply = new JSONObject();
