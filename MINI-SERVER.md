@@ -8,7 +8,7 @@ The hardware listed here is an example.
 Requirements
 ------------
 
- * At least 4GB of RAM
+ * At least 8GB of RAM
  * At least 120GB of SSD (250 GB recommended for future expansion)
  * 64-bit CPU (for memory mapped key value stores), ideally a GHz or two and a few cores
 
@@ -20,7 +20,7 @@ This is the hardware running mashtk6hmnysevfj.onion and mash.1209k.com (IPv6 onl
 All links are Amazon Affiliate links, so purchasing through the links will help fund this project.
 
  * [Gigabyte Intel Celeron N2807 Mini PC Barebones GB-BXBT-2807](http://amzn.to/1kIEPB7)
- * [Kingston Technology 4GB 1600MHz DDR3L SODIMM](http://amzn.to/1NwMbkS)
+ * [Kingston Technology 8GB 1600MHz DDR3L SODIMM](http://amzn.com/B00CQ35HBQ?tag=1209k-20)
  * [Crucial BX100 250GB SATA 2.5](http://amzn.to/1Mfee4M)
 
 Right now, this totals to about $221 before tax and shipping.
