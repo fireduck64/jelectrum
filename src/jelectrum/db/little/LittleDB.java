@@ -5,6 +5,7 @@ import jelectrum.db.DBMap;
 import jelectrum.db.DBMapSet;
 import jelectrum.db.mongo.MongoDB;
 import jelectrum.db.level.LevelDB;
+import jelectrum.db.lmdb.LMDB;
 
 import slopbucket.Slopbucket;
 import jelectrum.Config;
@@ -38,7 +39,7 @@ import org.apache.commons.codec.binary.Hex;
 
 import org.junit.Assert;
 
-public class LittleDB extends LevelDB
+public class LittleDB extends LMDB
 {
   private BloomLayerCake cake;
   private TXUtil tx_util;
@@ -51,7 +52,7 @@ public class LittleDB extends LevelDB
   public LittleDB(Config conf, EventLog log, NetworkParameters network_parameters)
     throws Exception
   {
-    super(log, conf);
+    super(conf);
 
     this.network_parameters = network_parameters;
 
@@ -106,7 +107,7 @@ public class LittleDB extends LevelDB
 
 
   @Override
-  protected DBMapSet openMapSet(String name) throws Exception{return null;}
+  public DBMapSet openMapSet(String name) {return null;}
 
 
   @Override

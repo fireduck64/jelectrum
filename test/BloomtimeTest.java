@@ -30,6 +30,7 @@ public class BloomtimeTest
     bloom = new Bloomtime(f, 8192, 1048576, 4); 
   }
 
+
   @Test
   public void testDetRandom()
   {
@@ -46,13 +47,12 @@ public class BloomtimeTest
     Assert.assertEquals(bloom.getHashIndexes(b), bloom.getHashIndexes(b));
     Assert.assertEquals(4, bloom.getHashIndexes(b).size());
 
-    System.out.println(bloom.getHashIndexes(b));
     Set<Integer> v = bloom.getHashIndexes(b);
 
-    Assert.assertTrue(v.contains(253540));
-    Assert.assertTrue(v.contains(669940));
-    Assert.assertTrue(v.contains(970472));
-    Assert.assertTrue(v.contains(526572));
+    Assert.assertTrue(v.contains(532709));
+    Assert.assertTrue(v.contains(955831));
+    Assert.assertTrue(v.contains(246865));
+    Assert.assertTrue(v.contains(593366));
 
   }
 
@@ -97,7 +97,7 @@ public class BloomtimeTest
     Random rnd = new Random();
 
     HashMap<ByteString, Integer> correct_map = new HashMap<>();
-    for(int i=0; i<10000; i++)
+    for(int i=0; i<100000; i++)
     {
       int slice = rnd.nextInt(8192);
       ByteString b = TestUtil.randomByteString();
@@ -105,7 +105,7 @@ public class BloomtimeTest
       correct_map.put(b, slice);
     }
 
-    Assert.assertEquals(10000, correct_map.size());
+    Assert.assertEquals(100000, correct_map.size());
     for(Map.Entry<ByteString, Integer> me : correct_map.entrySet())
     {
       ByteString b = me.getKey();

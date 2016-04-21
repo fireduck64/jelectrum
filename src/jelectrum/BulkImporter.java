@@ -77,7 +77,7 @@ public class BulkImporter
        * from creating a confidence table and filling it with bullshit.
        * So clear it after each pack and we should be ok.
        */
-      org.bitcoinj.core.Context.getOrCreate(jelly.getNetworkParameters()).getConfidenceTable().cleanTable();
+      //org.bitcoinj.core.Context.getOrCreate(jelly.getNetworkParameters()).getConfidenceTable().cleanTable();
       
     }
 
