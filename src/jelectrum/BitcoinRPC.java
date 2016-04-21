@@ -48,7 +48,6 @@ public class BitcoinRPC
     public JSONObject sendPost(JSONObject post)
         throws java.io.IOException, org.json.JSONException
     {
-        //System.out.println(post.toString(2));
         String str = sendPost(getUrl(), post.toString());
         return new JSONObject(str);
     }
@@ -134,6 +133,14 @@ public class BitcoinRPC
         msg.put("method","getinfo");
         return sendPost(msg);
 
+    }
+
+    public double getRelayFee()
+      throws java.io.IOException, org.json.JSONException
+    {
+      JSONObject info = getinfo();
+      JSONObject result = info.getJSONObject("result");
+      return result.getDouble("relayfee");
     }
 
     public int getBlockHeight()

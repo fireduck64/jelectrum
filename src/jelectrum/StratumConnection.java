@@ -554,6 +554,22 @@ public class StratumConnection
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }
+            else if (method.equals("blockchain.relayfee"))
+            {
+                JSONObject reply = new JSONObject();
+                reply.put("id", id);
+
+                double fee = 0.0;
+                if (jelectrum.getBitcoinRPC() != null)
+                {
+                  fee = jelectrum.getBitcoinRPC().getRelayFee();
+                }
+
+                reply.put("result", fee);
+                logRequest(method, input_size, reply.toString().length());
+                sendMessage(reply);
+            }
+          
             else
             {
                 jelectrum.getEventLog().alarm(connection_id + " - Unknown electrum method: " + method);
