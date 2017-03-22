@@ -15,6 +15,7 @@ import jelectrum.db.level.LevelDB;
 import jelectrum.db.memory.MemoryDB;
 import jelectrum.db.slopbucket.SlopbucketDB;
 import jelectrum.db.jedis.JedisDB;
+import jelectrum.db.cassandra.CassandraDB;
 import jelectrum.Config;
 import jelectrum.EventLog;
 import org.bitcoinj.core.Sha256Hash;
@@ -27,7 +28,7 @@ import com.google.protobuf.ByteString;
 public class DBTest
 {
 
-  /*@Test
+  @Test
   public void testMongo() throws Exception
   {
     Config conf = new Config("jelly-test.conf");
@@ -36,7 +37,7 @@ public class DBTest
     DB db = new MongoDB(conf);
     testDB(db);
 
-  }*/
+  }
 
   @Test
   public void testLMDB() throws Exception
@@ -102,6 +103,17 @@ public class DBTest
     DB db = new MemoryDB(conf);
     testDB(db);
 
+  }
+
+  @Test
+  public void testCassandraDB() throws Exception
+  {
+
+    Config conf = new Config("jelly-cassandra.conf");
+    EventLog log =new EventLog(System.out);
+
+    DB db = new CassandraDB(conf);
+    testDB(db);
   }
 
   /*@Test

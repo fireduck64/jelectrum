@@ -28,7 +28,7 @@ public class GrindTest
 {
   private static final long ITEMS_TO_ADD = 100L * 1000000L;
   private static final int ITEMS_PER_PUT = 10000;
-  private static final int THREADS = 1;
+  private static final int THREADS = 8;
 
   private AtomicInteger items_saved= new AtomicInteger(0);
 
@@ -85,6 +85,10 @@ public class GrindTest
     if (name.equals("rocksdb"))
     {
       db = new jelectrum.db.rocksdb.JRocksDB(conf, log);
+    }
+    if (name.equals("cassandra"))
+    {
+      db = new jelectrum.db.cassandra.CassandraDB(conf);
     }
 
     Assert.assertNotNull("DB must not be null", db);

@@ -723,6 +723,14 @@ public class Importer
                     {
                       jelly.getEventLog().alarm("No connected peers - can't get new blocks or transactions");
                     }
+                    if (name.equals("1-hour"))
+                    {
+                      if (block_rate < 0.05)
+                      {
+                        jelly.getEventLog().alarm("Block rate too low, aborting");
+                        System.exit(-1);
+                      }
+                    }
                 
                   if (tr != null)
                   {

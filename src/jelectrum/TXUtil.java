@@ -14,6 +14,7 @@ import org.bitcoinj.script.Script;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Collection;
+import java.util.Set;
 
 import org.junit.Assert;
 
@@ -229,6 +230,23 @@ public class TXUtil
 
     }
 
+  public int getTXBlockHeight(Transaction tx, BlockChainCache chain_cache)
+  {
+  	Set<Sha256Hash> block_list = db.getTxToBlockMap(tx.getHash());
+    if (block_list != null)
+    {   
 
+    	for(Sha256Hash block_hash : block_list)
+      { 
+      	if (chain_cache.isBlockInMainChain(block_hash))
+        { 
+        	return db.getBlockStoreMap().get(block_hash).getHeight();
+        }
+      }
+    }
+
+		return -1;
+
+  }
 
 }

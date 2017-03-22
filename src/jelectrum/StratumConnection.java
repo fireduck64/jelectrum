@@ -228,13 +228,14 @@ public class StratumConnection
 
         public void run()
         {
+          String line = null;
             try
             {
                 Scanner scan = new Scanner(sock.getInputStream());
 
                 while(open)
                 {
-                    String line = scan.nextLine();
+                    line = scan.nextLine();
                     updateLastNetworkAction();
                     int input_size = line.length();
                     line = line.trim();
@@ -262,7 +263,7 @@ public class StratumConnection
             }
             catch(Throwable e)
             {
-                jelectrum.getEventLog().log("Unexpected error ("+connection_id+"): " + e);
+                jelectrum.getEventLog().log("Unexpected error ("+connection_id+"): " + e + " line: " + line);
             }
             finally
             {
@@ -436,7 +437,16 @@ public class StratumConnection
 
                 JSONArray params = msg.getJSONArray("params");
 
-                Sha256Hash hash =new Sha256Hash(params.getString(0));
+                Sha256Hash hash = null;
+                try
+                {
+
+                  hash =new Sha256Hash( params.getString(0));
+                }
+                catch(Throwable t)
+                {
+                  throw new Exception("Bad transaction hash: " + params.getString(0));
+                }
 
                 Transaction tx = tx_util.getTransaction(hash);
                 if (tx==null)
@@ -589,7 +599,10 @@ public class StratumConnection
                 sendMessage(reply);
                 jelectrum.getEventLog().log(connection_id + " - error: " + t);
                 jelectrum.getEventLog().log(t);
-                //t.printStackTrace();
+                if (detail_logs) {
+                  t.printStackTrace();
+                }
+                close();
         }
     }
 

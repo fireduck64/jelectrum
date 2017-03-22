@@ -37,6 +37,10 @@ If you have a problem with strange error messages, try rebuilding the library on
         make rocksdbjava
  * copy java/target/rocksdbjni-4.3.0-linux64.jar (or whatever it gets named) into your jelectrum lib directory
 
+ If you happen to see an error like "org.rocksdb.RocksDBException: B" That 'B' really means something like
+ the data element found in this existing database was compressed with libsnappy and the library you are using
+ doesn't seem to be compiled with that.  Maybe install libsnappy and rebuild?
+
 ## Slopbucket
 
 Overview: A very simple memory mapped hash table implementation written by Fireduck to support

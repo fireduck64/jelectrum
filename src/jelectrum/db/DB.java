@@ -56,7 +56,7 @@ public abstract class DB implements DBFace
     protected BlockChainCache block_chain_cache;
     protected TXUtil tx_util;
 
-    protected int max_set_return_count=10000;
+    protected int max_set_return_count=100000;
 
     protected Executor exec;
 

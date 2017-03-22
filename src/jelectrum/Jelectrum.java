@@ -108,6 +108,10 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.rocksdb.JRocksDB(config, event_log);
         }
+        else if (db_type.equals("cassandra"))
+        {
+          jelectrum_db = new jelectrum.db.cassandra.CassandraDB(config);
+        }
         else
         {
           System.out.println("Unknown db_type: " + db_type);
@@ -245,6 +249,9 @@ public class Jelectrum
           new BlockRepoSaver(this,100).start();
           new BlockRepoSaver(this,10).start();
         }
+
+
+        
 
 
 

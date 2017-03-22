@@ -1,4 +1,5 @@
 package jelectrum.db.mongo;
+import com.datastax.driver.core.Session;
 
 import jelectrum.db.DBMap;
 import jelectrum.db.DBMapSet;
@@ -51,14 +52,4 @@ public class MongoDB extends jelectrum.db.DB
     return new MongoMapSet(c);
 
   }
-
-
-  
-
-  
-
-
-
-  
-
 }
