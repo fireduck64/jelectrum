@@ -32,8 +32,8 @@ public class PeerManager
   // replaced all the damn time
   private volatile JSONArray lastPeerList;
 
-  //public static long RECHECK_TIME = 8L * 3600L* 1000L; //8 hours
-  public static long RECHECK_TIME = 3600 * 1000L; //1 hr
+  public static long RECHECK_TIME = 8L * 3600L* 1000L; //8 hours
+  //public static long RECHECK_TIME = 3600 * 1000L; //1 hr
   public static long FORGET_TIME = 7L * 86400L * 1000L; //1 week
 
   private final String genesis_hash;
