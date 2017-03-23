@@ -55,6 +55,10 @@ public class EventLog
         
 
     }
+    public void alarm(Throwable e)
+    {
+      alarm(e.toString());
+    }
     public void alarm(String msg)
     {
       

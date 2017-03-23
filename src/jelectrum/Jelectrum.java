@@ -40,6 +40,7 @@ public class Jelectrum
     private HeaderChunkAgent header_chunk_agent;
     private BitcoinRPC bitcoin_rpc;
     private UtxoTrieMgr utxo_trie_mgr;
+    private PeerManager peer_manager;
 
     private volatile boolean caught_up=false;
 
@@ -129,6 +130,8 @@ public class Jelectrum
         
         importer = new Importer(network_params, this, block_store);
 
+        peer_manager = new PeerManager(this);
+
         stratum_server = new StratumServer(this, config);
 
         block_chain_cache = BlockChainCache.load(this);
@@ -137,9 +140,6 @@ public class Jelectrum
         header_chunk_agent = new HeaderChunkAgent(this);
 
         jelectrum_db.setBlockChainCache(block_chain_cache);
-
-
-
 
     }
 
@@ -166,9 +166,10 @@ public class Jelectrum
         stratum_server.setEventLog(event_log);
 
         stratum_server.start();
+        peer_manager.start();
 
 
-        System.out.println("Starting peer download");
+        System.out.println("Starting bitcoin peer download");
 
 
         peer_group = new PeerGroup(network_params, block_chain);
@@ -190,7 +191,7 @@ public class Jelectrum
         {
           for(String peer : config.getList("bitcoin_peer_list"))
           {
-            event_log.log("Adding additional peer: " + peer);
+            event_log.log("Adding additional bitcoin peer: " + peer);
             peer_group.addAddress(new PeerAddress(InetAddress.getByName(peer),8333));
           }
         }
@@ -210,19 +211,19 @@ public class Jelectrum
 
         while (peer_group.numConnectedPeers() == 0)
         {
-          event_log.alarm("No connected peers - can't get new blocks or transactions");
+          event_log.alarm("No connected bitcoin peers - can't get new blocks or transactions");
           Thread.sleep(5000);
         }
 
-        event_log.log("Connected peers: " + peer_group.getConnectedPeers().size());
+        event_log.log("Connected bitcoin peers: " + peer_group.getConnectedPeers().size());
         for(Peer p : peer_group.getConnectedPeers())
         {
-          event_log.log("Connected peer: " + p);
+          event_log.log("Connected bitcoin peer: " + p);
         }
-        event_log.log("Pending peers: " + peer_group.getPendingPeers().size());
+        event_log.log("Pending bitcoin peers: " + peer_group.getPendingPeers().size());
         for(Peer p : peer_group.getPendingPeers())
         {
-          event_log.log("Pending peer: " + p);
+          event_log.log("Pending bitcoin peer: " + p);
         }
 
         peer_group.downloadBlockChain();
@@ -355,6 +356,10 @@ public class Jelectrum
     public StratumServer getStratumServer()
     {
       return stratum_server;
+    }
+    public PeerManager getPeerManager()
+    {
+      return peer_manager;
     }
 
     private volatile boolean space_limited;

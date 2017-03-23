@@ -49,8 +49,6 @@ public class StratumConnection
     private AtomicInteger subscription_count = new AtomicInteger(0);
     private RateLimit session_rate_limit;
 
-   
-
     private LinkedBlockingQueue<JSONObject> out_queue = new LinkedBlockingQueue<JSONObject>();
     
     private long get_client_id=-1;
@@ -409,9 +407,32 @@ public class StratumConnection
             else if (method.equals("server.peers.subscribe"))
             {
                 JSONObject reply = new JSONObject();
-                JSONArray lst = new JSONArray();
+                JSONArray lst = jelectrum.getPeerManager().getPeers();
                 reply.put("id", id);
                 reply.put("result", lst);
+
+                logRequest(method, input_size, reply.toString().length());
+                sendMessage(reply);
+            }
+            else if (method.equals("server.features"))
+            {
+                JSONObject reply = new JSONObject();
+                JSONObject data = jelectrum.getPeerManager().getServerFeatures();
+                reply.put("id", id);
+                reply.put("result", data);
+
+                logRequest(method, input_size, reply.toString().length());
+                sendMessage(reply);
+            }
+            else if (method.equals("server.add_peer"))
+            {
+                JSONObject reply = new JSONObject();
+                reply.put("id", id);
+                
+                JSONArray params = msg.getJSONArray("params");
+                jelectrum.getPeerManager().addPeers(params);
+
+                reply.put("result", "OK");
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }
