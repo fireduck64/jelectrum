@@ -291,7 +291,7 @@ public class PeerManager
       {
         try
         {
-          Thread.sleep(30000L);
+          Thread.sleep(10000L);
           runPass();
 
         }
@@ -307,6 +307,7 @@ public class PeerManager
       boolean changes=false;
 
       TreeSet<String> deleteList=new TreeSet<>();
+      LinkedList<PeerInfo> checkList = new LinkedList<>();
 
       synchronized(knownPeers)
       {
@@ -324,7 +325,6 @@ public class PeerManager
           changes=true;
         }
 
-        LinkedList<PeerInfo> checkList = new LinkedList<>();
 
 
         for(Map.Entry<String, PeerInfo> me : knownPeers.entrySet())
@@ -337,18 +337,16 @@ public class PeerManager
             checkList.add(peer);
           }
         }
-        Collections.shuffle(checkList, new java.util.Random());
+      }
 
-        if (checkList.size() > 0)
-        {
-          jelly.getEventLog().log("Discovery peers that need to be checked: " + checkList.size());
+      Collections.shuffle(checkList, new java.util.Random());
+      if (checkList.size() > 0)
+      {
+        jelly.getEventLog().log("Discovery peers that need to be checked: " + checkList.size());
 
-          PeerInfo peer = checkList.get(0);
-          checkPeer(peer);
-          changes=true;
-
-        }
-      
+        PeerInfo peer = checkList.get(0);
+        checkPeer(peer);
+        changes=true;
       }
 
       if (changes)
