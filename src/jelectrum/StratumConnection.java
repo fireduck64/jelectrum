@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Scanner;
 import java.util.Random;
+import java.util.ArrayList;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -29,10 +30,17 @@ import org.apache.commons.codec.binary.Hex;
 
 public class StratumConnection
 {
-  //ghostbird, dirtnerd, beancurd
-    public static final String JELECTRUM_VERSION="beancurd";
-    public static final String PROTO_VERSION="1.0";
+    //ghostbird, dirtnerd, beancurd, thingword
+    public static final String JELECTRUM_VERSION="thingword";
+    public static final String PROTO_VERSION="1.1";
     public static final boolean use_thread_per_request=false;
+
+    public static ArrayList<String> SUPPORTED_PROTOS;
+    {
+      SUPPORTED_PROTOS = new ArrayList<>();
+      SUPPORTED_PROTOS.add("1.1");
+      SUPPORTED_PROTOS.add("0.10");
+    }
 
     private Jelectrum jelectrum;
     private StratumServer server;
@@ -45,6 +53,8 @@ public class StratumConnection
 
     private long connection_start_time;
     private String version_info;
+    private String client_version;
+    private String client_protocol="0.10";
     private String first_address;
     private AtomicInteger subscription_count = new AtomicInteger(0);
     private RateLimit session_rate_limit;
@@ -52,7 +62,6 @@ public class StratumConnection
     private LinkedBlockingQueue<JSONObject> out_queue = new LinkedBlockingQueue<JSONObject>();
     
     private long get_client_id=-1;
-    private String client_version;
 
     public static final long PRINT_INFO_DELAY=15000L;
 
@@ -259,6 +268,12 @@ public class StratumConnection
               if (detail_logs)  
                 jelectrum.getEventLog().log("Connection closed " + sock + " " + connection_id);
             }
+            catch(java.lang.NullPointerException npe)
+            {
+                jelectrum.getEventLog().log("Fireduck error (" + sock + " " +connection_id+"): " + npe);
+                npe.printStackTrace();
+
+            }
             catch(Throwable e)
             {
                 jelectrum.getEventLog().log("Unexpected error (" + sock + " " +connection_id+"): " + e);
@@ -305,6 +320,9 @@ public class StratumConnection
     {
         long idx = msg.optLong("id",-1);
         Object id = msg.opt("id");
+        JSONObject reply = new JSONObject();
+        reply.put("id", id);
+        reply.put("jsonrpc","2.0");
         try
         {
         
@@ -314,34 +332,68 @@ public class StratumConnection
                 return;
             }
             String method = msg.getString("method");
+
+
             if (method.equals("server.version"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
-                reply.put("result",PROTO_VERSION);
-                reply.put("jelectrum",JELECTRUM_VERSION);
+                  JSONArray version_array = msg.getJSONArray("params");
+
+                  client_version = version_array.getString(0);
+                  
+                  if (version_array.optString(1) != null)
+                  {
+                    client_protocol = selectProto(version_array.optString(1), version_array.optString(1));
+                  }
+                  JSONArray proto_array = version_array.optJSONArray(1);
+                  if (proto_array != null)
+                  {   
+                    String min_proto = proto_array.getString(0);
+                    String max_proto = proto_array.getString(1);
+                    client_protocol = selectProto(min_proto, max_proto);
+                  }
+                  if (client_protocol == null)
+                  {
+                    reply.put("error", "unsupported protocol");
+                    jelectrum.getEventLog().log("Unable to agree on proto with: " + msg);
+                  }
+                  else
+                  {
+                    if (client_protocol.compareTo("1.1") >= 0)
+                    {
+                      JSONArray result_arr = new JSONArray();
+                      result_arr.put(String.format("jelectum %s", JELECTRUM_VERSION));
+                      result_arr.put(client_protocol);
+                      reply.put("result", result_arr);
+                    }
+                    else
+                    {
+                      reply.put("result", client_protocol);
+                    }
+                  }
+
+                  if (version_info == null)
+                  {
+                    //if (detail_logs)
+                    jelectrum.getEventLog().log(String.format("%s - Version set from client (%s) using proto (%s)", connection_id, client_version, client_protocol));
+                  }
+                  
                 version_info = msg.get("params").toString();
+
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }
             else if (method.equals("server.banner"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
                 reply.put("result",banner);
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }
             else if (method.equals("blockchain.headers.subscribe"))
             {
-                //Should send this on each new block:
-                //{"id": 1, "result": {"nonce": 3114737334, "prev_block_hash": "000000000000000089e1f388af7cda336b6241b3f0b0ca36def7a8f22e44d39b", "timestamp": 1387995813, "merkle_root": "0debf5bd535624a955d229337a9bf3da5f370cc5a1f5fbee7261b0bdd0bd0f10", "block_height": 276921, "version": 2, "bits": 419668748}}
                 logRequest(method, input_size, 0);
-
                 jelectrum.getElectrumNotifier().registerBlockchainHeaders(this, id, true);
-                
             }
-            else if (method.equals("blockchain.numblocks.subscribe"))
+            else if ((method.equals("blockchain.numblocks.subscribe")) && (client_protocol.compareTo("1.1") < 0))
             {
                 //Should send this on each new block:
                 //{"id": 1, "result": {"nonce": 3114737334, "prev_block_hash": "000000000000000089e1f388af7cda336b6241b3f0b0ca36def7a8f22e44d39b", "timestamp": 1387995813, "merkle_root": "0debf5bd535624a955d229337a9bf3da5f370cc5a1f5fbee7261b0bdd0bd0f10", "block_height": 276921, "version": 2, "bits": 419668748}}
@@ -360,7 +412,7 @@ public class StratumConnection
                 jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address);
 
             }
-            else if (method.equals("blockchain.address.get_proof"))
+            else if ((method.equals("blockchain.address.get_proof")) && (client_protocol.compareTo("1.1") < 0))
             {
                 
                 JSONArray params = msg.getJSONArray("params");
@@ -406,9 +458,7 @@ public class StratumConnection
 
             else if (method.equals("server.peers.subscribe"))
             {
-                JSONObject reply = new JSONObject();
                 JSONArray lst = jelectrum.getPeerManager().getPeers();
-                reply.put("id", id);
                 reply.put("result", lst);
 
                 logRequest(method, input_size, reply.toString().length());
@@ -416,9 +466,7 @@ public class StratumConnection
             }
             else if (method.equals("server.features"))
             {
-                JSONObject reply = new JSONObject();
                 JSONObject data = jelectrum.getPeerManager().getServerFeatures();
-                reply.put("id", id);
                 reply.put("result", data);
 
                 logRequest(method, input_size, reply.toString().length());
@@ -426,9 +474,6 @@ public class StratumConnection
             }
             else if (method.equals("server.add_peer"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
-                
                 JSONArray params = msg.getJSONArray("params");
                 jelectrum.getPeerManager().addPeers(params);
 
@@ -439,8 +484,6 @@ public class StratumConnection
             else if (method.equals("server.donation_address"))
             {
              
-              JSONObject reply = new JSONObject();
-              reply.put("id", id);
               String addr = "";
               if (config.isSet("donation_address"))
               {
@@ -453,31 +496,36 @@ public class StratumConnection
             }
             else if (method.equals("blockchain.transaction.get"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
 
                 JSONArray params = msg.getJSONArray("params");
-
-                Sha256Hash hash = null;
-                try
+                if ((client_protocol.compareTo("1.1") >= 0) && (msg.length() != 1))
                 {
-
-                  hash =new Sha256Hash( params.getString(0));
-                }
-                catch(Throwable t)
-                {
-                  throw new Exception("Bad transaction hash: " + params.getString(0));
-                }
-
-                Transaction tx = tx_util.getTransaction(hash);
-                if (tx==null)
-                {
-                    reply.put("error","unknown transaction");
+                  reply.put("error","blockchain.transaction.get takes exactly one parameter");
                 }
                 else
                 {
-                    byte buff[]= tx.bitcoinSerialize();
-                    reply.put("result", Util.getHexString(buff));
+
+                Sha256Hash hash = null;
+                  try
+                  {
+
+                    hash =new Sha256Hash( params.getString(0));
+                  }
+                  catch(Throwable t)
+                  {
+                    throw new Exception("Bad transaction hash: " + params.getString(0));
+                  }
+
+                  Transaction tx = tx_util.getTransaction(hash);
+                  if (tx==null)
+                  {
+                      reply.put("error","unknown transaction");
+                  }
+                  else
+                  {
+                      byte buff[]= tx.bitcoinSerialize();
+                      reply.put("result", Util.getHexString(buff));
+                  }
                 }
                 logRequest(method, input_size, reply.toString().length());
 
@@ -485,9 +533,6 @@ public class StratumConnection
             }
             else if (method.equals("blockchain.block.get_header"))
             {
-                 JSONObject reply = new JSONObject();
-                 reply.put("id", id);
-
                  JSONArray arr = msg.getJSONArray("params");
                  int height = arr.getInt(0);
 
@@ -501,7 +546,6 @@ public class StratumConnection
                  logRequest(method, input_size, reply.toString().length());
 
                  sendMessage(reply);
-     
             }
             else if (method.equals("blockchain.transaction.broadcast"))
             {
@@ -518,25 +562,15 @@ public class StratumConnection
                   jelectrum.getBitcoinRPC().submitTransaction(hex);
                 }
 
-                
-
-
-                JSONObject reply = new JSONObject();
-
-                reply.put("id", id);
                 reply.put("result", tx.getHash().toString());
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
 
                 jelectrum.getImporter().saveTransaction(tx);
 
-
             }
             else if (method.equals("blockchain.transaction.get_merkle"))
             {
-                 JSONObject reply = new JSONObject();
-                 reply.put("id", id);
-
                  JSONArray arr = msg.getJSONArray("params");
                  Sha256Hash tx_hash = new Sha256Hash(arr.getString(0));
                  int height = arr.getInt(1);
@@ -554,8 +588,6 @@ public class StratumConnection
             }
             else if (method.equals("blockchain.block.get_chunk"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
                 JSONArray arr = msg.getJSONArray("params");
                 int index = arr.getInt(0);
 
@@ -566,8 +598,6 @@ public class StratumConnection
             }
             else if (method.equals("blockchain.estimatefee"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
                 JSONArray arr = msg.getJSONArray("params");
                 int block = arr.getInt(0);
 
@@ -587,9 +617,6 @@ public class StratumConnection
             }
             else if (method.equals("blockchain.relayfee"))
             {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
-
                 double fee = 0.0;
                 if (jelectrum.getBitcoinRPC() != null)
                 {
@@ -605,8 +632,6 @@ public class StratumConnection
             {
                 jelectrum.getEventLog().alarm(connection_id + " - Unknown electrum method: " + method);
                 System.out.println(msg);
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
                 reply.put("error","unknown method - " + method);
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
@@ -614,8 +639,6 @@ public class StratumConnection
         }
         catch(Throwable t)
         {
-                JSONObject reply = new JSONObject();
-                reply.put("id", id);
                 reply.put("error","Exception: " + t);
                 sendMessage(reply);
                 jelectrum.getEventLog().log(connection_id + " - error: " + t);
@@ -626,5 +649,18 @@ public class StratumConnection
                 close();
         }
     }
+
+
+    public static String selectProto(String min, String max)
+    {
+      for(String p : SUPPORTED_PROTOS)
+      {
+        if ((p.compareTo(max) <= 0) && (p.compareTo(min) >= 0)) return p;
+      }
+      return null;
+
+
+    }
+    
 
 }

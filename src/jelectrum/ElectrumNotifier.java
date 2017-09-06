@@ -89,11 +89,9 @@ public class ElectrumNotifier
                 JSONObject block_data = new JSONObject();
                 populateBlockData(blk, block_data);
                 reply.put("result", block_data);
-
+                reply.put("jsonrpc", "2.0");
 
                 sub.sendReply(reply);
-      
-
             }
             catch(org.json.JSONException e)
             {
@@ -121,16 +119,14 @@ public class ElectrumNotifier
                 JSONObject reply = sub.startReply();
 
                 reply.put("result", blk.getHeight());
+                reply.put("jsonrpc", "2.0");
 
                 sub.sendReply(reply);
-      
-
             }
             catch(org.json.JSONException e)
             {
                 throw new RuntimeException(e);
             }
-
 
         }
 
@@ -717,6 +713,8 @@ public class ElectrumNotifier
         {
             JSONObject reply = new JSONObject();
             reply.put("id", request_id);
+            reply.put("jsonrpc", "2.0");
+
             return reply;
 
         }
