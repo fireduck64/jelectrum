@@ -343,6 +343,8 @@ public class StratumConnection
                   if (version_array.optString(1) != null)
                   {
                     client_protocol = selectProto(version_array.optString(1), version_array.optString(1));
+                    if (client_protocol == null) client_protocol = "0.10";
+
                   }
                   JSONArray proto_array = version_array.optJSONArray(1);
                   if (proto_array != null)
@@ -657,6 +659,7 @@ public class StratumConnection
       {
         if ((p.compareTo(max) <= 0) && (p.compareTo(min) >= 0)) return p;
       }
+
       return null;
 
 
