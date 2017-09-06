@@ -134,6 +134,17 @@ public class BitcoinRPC
         return sendPost(msg);
 
     }
+    public JSONObject getblockcount()
+        throws java.io.IOException, org.json.JSONException
+    {
+        Random rnd = new Random();
+        JSONObject msg = new JSONObject();
+        msg.put("id", "" + rnd.nextInt());
+        msg.put("method","getblockcount");
+        return sendPost(msg);
+
+    }
+
 
     public double getRelayFee()
       throws java.io.IOException, org.json.JSONException
@@ -197,11 +208,11 @@ public class BitcoinRPC
     {
         try
         {
-            System.out.println(getinfo());
+            System.out.println(getblockcount());
         }
         catch(Throwable t)
         {
-            System.out.println("bitcoind getinfo failed - check bitcoind config items");
+            System.out.println("bitcoind getblockcount failed - check bitcoind config items");
             t.printStackTrace();
         }
     }

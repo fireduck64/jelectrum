@@ -655,6 +655,8 @@ public class StratumConnection
 
     public static String selectProto(String min, String max)
     {
+      if (min.equals("1.0")) min = "0.10";
+
       for(String p : SUPPORTED_PROTOS)
       {
         if ((p.compareTo(max) <= 0) && (p.compareTo(min) >= 0)) return p;

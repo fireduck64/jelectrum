@@ -71,7 +71,7 @@ public class PeerManager
           self_info.self_info=true;
           self_info.hostname = host;
           self_info.pruning = 0;
-          self_info.protocol_min = "1.0";
+          self_info.protocol_min = "0.10";
           self_info.protocol_max = StratumConnection.PROTO_VERSION;
           self_info.server_version = StratumConnection.PROTO_VERSION + "/j/" + StratumConnection.JELECTRUM_VERSION;
 
