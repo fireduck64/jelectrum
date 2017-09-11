@@ -10,6 +10,7 @@ import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.NetworkParameters;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.TreeMap;
 import java.util.HashMap;
 
@@ -17,6 +18,9 @@ import org.junit.Assert;
 
 import jelectrum.db.DBFace;
 
+/** Provides access to StoredBlock objects
+ * which are small and have a bunch of important stuff, like the heights
+ * of blocks */
 public class MapBlockStore implements BlockStore
 {
     private Jelectrum jelly;
@@ -79,9 +83,9 @@ public class MapBlockStore implements BlockStore
 
         StoredBlock curr = head_blk;
         int stepback=0;
-        if (file_db.getBlockMap()==null) throw new RuntimeException("BlockMap is null");
+        if (file_db.getBlockSavedMap()==null) throw new RuntimeException("BlockMap is null");
 
-        while((!file_db.getBlockMap().containsKey(curr.getHeader().getHash())) && (curr.getHeight()>=1))
+        while((!file_db.getBlockSavedMap().containsKey(curr.getHeader().getHash())) && (curr.getHeight()>=1))
         {   
             int step_size=10;
             if (curr.getHeight() < 1000) step_size=1;
@@ -102,6 +106,23 @@ public class MapBlockStore implements BlockStore
         Sha256Hash hash = block.getHeader().getHash();
 
         file_db.getBlockStoreMap().put(hash, block);
+    
+    }
+
+    public void put(Block b)
+        throws org.bitcoinj.store.BlockStoreException
+    {
+      Sha256Hash hash = b.getHash();
+      Block header = b.cloneAsHeader();
+
+      Sha256Hash prev = b.getPrevBlockHash();
+      StoredBlock prev_sb = file_db.getBlockStoreMap().get(prev);
+
+      StoredBlock sb = prev_sb.build(header);
+
+      file_db.getBlockStoreMap().put(hash, sb);
+
+      setChainHead(sb);
     }
 
     public void putAll(List<Block> blks)
@@ -182,9 +203,5 @@ public class MapBlockStore implements BlockStore
             jelly.getBlockChainCache().update(jelly, block);
         }
     }*/
-
-
-   
-
 
 }

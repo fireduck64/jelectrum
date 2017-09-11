@@ -16,6 +16,7 @@ import org.bitcoinj.net.discovery.DnsDiscovery;
 
 import java.util.LinkedList;
 import jelectrum.db.DBFace;
+import jelectrum.db.RawBitcoinDataSource;
 
 public class Jelectrum
 {
@@ -39,7 +40,7 @@ public class Jelectrum
     private ElectrumNotifier notifier;
     private HeaderChunkAgent header_chunk_agent;
     private BitcoinRPC bitcoin_rpc;
-    private UtxoTrieMgr utxo_trie_mgr;
+    private UtxoSource utxo_source;
     private PeerManager peer_manager;
 
     private volatile boolean caught_up=false;
@@ -65,8 +66,12 @@ public class Jelectrum
 
         if (config.getBoolean("bitcoind_enable"))
         {
-          bitcoin_rpc = new BitcoinRPC(config);
+          bitcoin_rpc = new BitcoinRPC(config, event_log);
           bitcoin_rpc.testConnection();
+        }
+        else
+        {
+          throw new RuntimeException("Running without bitcoind_enable no longer supported");
         }
 
         if (db_type.equals("mongo"))
@@ -119,12 +124,14 @@ public class Jelectrum
           System.out.println("Try mongo or sql or leveldb or lobstack or slopbucket or rocksdb");
           System.exit(-1);
         }
+        jelectrum_db.setRawBitcoinDataSource(bitcoin_rpc);
+
         
         block_store = new MapBlockStore(this);
         
         block_chain = new BlockChain(network_params, block_store);
         
-        utxo_trie_mgr = new UtxoTrieMgr(this);
+        utxo_source = new SimpleUtxoMgr(this);
 
         notifier = new ElectrumNotifier(this);
         
@@ -147,16 +154,16 @@ public class Jelectrum
     public void start()
         throws Exception
     {
-        utxo_trie_mgr.getUtxoState();
-        if (config.getBoolean("bulk_import_enabled"))
-        {
-          new BulkImporter(this);
-        }
+        //utxo_trie_mgr.getUtxoState();
+        //if (config.getBoolean("bulk_import_enabled"))
+        //{
+        //  new BulkImporter(this);
+        //}
 
         System.out.println("Updating block chain cache");
         block_chain_cache.update(this, block_store.getChainHead());
         
-        utxo_trie_mgr.start();
+        utxo_source.start();
 
 
         System.out.println("Starting things");
@@ -167,9 +174,11 @@ public class Jelectrum
 
         stratum_server.start();
         peer_manager.start();
+        
+        new BlockDownloadThread(this).start();
 
 
-        System.out.println("Starting bitcoin peer download");
+        /*System.out.println("Starting bitcoin peer download");
 
 
         peer_group = new PeerGroup(network_params, block_chain);
@@ -182,6 +191,7 @@ public class Jelectrum
         {
           peer_group.addAddress(
             new PeerAddress(
+              network_params,
               InetAddress.getByName(
                 config.get("bitcoin_peer_host")),
                 config.getInt("bitcoin_peer_port")));
@@ -192,7 +202,7 @@ public class Jelectrum
           for(String peer : config.getList("bitcoin_peer_list"))
           {
             event_log.log("Adding additional bitcoin peer: " + peer);
-            peer_group.addAddress(new PeerAddress(InetAddress.getByName(peer),8333));
+            peer_group.addAddress(new PeerAddress(network_params,InetAddress.getByName(peer),8333));
           }
         }
 
@@ -200,8 +210,9 @@ public class Jelectrum
         {
             peer_group.addPeerDiscovery(new DnsDiscovery(network_params));
         }
-        peer_group.addDataEventListener(new ImportEventListener(importer));
-        peer_group.addOnTransactionBroadcastListener(new ImportEventListener(importer));
+        ImportEventListener listener = new ImportEventListener(importer);
+        peer_group.addOnTransactionBroadcastListener(listener);
+        peer_group.addBlocksDownloadedEventListener(listener);
         peer_group.setMinBroadcastConnections(1);
 
         peer_group.waitForPeers(1);
@@ -233,28 +244,29 @@ public class Jelectrum
             Thread.sleep(5000);
         }
 
-        System.out.println("Block chain caught up");
-        event_log.log("Block chain caught up");
-        caught_up=true;
         new IrcBot(this,null).start();
         new IrcBot(this,"onion").start();
 
+        */
+        while(getBitcoinRPC().getBlockHeight() > notifier.getHeadHeight())
+        {
+          Thread.sleep(5000);
+        }
+
         importer.setBlockPrintEvery(1);
         importer.disableRatePrinting();
+        System.out.println("Block chain caught up");
+        event_log.log("Block chain caught up");
+        caught_up=true;
         
 
         header_chunk_agent.start();
 
-        if (config.getBoolean("block_repo_saver"))
+        /*if (config.getBoolean("block_repo_saver"))
         {
           new BlockRepoSaver(this,100).start();
           new BlockRepoSaver(this,10).start();
-        }
-
-
-        
-
-
+        }*/
 
         while(true)
         {
@@ -349,9 +361,9 @@ public class Jelectrum
         return bitcoin_rpc;
     }
 
-    public UtxoTrieMgr getUtxoTrieMgr()
+    public UtxoSource getUtxoSource()
     {
-      return utxo_trie_mgr;
+      return utxo_source;
     }
     public StratumServer getStratumServer()
     {

@@ -19,6 +19,10 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.io.PrintStream;
 
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.StoredBlock;
+
+
 public class PeerManager 
 {
   private Jelectrum jelly;
@@ -60,6 +64,8 @@ public class PeerManager
     addPeer("luggsqxihfzqjnwm.onion",443,0);
     addPeer("ecdsa.net", 0, 110);
     addPeer("electrum.hsmiths.com", 50001, 50002);
+    addPeer("mash.1209k.com",50001,50002);
+    addPeer("gibi.1209k.com",50001,50002);
 
     if (config.isSet("advertise_host"))
     {
@@ -393,12 +399,29 @@ public class PeerManager
       Scanner scan = new Scanner(sock.getInputStream());
       PrintStream out = new PrintStream(sock.getOutputStream());
 
+      int height_to_check = Math.max(0, jelly.getElectrumNotifier().getHeadHeight() - 2);
+
+      Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(height_to_check);
+      StoredBlock blk = jelly.getDB().getBlockStoreMap().get(block_hash);
+      JSONObject my_result = new JSONObject();
+      jelly.getElectrumNotifier().populateBlockData(blk, my_result);
+
+      JSONObject blockhead = getRecentBlockHeader(out, scan, height_to_check);
+      String myroot=my_result.getString("merkle_root");
+      String remoteroot=blockhead.getString("merkle_root");
+
+      if (!myroot.equals(remoteroot))
+      {
+        throw new Exception(String.format("Merkle root for %d: expected %s, got %s", height_to_check, myroot, remoteroot));
+      }
+
+
       JSONObject serverfeatures = getServerFeatures(out, scan);
 
       String hash = serverfeatures.getString("genesis_hash");
       if(!genesis_hash.equals(hash))
       {
-        throw new Exception("Expected " + genesis_hash + " got " + hash);
+        throw new Exception("Genesis hash: Expected " + genesis_hash + " got " + hash);
       }
       peer.protocol_max = serverfeatures.getString("protocol_max");
       peer.protocol_min = serverfeatures.getString("protocol_min");
@@ -432,6 +455,26 @@ public class PeerManager
     return reply.getJSONObject("result");
 
   }
+
+  private JSONObject getRecentBlockHeader(PrintStream out, Scanner scan, int height)
+    throws Exception
+  { 
+    JSONObject request = new JSONObject();
+    request.put("id","blkhead");
+    request.put("method", "blockchain.block.get_header");
+    JSONArray params = new JSONArray();
+    params.put(height);
+    request.put("params",params);
+
+
+    out.println(request.toString(0));
+    out.flush();
+
+    JSONObject reply = new JSONObject(scan.nextLine());
+    if (reply.has("error")) throw new Exception(reply.getJSONObject("error").toString(0));
+    return reply.getJSONObject("result");
+  }
+
 
    private void addRemotePeers(PrintStream out, Scanner scan)
     throws org.json.JSONException

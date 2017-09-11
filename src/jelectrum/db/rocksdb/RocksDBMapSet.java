@@ -26,7 +26,6 @@ public class RocksDBMapSet extends DBMapSetThreaded
   RocksDB db;
   String name;
 
-
   public RocksDBMapSet(Executor exec, RocksDB db, String name)
   { 
     super(exec);

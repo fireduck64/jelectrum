@@ -21,7 +21,7 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Peer;
-import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.script.Script;
 import java.util.Collection;
 import java.text.DecimalFormat;
@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.Map;
 import java.util.HashMap;
 import jelectrum.db.DBFace;
+import com.google.protobuf.ByteString;
 
 import org.junit.Assert;
 
@@ -71,7 +72,7 @@ public class Importer
         this.jelly = jelly;
         this.params = params;
         this.file_db = jelly.getDB();
-        this.tx_util = new TXUtil(file_db, params);
+        this.tx_util = jelly.getDB().getTXUtil();
         this.block_store = (MapBlockStore)block_store;
 
         Config config = jelly.getConfig();
@@ -103,8 +104,6 @@ public class Importer
         
         putInternal(params.getGenesisBlock());
 
-        //checkConsistency();
-        
 
 
     }
@@ -115,41 +114,6 @@ public class Importer
         new RateThread("5-minute", 60000L * 5L).start();
         new RateThread("1-hour", 60000L * 60L).start();
         new PrevBlockChecker().start();
-    }
-
-
-    public void checkConsistency()
-        throws org.bitcoinj.store.BlockStoreException
-    {
-        StoredBlock head = block_store.getChainHead();
-
-        StoredBlock curr_block = head;
-
-        Sha256Hash genisis_hash = params.getGenesisBlock().getHash();
-        int checked=0;
-
-        while(true)
-        {
-            Sha256Hash curr_hash = curr_block.getHeader().getHash();
-
-            if  (curr_block.getHeight() % 10000 == 0)
-            {
-                System.out.println("Block: " + curr_block.getHeight());
-            }
-            if (!file_db.getBlockMap().containsKey(curr_hash))
-            {
-                throw new RuntimeException("Missing block: " + curr_hash);
-            }
-            checked++;
-            //if (checked > 20) return;
-            
-            if (curr_hash.equals(genisis_hash)) return;
-
-            curr_block = curr_block.getPrev(block_store);
-
-        }
-
-
     }
 
     public void saveBlock(Block b)
@@ -396,18 +360,18 @@ public class Importer
           ctx.setStatus("TX_SERIALIZE");
           SerializedTransaction s_tx = new SerializedTransaction(tx, System.currentTimeMillis());
           ctx.setStatus("TX_PUT");
-          file_db.getTransactionMap().put(tx.getHash(), s_tx);
+          //file_db.getTransactionMap().put(tx.getHash(), s_tx);
         }
 
         boolean confirmed = (block_hash != null);
 
         ctx.setStatus("TX_GET_ADDR");
-        Collection<String> addrs = tx_util.getAllAddresses(tx, confirmed, null);
+        Collection<ByteString> addrs = tx_util.getAllPublicKeys(tx, confirmed, null);
 
         Random rnd = new Random();
 
         ctx.setStatus("TX_SAVE_ADDRESS");
-        file_db.addAddressesToTxMap(addrs, tx.getHash());
+        file_db.addPublicKeysToTxMap(addrs, tx.getHash());
 
         imported_transactions.incrementAndGet();
         int h = -1;
@@ -418,7 +382,7 @@ public class Importer
         }
 
         ctx.setStatus("TX_NOTIFY");
-        jelly.getElectrumNotifier().notifyNewTransaction(addrs, h);
+        jelly.getElectrumNotifier().notifyNewTransactionKeys(addrs, h);
         ctx.setStatus("TX_DONE");
 
     }
@@ -435,7 +399,7 @@ public class Importer
         long t1;
 
         ctx.setStatus("BLOCK_CHECK_EXIST");
-        if (file_db.getBlockMap().containsKey(hash)) 
+        if (file_db.getBlockSavedMap().containsKey(hash)) 
         {
             imported_blocks.incrementAndGet();
             return;
@@ -480,8 +444,8 @@ public class Importer
         {
 
           LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
-          HashMap<Sha256Hash, Collection<String>> addr_map = new HashMap<>();
-          Collection<Map.Entry<String, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<String, Sha256Hash>>();
+          HashMap<Sha256Hash, Collection<ByteString>> addr_map = new HashMap<>();
+          Collection<Map.Entry<ByteString, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<ByteString, Sha256Hash>>();
           Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
 
           t1 = System.nanoTime();
@@ -496,14 +460,14 @@ public class Importer
           for(Transaction tx : block.getTransactions())
           {
             imported_transactions.incrementAndGet();
-            Collection<String> addrs = tx_util.getAllAddresses(tx, true, block_tx_map);
+            Collection<ByteString> addrs = tx_util.getAllPublicKeys(tx, true, block_tx_map);
             Assert.assertNotNull(addrs);
             //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
             addr_map.put(tx.getHash(), addrs);
 
-            for(String addr : addrs)
+            for(ByteString addr : addrs)
             {
-              addrTxLst.add(new java.util.AbstractMap.SimpleEntry<String,Sha256Hash>(addr, tx.getHash()));
+              addrTxLst.add(new java.util.AbstractMap.SimpleEntry<ByteString,Sha256Hash>(addr, tx.getHash()));
             }
 
 
@@ -515,30 +479,30 @@ public class Importer
 
 
 
-          t1 = System.nanoTime();
-          ctx.setStatus("BLOCK_TX_MAP_ADD");
-          file_db.addTxsToBlockMap(tx_list, hash);
-          TimeRecord.record(t1, "block_tx_map_add");
+          //t1 = System.nanoTime();
+          //ctx.setStatus("BLOCK_TX_MAP_ADD");
+          //file_db.addTxsToBlockMap(tx_list, hash);
+          //TimeRecord.record(t1, "block_tx_map_add");
 
           t1 = System.nanoTime();
           ctx.setStatus("ADDR_SAVEALL");
-          file_db.addAddressesToTxMap(addrTxLst);
+          file_db.addPublicKeysToTxMap(addrTxLst);
           Assert.assertEquals(block.getTransactions().size(), addr_map.size());
           TimeRecord.record(t1, "block_addr_save");
 
           t1 = System.nanoTime();
           ctx.setStatus("TX_NOTIFY");
-          HashSet<String> all_addrs = new HashSet<String>();
+          HashSet<ByteString> all_addrs = new HashSet<ByteString>();
           for(Transaction tx : block.getTransactions())
           {
-            Collection<String> addrs = addr_map.get(tx.getHash());
+            Collection<ByteString> addrs = addr_map.get(tx.getHash());
 
             all_addrs.addAll(addrs);
             
             //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
             Assert.assertNotNull(addrs);
           }
-          jelly.getElectrumNotifier().notifyNewTransaction(all_addrs, h);
+          jelly.getElectrumNotifier().notifyNewTransactionKeys(all_addrs, h);
           TimeRecord.record(t1, "block_notify");
 
 
@@ -570,24 +534,24 @@ public class Importer
 
         t1 = System.nanoTime();
         ctx.setStatus("BLOCK_SAVE");
-        file_db.getBlockMap().put(hash, new SerializedBlock(block));
+        file_db.getBlockSavedMap().put(hash, "y");
         TimeRecord.record(t1, "block_save");
 
 
         block_wait_sem.release(1024);
         boolean wait_for_utxo = false;
-        if (jelly.isUpToDate() && jelly.getUtxoTrieMgr().isUpToDate())
+        if (jelly.isUpToDate() && jelly.getUtxoSource().isUpToDate())
         {
           wait_for_utxo=true;
         }
 
         
         t1 = System.nanoTime();
-        jelly.getUtxoTrieMgr().notifyBlock(wait_for_utxo, hash);
-        if (wait_for_utxo)
+        jelly.getUtxoSource().notifyBlock(wait_for_utxo, hash);
+        /*if (wait_for_utxo)
         {
           jelly.getEventLog().alarm("UTXO root hash: " + jelly.getUtxoTrieMgr().getRootHash(hash));
-        }
+        }*/
         jelly.getElectrumNotifier().notifyNewBlock(block);
         TimeRecord.record(t1, "block_utxo_wait");
 
@@ -599,7 +563,7 @@ public class Importer
         if (h % block_print_every ==0)
         {
           jelly.getEventLog().alarm("Saved block: " + hash + " - " + h + " - " + size + " (" +df.format(sec) + " seconds)");
-          System.gc();
+          //System.gc();
         }
         else
         {
@@ -618,7 +582,7 @@ public class Importer
         while(true)
         {
 
-          if( file_db.getBlockMap().containsKey(hash) ) return;
+          if( file_db.getBlockSavedMap().containsKey(hash) ) return;
 
           
           Semaphore block_wait_sem = null;
@@ -719,10 +683,10 @@ public class Importer
                     String status_report = getThreadStatusReport();
                     
                     jelly.getEventLog().alarm(status_report);
-                    if (jelly.getPeerGroup().numConnectedPeers() == 0)
+                    /*if (jelly.getPeerGroup().numConnectedPeers() == 0)
                     {
                       jelly.getEventLog().alarm("No connected peers - can't get new blocks or transactions");
-                    }
+                    }*/
                     if (name.equals("1-hour"))
                     {
                       if (block_rate < 0.05)
@@ -812,7 +776,7 @@ public class Importer
 
     private void checkHash(Sha256Hash hash)
     {
-      if (file_db.getBlockMap().containsKey(hash))
+      if (file_db.getBlockSavedMap().containsKey(hash))
       {
         return;
       }

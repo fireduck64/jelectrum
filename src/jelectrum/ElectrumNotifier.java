@@ -9,6 +9,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.ArrayList;
 
 import org.bitcoinj.core.Sha256Hash;
@@ -22,9 +23,9 @@ import org.bitcoinj.core.Block;
 import org.bitcoinj.core.AddressFormatException;
 import org.json.JSONObject;
 import org.json.JSONArray;
+import com.google.protobuf.ByteString;
 
 import org.junit.Assert;
-
 /**
  * Why is the logic of preparing results for clients
  * mixed between here and StratumConnection?  This needs to be refactored.
@@ -46,7 +47,7 @@ public class ElectrumNotifier
     public ElectrumNotifier(Jelectrum jelly)
     {
         this.jelly = jelly;
-        tx_util = new TXUtil(jelly.getDB(), jelly.getNetworkParameters());
+        tx_util = jelly.getDB().getTXUtil();
 
         block_subscribers = new HashMap<String, Subscriber>(512, 0.5f);
         blocknum_subscribers = new HashMap<String, Subscriber>(512, 0.5f);
@@ -163,6 +164,18 @@ public class ElectrumNotifier
             }
         }
         
+    }
+    public void notifyNewTransactionKeys(Collection<ByteString> publicKeys, int height)
+    {
+      LinkedList<String> addresses = new LinkedList<>();
+
+      for(ByteString b : publicKeys)
+      {
+        addresses.add(new Address(jelly.getNetworkParameters(), b.toByteArray()).toString());
+      }
+
+      notifyNewTransaction(addresses, height);
+
     }
     public void notifyNewTransaction(Collection<String> addresses, int height)
     {
@@ -295,7 +308,7 @@ public class ElectrumNotifier
         block_data.put("block_height", blk.getHeight());
         block_data.put("version",header.getVersion());
         block_data.put("bits", header.getDifficultyTarget());
-        block_data.put("utxo_root", jelly.getUtxoTrieMgr().getRootHash(header.getHash()));
+        //block_data.put("utxo_root", jelly.getUtxoTrieMgr().getRootHash(header.getHash()));
 
 
 
@@ -365,7 +378,7 @@ public class ElectrumNotifier
         Address target = new Address(jelly.getNetworkParameters(), address);
         JSONObject reply = sub.startReply();
 
-        Collection<TransactionOutPoint> outs = jelly.getUtxoTrieMgr().getUnspentForAddress(target);
+        Collection<TransactionOutPoint> outs = jelly.getUtxoSource().getUnspentForAddress(target);
 
         
         JSONArray arr =new JSONArray();
@@ -515,7 +528,7 @@ public class ElectrumNotifier
                 {
                     JSONObject o = new JSONObject();
                     o.put("tx_hash", ts.tx.getHash().toString());
-                    if (ts.block != null)
+                    if (ts.confirmed)
                     {
                         o.put("height", ts.height);
                     }
@@ -563,7 +576,7 @@ public class ElectrumNotifier
             {
                 sb.append(ts.tx.getHash());
                 sb.append(':');
-                if (ts.block != null)
+                if (ts.confirmed)
                 {
                     sb.append(ts.height);
                 }
@@ -670,7 +683,8 @@ public class ElectrumNotifier
 
     public List<SortedTransaction> getTransactionsForAddress(String address)
     {
-        Set<Sha256Hash> tx_list = jelly.getDB().getAddressToTxSet(address);
+      ByteString publicKeyHash = ByteString.copyFrom(new Address(jelly.getNetworkParameters(), address).getHash160());
+        Set<Sha256Hash> tx_list = jelly.getDB().getPublicKeyToTxSet(publicKeyHash);
         ArrayList<SortedTransaction> out = new ArrayList<SortedTransaction>();
 
         if (tx_list != null)
@@ -736,33 +750,23 @@ public class ElectrumNotifier
     {
         SerializedTransaction s_tx;
         Transaction tx;
-        StoredBlock block;
+        boolean confirmed;
         int height;
+
         public SortedTransaction(Sha256Hash tx_hash)
         {
             this.s_tx = jelly.getDB().getTransaction(tx_hash);
             if (s_tx==null) return;
             this.tx = s_tx.getTx(jelly.getNetworkParameters());
-            Set<Sha256Hash> block_list = jelly.getDB().getTxToBlockMap(tx.getHash());
-            if (block_list != null)
-            {
-                
-                for(Sha256Hash block_hash : block_list)
-                {
-                  if (jelly.getBlockChainCache().isBlockInMainChain(block_hash))
-                  {
-                    block = jelly.getDB().getBlockStoreMap().get(block_hash);
-                    height = block.getHeight();
-                  }
-                }
 
-            }
+            height = tx_util.getTXBlockHeight(tx, jelly.getBlockChainCache(), jelly.getBitcoinRPC());
+            if (height >= 0) confirmed=true;
 
         }
 
         public int getEffectiveHeight()
         {
-            if (block != null) return height;
+            if (confirmed) return height;
             return Integer.MAX_VALUE;
         }
 
@@ -777,7 +781,7 @@ public class ElectrumNotifier
         public boolean isValid()
         {
             if (s_tx ==null) return false;
-            if (block!=null) return true;
+            if (confirmed) return true;
             if (s_tx.getSavedTime() + 86400L * 1000L < System.currentTimeMillis()) return false;
 
             // For unconfirmed transactions, make sure all the inputs

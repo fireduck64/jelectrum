@@ -21,7 +21,7 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptChunk;

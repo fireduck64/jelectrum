@@ -16,6 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Scanner;
 import java.util.Random;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -59,6 +60,8 @@ public class StratumConnection
     private AtomicInteger subscription_count = new AtomicInteger(0);
     private RateLimit session_rate_limit;
 
+    private HashSet<Integer> chunks_downloaded;
+
     private LinkedBlockingQueue<JSONObject> out_queue = new LinkedBlockingQueue<JSONObject>();
     
     private long get_client_id=-1;
@@ -76,7 +79,7 @@ public class StratumConnection
       
         
         this.jelectrum = jelectrum;
-        this.tx_util = new TXUtil(jelectrum.getDB(), jelectrum.getNetworkParameters());
+        this.tx_util = jelectrum.getDB().getTXUtil();
         this.server = server;
         this.config = server.getConfig();
         this.sock = sock;
@@ -85,6 +88,8 @@ public class StratumConnection
         detail_logs = jelectrum.getConfig().getBoolean("connection_detail_logs");
 
         open=true;
+
+        chunks_downloaded = new HashSet<>();
 
         last_network_action=new AtomicLong(System.nanoTime());
         if (detail_logs)
@@ -578,7 +583,7 @@ public class StratumConnection
                  int height = arr.getInt(1);
 
                  Sha256Hash block_hash = jelectrum.getBlockChainCache().getBlockHashAtHeight(height);
-                 Block blk = jelectrum.getDB().getBlockMap().get(block_hash).getBlock(jelectrum.getNetworkParameters());
+                 Block blk = jelectrum.getDB().getBlock(block_hash).getBlock(jelectrum.getNetworkParameters());
 
                  JSONObject result =  Util.getMerkleTreeForTransaction(blk.getTransactions(), tx_hash);
                  result.put("block_height", height);
@@ -593,10 +598,19 @@ public class StratumConnection
                 JSONArray arr = msg.getJSONArray("params");
                 int index = arr.getInt(0);
 
-                reply.put("result", jelectrum.getHeaderChunkAgent().getChunk(index));
-                logRequest(method, input_size, reply.toString().length());
+                if (chunks_downloaded.contains(index))
+                {
+                  reply.put("error","Chunk already downloaded");
+                }
+                else
+                {
+                  chunks_downloaded.add(index);
 
-                sendMessage(reply);
+                  reply.put("result", jelectrum.getHeaderChunkAgent().getChunk(index));
+                  logRequest(method, input_size, reply.toString().length());
+
+                  sendMessage(reply);
+                }
             }
             else if (method.equals("blockchain.estimatefee"))
             {

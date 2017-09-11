@@ -1,13 +1,16 @@
 package jelectrum;
 
-import org.bitcoinj.core.listeners.AbstractPeerEventListener;
+//import org.bitcoinj.core.listeners.AbstractPeerEventListener;
 import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.FilteredBlock;
 
+import org.bitcoinj.core.listeners.OnTransactionBroadcastListener;
+import org.bitcoinj.core.listeners.BlocksDownloadedEventListener;
 
-public class ImportEventListener extends AbstractPeerEventListener
+
+public class ImportEventListener implements OnTransactionBroadcastListener,BlocksDownloadedEventListener
 {
     private Importer importer;
 

@@ -3,6 +3,7 @@ package jelectrum.db.rocksdb;
 import jelectrum.db.DB;
 import jelectrum.db.DBMap;
 import jelectrum.db.DBMapSet;
+import jelectrum.db.DBMapMutationSet;
 import jelectrum.Config;
 import jelectrum.EventLog;
 
@@ -38,8 +39,12 @@ public class JRocksDB extends DB
 
     db = RocksDB.open(options, path);
 
-
     open();
+  }
+
+  protected DBMapMutationSet openMutationMapSet(String name) throws Exception
+  {
+    return new RocksDBMapMutationSet(db, name);
   }
 
   protected DBMap openMap(String name) throws Exception

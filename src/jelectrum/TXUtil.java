@@ -7,7 +7,7 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Address;
-import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.script.Script;
@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Collection;
 import java.util.Set;
+import com.google.protobuf.ByteString;
 
 import org.junit.Assert;
 
@@ -94,6 +95,27 @@ public class TXUtil
         //jelly.getEventLog().log("Unable process tx output: " + out.getParentTransaction().getHash());
       }
       return null;
+
+    }
+
+    public HashSet<ByteString> getAllPublicKeys(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
+    {
+        HashSet<ByteString> lst = new HashSet<ByteString>();
+        boolean detail = false;
+
+        for(TransactionInput in : tx.getInputs())
+        {   
+            Address a = getAddressForInput(in, confirmed, block_tx_map);
+            if (a!=null) lst.add(ByteString.copyFrom(a.getHash160()));
+        }
+
+        for(TransactionOutput out : tx.getOutputs())
+        {   
+            Address a = getAddressForOutput(out);
+            if (a!=null) lst.add(ByteString.copyFrom(a.getHash160()));
+
+        }
+        return lst;
 
     }
 
@@ -230,22 +252,12 @@ public class TXUtil
 
     }
 
-  public int getTXBlockHeight(Transaction tx, BlockChainCache chain_cache)
+  public int getTXBlockHeight(Transaction tx, BlockChainCache chain_cache, BitcoinRPC rpc)
   {
-  	Set<Sha256Hash> block_list = db.getTxToBlockMap(tx.getHash());
-    if (block_list != null)
-    {   
+    Sha256Hash block_hash = rpc.getTransactionConfirmationBlock(tx.getHash());
 
-    	for(Sha256Hash block_hash : block_list)
-      { 
-      	if (chain_cache.isBlockInMainChain(block_hash))
-        { 
-        	return db.getBlockStoreMap().get(block_hash).getHeight();
-        }
-      }
-    }
-
-		return -1;
+    if (block_hash == null) return -1;
+    return db.getBlockStoreMap().get(block_hash).getHeight();
 
   }
 

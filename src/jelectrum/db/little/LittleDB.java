@@ -58,8 +58,6 @@ public class LittleDB extends LMDB
 
     import_tx_summary_cache = new HashMap<>();
 
-    tx_util = new TXUtil(this, network_params);
-
     conf.require("little_path");
 
     File dir = new File(conf.get("little_path"));
@@ -70,7 +68,7 @@ public class LittleDB extends LMDB
 
     cake = new BloomLayerCake(cake_dir);
 
-    tx_map = null;
+    //tx_map = null;
 
     if (conf.getBoolean("utxo_disable"))
     {
@@ -149,7 +147,6 @@ public class LittleDB extends LMDB
   @Override
   public boolean needsDetails(){return false;}
 
-  @Override
   public Set<Sha256Hash> getAddressToTxSet(String address)
   {
     long t1=System.nanoTime();
@@ -176,7 +173,6 @@ public class LittleDB extends LMDB
 
   }
 
-  @Override
   public Set<Sha256Hash> getTxToBlockMap(Sha256Hash tx)
   {
     long t1=System.nanoTime();
@@ -254,7 +250,7 @@ public class LittleDB extends LMDB
 
     for(Sha256Hash block_hash : block_list)
     {
-      SerializedBlock sb = getBlockMap().get(block_hash);
+      SerializedBlock sb = getBlock(block_hash);
       if (sb != null)
       {
         Block b = sb.getBlock(network_parameters);

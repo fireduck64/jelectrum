@@ -12,16 +12,18 @@ import org.apache.commons.codec.binary.Hex;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Sha256Hash;
 import java.util.Random;
+import jelectrum.db.RawBitcoinDataSource;
 
-public class BitcoinRPC
+public class BitcoinRPC implements RawBitcoinDataSource
 {
   
     private String username;
     private String password;
     private String host;
     private int port;
+    private EventLog event_log;
 
-    public BitcoinRPC(Config config)
+    public BitcoinRPC(Config config, EventLog event_log)
     {
         config.require("bitcoind_username");
         config.require("bitcoind_password");
@@ -32,6 +34,9 @@ public class BitcoinRPC
         password=config.get("bitcoind_password");
         host=config.get("bitcoind_host");
         port=config.getInt("bitcoind_port");
+
+        this.event_log = event_log;
+
     }
 
 
@@ -49,55 +54,63 @@ public class BitcoinRPC
         throws java.io.IOException, org.json.JSONException
     {
         String str = sendPost(getUrl(), post.toString());
-        return new JSONObject(str);
+        //System.out.println("Returned data: " + str);
+        try
+        {
+          return new JSONObject(str);
+        }
+        catch(org.json.JSONException t)
+        {
+          System.out.println("Parse error: " + str);
+          throw t;
+        }
     }
 
     protected String sendPost(String url, String postdata)
         throws java.io.IOException
     {
-        URL u = new URL(url);
+          URL u = new URL(url);
 
-        HttpURLConnection connection = (HttpURLConnection) u.openConnection(); 
+          HttpURLConnection connection = (HttpURLConnection) u.openConnection(); 
 
-        String basic = username+":"+password;
-        String encoded = Base64.encodeBase64String(basic.getBytes()); 
-        connection.setRequestProperty("Authorization", "Basic "+encoded);
-        connection.setDoOutput(true);
-        connection.setDoInput(true);
-        connection.setInstanceFollowRedirects(false); 
-        connection.setRequestMethod("POST"); 
-        connection.setRequestProperty("charset", "utf-8");
-        connection.setRequestProperty("Content-Length", "" + Integer.toString(postdata.getBytes().length));
-        connection.setUseCaches (false);
+          String basic = username+":"+password;
+          String encoded = Base64.encodeBase64String(basic.getBytes()); 
+          connection.setRequestProperty("Authorization", "Basic "+encoded);
+          connection.setDoOutput(true);
+          connection.setDoInput(true);
+          connection.setInstanceFollowRedirects(false); 
+          connection.setRequestMethod("POST"); 
+          connection.setRequestProperty("charset", "utf-8");
+          connection.setRequestProperty("Content-Length", "" + Integer.toString(postdata.getBytes().length));
+          connection.setUseCaches (false);
 
-        OutputStream wr = connection.getOutputStream ();
-        wr.write(postdata.getBytes());
-        wr.flush();
-        wr.close();
+          OutputStream wr = connection.getOutputStream ();
+          wr.write(postdata.getBytes());
+          wr.flush();
+          wr.close();
 
-        Scanner scan;
+          Scanner scan;
 
-        if (connection.getResponseCode() != 500)
-        {
-            scan = new Scanner(connection.getInputStream());
-        } else {
-            scan = new Scanner(connection.getErrorStream());
-        }
+          if (connection.getResponseCode() != 500)
+          {
+              scan = new Scanner(connection.getInputStream());
+          } else {
+              scan = new Scanner(connection.getErrorStream());
+          }
 
-        StringBuilder sb = new StringBuilder();
+          StringBuilder sb = new StringBuilder();
 
-        while(scan.hasNextLine())
-        {
-            String line = scan.nextLine();
-            sb.append(line);
-            sb.append('\n');
-        }
+          while(scan.hasNextLine())
+          {
+              String line = scan.nextLine();
+              sb.append(line);
+              sb.append('\n');
+          }
 
 
-        scan.close();
-        connection.disconnect();
-        return sb.toString();
-
+          scan.close();
+          connection.disconnect();
+          return sb.toString();
     }
 
     public static String getSimplePostRequest(String cmd)
@@ -167,6 +180,22 @@ public class BitcoinRPC
 
 
     }
+    public Sha256Hash getBlockHash(int height)
+        throws java.io.IOException, org.json.JSONException
+    {
+      
+        Random rnd = new Random();
+        JSONObject msg = new JSONObject();
+        msg.put("id", "" + rnd.nextInt());
+        msg.put("method","getblockhash");
+        JSONArray params = new JSONArray();
+        params.put(height);
+        msg.put("params", params);
+        JSONObject reply = sendPost(msg);
+
+        return new Sha256Hash(reply.getString("result"));
+
+    }
 
     public double getFeeEstimate(int blocks)
         throws java.io.IOException, org.json.JSONException
@@ -184,23 +213,104 @@ public class BitcoinRPC
 
     }
 
-    public String getTransaction(Sha256Hash hash)
-        throws java.io.IOException, org.json.JSONException
+    public SerializedTransaction getTransaction(Sha256Hash hash)
     {
-        Random rnd = new Random();
-        JSONObject msg = new JSONObject();
-        msg.put("id", "" + rnd.nextInt());
-        msg.put("method","getrawtransaction");
-        JSONArray params = new JSONArray();
-        params.put(hash.toString());
-        msg.put("params", params);
-        JSONObject reply= sendPost(msg);
+      while(true)
+      {
+        try
+        {
+          Random rnd = new Random();
+          JSONObject msg = new JSONObject();
+          msg.put("id", "" + rnd.nextInt());
+          msg.put("method","getrawtransaction");
+          JSONArray params = new JSONArray();
+          params.put(hash.toString());
+          msg.put("params", params);
+          JSONObject reply= sendPost(msg);
 
-        if (reply.isNull("result")) return null;
+          if (reply.isNull("result")) return null;
 
-        return reply.getString("result");
-
+          String str = reply.getString("result");
+          byte[] data = Hex.decodeHex(str.toCharArray());
+          return new SerializedTransaction(data);
+        }
+        catch(Throwable t)
+        {
+          event_log.alarm("RPC error on tx "+hash+ " " + t.toString()); 
+          try { Thread.sleep(5000); } catch(Throwable t2){}
+        }
+      }
     }
+    public JSONObject getVerboseTransaction(Sha256Hash hash)
+    {
+      while(true)
+      {
+        try
+        {
+          Random rnd = new Random();
+          JSONObject msg = new JSONObject();
+          msg.put("id", "" + rnd.nextInt());
+          msg.put("method","getrawtransaction");
+          JSONArray params = new JSONArray();
+          params.put(hash.toString());
+          params.put(1);
+          msg.put("params", params);
+          JSONObject reply= sendPost(msg);
+
+          if (reply.isNull("result")) return null;
+
+          return reply.getJSONObject("result");
+        }
+        catch(Throwable t)
+        {
+          event_log.alarm("RPC error on tx "+hash+ " " + t.toString()); 
+          try { Thread.sleep(5000); } catch(Throwable t2){}
+        }
+      }
+    }
+
+    public Sha256Hash getTransactionConfirmationBlock(Sha256Hash hash)
+    {
+      JSONObject data = getVerboseTransaction(hash);
+      if (data == null) return null;
+
+      String blockhash = data.optString("blockhash");
+      if (blockhash == null) return null;
+
+      return new Sha256Hash(blockhash);
+    }
+ 
+    public SerializedBlock getBlock(Sha256Hash hash)
+    {
+      if (hash==null) throw new RuntimeException("WTF");
+      while(true)
+      {
+        try
+        {
+          Random rnd = new Random();
+          JSONObject msg = new JSONObject();
+          msg.put("id", "" + rnd.nextInt());
+          msg.put("method","getblock");
+          JSONArray params = new JSONArray();
+          params.put(hash.toString());
+          params.put(false);
+          msg.put("params", params);
+          JSONObject reply= sendPost(msg);
+
+          if (reply.isNull("result")) return null;
+
+          String str = reply.getString("result");
+          byte[] data = Hex.decodeHex(str.toCharArray());
+          return new SerializedBlock(data);
+        }
+        catch(Throwable t)
+        {
+          event_log.alarm("RPC error on block "+hash+ " " + t.toString()); 
+          try { Thread.sleep(5000); } catch(Throwable t2){}
+        }
+      }
+    }
+
 
 
     public void testConnection()

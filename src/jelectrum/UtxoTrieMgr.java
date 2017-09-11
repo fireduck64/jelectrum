@@ -24,7 +24,7 @@ import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.ScriptException;
+import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptChunk;
@@ -61,7 +61,7 @@ import static org.bitcoinj.script.ScriptOpCodes.*;
  * @todo - Add shutdown hook to avoid exit during flush
  * 
  */
-public class UtxoTrieMgr
+public class UtxoTrieMgr implements UtxoSource
 {
 
   public static final int UTXO_WORKER_THREADS = 12;
@@ -110,7 +110,7 @@ public class UtxoTrieMgr
     this.jelly = jelly;
     this.params = jelly.getNetworkParameters();
 
-    tx_util = new TXUtil(jelly.getDB(), params);
+    tx_util = jelly.getDB().getTXUtil(); 
     if (jelly.getConfig().getBoolean("utxo_disabled"))
     {
       enabled=false;
@@ -872,7 +872,7 @@ public class UtxoTrieMgr
 
         for(Sha256Hash blk_hash : recover_block_list)
         {
-          Block b = jelly.getDB().getBlockMap().get(blk_hash).getBlock(jelly.getNetworkParameters());
+          Block b = jelly.getDB().getBlock(blk_hash).getBlock(jelly.getNetworkParameters());
           addBlock(b);
           
         }
@@ -915,7 +915,7 @@ public class UtxoTrieMgr
        
         Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(i);
         long t1=System.currentTimeMillis();
-        SerializedBlock sb = jelly.getDB().getBlockMap().get(block_hash);
+        SerializedBlock sb = jelly.getDB().getBlock(block_hash);
         if (sb == null) 
         {
           try{Thread.sleep(250); return true;}catch(Throwable t){}
@@ -1001,7 +1001,7 @@ public class UtxoTrieMgr
       Sha256Hash prev = jelly.getDB().getBlockStoreMap().get(last_added_block_hash).getHeader().getPrevBlockHash();
 
       last_flush_block_hash = prev;
-      Block b = jelly.getDB().getBlockMap().get(last_added_block_hash).getBlock(jelly.getNetworkParameters());
+      Block b = jelly.getDB().getBlock(last_added_block_hash).getBlock(jelly.getNetworkParameters());
       rollbackBlock(b);
 
       //Setting hashes such that it looks like we are doing prev -> last_added_block_hash
@@ -1129,7 +1129,7 @@ public class UtxoTrieMgr
     
     Sha256Hash block_hash = jelly.getBlockChainCache().getBlockHashAtHeight(block_number);
     System.out.println("Block hash: " + block_hash);
-    Block b = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
+    Block b = jelly.getDB().getBlock(block_hash).getBlock(jelly.getNetworkParameters());
     System.out.println("Inspecting " + block_number + " - " + block_hash);
 
     int tx_count =0;

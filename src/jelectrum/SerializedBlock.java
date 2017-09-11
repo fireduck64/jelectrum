@@ -22,6 +22,10 @@ public class SerializedBlock implements java.io.Serializable
     {
       this.bytes = bytes.toByteArray();
     }
+    public SerializedBlock(byte[] b)
+    {
+      this.bytes = b;
+    }
 
     public Block getBlock(NetworkParameters params)
     {

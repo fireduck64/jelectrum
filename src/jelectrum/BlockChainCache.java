@@ -12,6 +12,9 @@ import org.bitcoinj.core.Block;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.store.BlockStore;
 
+/**
+ * Maintains a mapping of integers to block hashes
+ */
 public class BlockChainCache
 {
   private BlockStore store;
