@@ -390,7 +390,7 @@ public class ElectrumNotifier
           o.put("tx_hash", out.getHash().toString());
           o.put("tx_pos", out.getIndex());
 
-          SortedTransaction s_tx = new SortedTransaction(out.getHash());
+          SortedTransaction s_tx = new SortedTransaction(out.getHash(), false);
 
           Transaction tx = s_tx.tx; 
           long value = tx.getOutput((int)out.getIndex()).getValue().longValue();
@@ -535,6 +535,10 @@ public class ElectrumNotifier
                     else
                     {
                         o.put("height", 0);
+                    }
+                    if (ts.fee >= 0)
+                    {
+                      o.put("fee",ts.fee);
                     }
                     arr.put(o);
                 }
@@ -684,30 +688,41 @@ public class ElectrumNotifier
     public List<SortedTransaction> getTransactionsForAddress(String address)
     {
       ByteString publicKeyHash = ByteString.copyFrom(new Address(jelly.getNetworkParameters(), address).getHash160());
-        Set<Sha256Hash> tx_list = jelly.getDB().getPublicKeyToTxSet(publicKeyHash);
-        ArrayList<SortedTransaction> out = new ArrayList<SortedTransaction>();
+      Set<Sha256Hash> tx_list = jelly.getDB().getPublicKeyToTxSet(publicKeyHash);
 
-        if (tx_list != null)
+      Set<Sha256Hash> tx_mem_list = jelly.getMemPooler().getTxForPubKey(publicKeyHash);
+
+      ArrayList<SortedTransaction> out = new ArrayList<SortedTransaction>();
+
+      TreeSet<SortedTransaction> set = new TreeSet<SortedTransaction>();
+      if (tx_list != null)
+      {
+          for(Sha256Hash tx_hash : tx_list)
+          {
+              SortedTransaction stx = new SortedTransaction(tx_hash, false);
+              if (stx.isValid())
+              {
+                  set.add(stx);
+              }
+          }
+
+
+      }
+
+      for(Sha256Hash tx_hash : tx_mem_list)
+      {
+        SortedTransaction stx = new SortedTransaction(tx_hash, true);
+        if (stx.isValid())
         {
-            TreeSet<SortedTransaction> set = new TreeSet<SortedTransaction>();
-            for(Sha256Hash tx_hash : tx_list)
-            {
-                SortedTransaction stx = new SortedTransaction(tx_hash);
-                if (stx.isValid())
-                {
-                    set.add(stx);
-                }
-            }
-
-            for(SortedTransaction s : set)
-            {
-                out.add(s);
-            }
-
-
-
+          set.add(stx);
         }
-        return out;
+      }
+      
+      for(SortedTransaction s : set)
+      {
+        out.add(s);
+      }
+      return out;
  
     }
 
@@ -751,16 +766,28 @@ public class ElectrumNotifier
         SerializedTransaction s_tx;
         Transaction tx;
         boolean confirmed;
+        boolean mempool;
         int height;
+        long fee=-1;
 
-        public SortedTransaction(Sha256Hash tx_hash)
+        public SortedTransaction(Sha256Hash tx_hash, boolean mempool)
         {
-            this.s_tx = jelly.getDB().getTransaction(tx_hash);
-            if (s_tx==null) return;
-            this.tx = s_tx.getTx(jelly.getNetworkParameters());
+          this.mempool = mempool;
 
-            height = tx_util.getTXBlockHeight(tx, jelly.getBlockChainCache(), jelly.getBitcoinRPC());
-            if (height >= 0) confirmed=true;
+          this.s_tx = jelly.getDB().getTransaction(tx_hash);
+          if (s_tx==null) return;
+          this.tx = s_tx.getTx(jelly.getNetworkParameters());
+          
+          height = tx_util.getTXBlockHeight(tx, jelly.getBlockChainCache(), jelly.getBitcoinRPC());
+          if (height >= 0) confirmed=true;
+
+          if (tx!=null)
+          {
+            if (tx.getFee() != null)
+            {
+              this.fee = tx.getFee().getValue();
+            }
+          }
 
         }
 
@@ -782,7 +809,12 @@ public class ElectrumNotifier
         {
             if (s_tx ==null) return false;
             if (confirmed) return true;
-            if (s_tx.getSavedTime() + 86400L * 1000L < System.currentTimeMillis()) return false;
+            if (mempool) return true;
+
+            // These days, it must be from a block or from the mempool
+            // so almost certainly valid
+
+            /*if (s_tx.getSavedTime() + 86400L * 1000L < System.currentTimeMillis()) return false;
 
             // For unconfirmed transactions, make sure all the inputs
             // are known
@@ -792,9 +824,9 @@ public class ElectrumNotifier
               Sha256Hash tx_in_h = op.getHash();
               SerializedTransaction s_in_tx = jelly.getDB().getTransaction(tx_in_h);
               if (s_in_tx == null) return false;
-            }
+            }*/
 
-            return true;
+            return false;
         }
 
     }

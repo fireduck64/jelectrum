@@ -197,60 +197,7 @@ public class TXUtil
         }
 
     }
-    public String getAddressForInputViaSummary(TransactionInput in, boolean confirmed, Map<Sha256Hash, TransactionSummary> block_tx_map)
-    {
-        if (in.isCoinBase()) return null;
-
-        try
-        {
-            Address a = in.getFromAddress();
-            return a.toString();
-        }
-        catch(ScriptException e)
-        {
-          //Lets try this the other way
-          try
-          {
-
-            TransactionOutPoint out_p = in.getOutpoint();
-
-            TransactionSummary src_tx = null;
-            while(src_tx == null)
-            {
-              if (block_tx_map != null)
-              { 
-                synchronized(block_tx_map)
-                {
-                  src_tx = block_tx_map.get(out_p.getHash());
-                }
-              }
-              if (src_tx == null)
-              { 
-                src_tx = db.getTransactionSummary(out_p.getHash());
-                if (src_tx == null)
-                {   
-                  if (!confirmed)
-                  {   
-                      return null;
-                  }
-                  System.out.println("Unable to get source transaction summary: " + out_p.getHash() + " - " + block_tx_map.size());
-                  try{Thread.sleep(500);}catch(Exception e7){}
-                }
-              }
-            }
-            Assert.assertNotNull(src_tx);
-            Assert.assertNotNull(src_tx.getOutputs());
-            int out_p_idx = (int)out_p.getIndex();
-            Assert.assertNotNull("" + out_p.getHash() + " should have output " + out_p.getIndex() + " " + src_tx, src_tx.getOutputs().get(out_p_idx));
-            return src_tx.getOutputs().get(out_p_idx).getToAddress();
-          }
-          catch(ScriptException e2)
-          {   
-              return null;
-          }
-        }
-
-    }
+    
 
   public int getTXBlockHeight(Transaction tx, BlockChainCache chain_cache, BitcoinRPC rpc)
   {

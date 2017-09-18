@@ -21,8 +21,6 @@ import jelectrum.SerializedBlock;
 import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
 import jelectrum.BlockChainCache;
-import jelectrum.TransactionSummary;
-import jelectrum.BlockSummary;
 import jelectrum.TXUtil;
 
 import com.google.protobuf.ByteString;
@@ -40,7 +38,6 @@ public interface DBFace
     public Map<Integer, Sha256Hash> getHeightMap();
     public Map<String, UtxoTrieNode> getUtxoTrieMap();
     public DBMapMutationSet getUtxoSimpleMap();
-    public Map<Sha256Hash, BlockSummary> getBlockSummaryMap();
 
     public void addPublicKeysToTxMap(Collection<ByteString> publicKeys, Sha256Hash hash);
     public void addPublicKeysToTxMap(Collection<Map.Entry<ByteString, Sha256Hash> > lst);
@@ -52,7 +49,6 @@ public interface DBFace
 
     public SerializedTransaction getTransaction(Sha256Hash hash);
     public SerializedBlock getBlock(Sha256Hash hash);
-    public TransactionSummary getTransactionSummary(Sha256Hash hash);
 
 
     /**
@@ -65,6 +61,7 @@ public interface DBFace
      * blocks to the block map
      * and addAddressesToTxMap() and addTxsToBlockMap() to be called.  If false,
      * then addBlockThings() covers it. */
+     @Deprecated
     public boolean needsDetails();
 
 

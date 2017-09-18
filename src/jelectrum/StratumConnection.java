@@ -31,8 +31,8 @@ import org.apache.commons.codec.binary.Hex;
 
 public class StratumConnection
 {
-    //ghostbird, dirtnerd, beancurd, thingword
-    public static final String JELECTRUM_VERSION="thingword";
+    //ghostbird, dirtnerd, beancurd, thingword, absurd
+    public static final String JELECTRUM_VERSION="absurd";
     public static final String PROTO_VERSION="1.1";
     public static final boolean use_thread_per_request=false;
 
@@ -562,8 +562,6 @@ public class StratumConnection
                 byte[] tx_data = new Hex().decode(hex.getBytes());
                 Transaction tx = new Transaction(jelectrum.getNetworkParameters(), tx_data);
 
-                jelectrum.getPeerGroup().broadcastTransaction(tx);
-
                 if (jelectrum.getBitcoinRPC()!=null)
                 {
                   jelectrum.getBitcoinRPC().submitTransaction(hex);
@@ -584,6 +582,11 @@ public class StratumConnection
 
                  Sha256Hash block_hash = jelectrum.getBlockChainCache().getBlockHashAtHeight(height);
                  Block blk = jelectrum.getDB().getBlock(block_hash).getBlock(jelectrum.getNetworkParameters());
+
+                 for(Transaction tx : blk.getTransactions())
+                 {
+                   jelectrum.getEventLog().log("merkle_tx: " + tx.getHash().toString());
+                 }
 
                  JSONObject result =  Util.getMerkleTreeForTransaction(blk.getTransactions(), tx_hash);
                  result.put("block_height", height);
@@ -633,11 +636,11 @@ public class StratumConnection
             }
             else if (method.equals("blockchain.relayfee"))
             {
-                double fee = 0.0;
-                if (jelectrum.getBitcoinRPC() != null)
+                double fee = 1e-05;
+                /*if (jelectrum.getBitcoinRPC() != null)
                 {
                   fee = jelectrum.getBitcoinRPC().getRelayFee();
-                }
+                }*/
 
                 reply.put("result", fee);
                 logRequest(method, input_size, reply.toString().length());

@@ -113,7 +113,6 @@ public class Importer
         new RateThread("1-minute", 60000L).start();
         new RateThread("5-minute", 60000L * 5L).start();
         new RateThread("1-hour", 60000L * 60L).start();
-        new PrevBlockChecker().start();
     }
 
     public void saveBlock(Block b)
@@ -422,8 +421,6 @@ public class Importer
                 in_progress.put(hash,block_wait_sem);
             }
         }
-
-
         
         int size=0;
 
@@ -440,80 +437,65 @@ public class Importer
         file_db.addBlockThings(h, block);
         TimeRecord.record(t1, "block_add_things");
 
-        if (file_db.needsDetails())
+
+        LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
+        HashMap<Sha256Hash, Collection<ByteString>> addr_map = new HashMap<>();
+        Collection<Map.Entry<ByteString, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<ByteString, Sha256Hash>>();
+        Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
+
+        t1 = System.nanoTime();
+        for(Transaction tx : block.getTransactions())
         {
-
-          LinkedList<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
-          HashMap<Sha256Hash, Collection<ByteString>> addr_map = new HashMap<>();
-          Collection<Map.Entry<ByteString, Sha256Hash> > addrTxLst = new LinkedList<Map.Entry<ByteString, Sha256Hash>>();
-          Map<Sha256Hash, Transaction> block_tx_map = new HashMap<Sha256Hash, Transaction>();
-
-          t1 = System.nanoTime();
-          for(Transaction tx : block.getTransactions())
-          {
-            block_tx_map.put(tx.getHash(), tx);
-          }
-          TimeRecord.record(t1, "block_tx_map_build");
-
-          t1 = System.nanoTime();
-          ctx.setStatus("BLOCK_GET_ADDRESSES");
-          for(Transaction tx : block.getTransactions())
-          {
-            imported_transactions.incrementAndGet();
-            Collection<ByteString> addrs = tx_util.getAllPublicKeys(tx, true, block_tx_map);
-            Assert.assertNotNull(addrs);
-            //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
-            addr_map.put(tx.getHash(), addrs);
-
-            for(ByteString addr : addrs)
-            {
-              addrTxLst.add(new java.util.AbstractMap.SimpleEntry<ByteString,Sha256Hash>(addr, tx.getHash()));
-            }
-
-
-            tx_list.add(tx.getHash());
-            size++;
-          }
-          TimeRecord.record(t1, "block_get_addresses");
-
-
-
-
-          //t1 = System.nanoTime();
-          //ctx.setStatus("BLOCK_TX_MAP_ADD");
-          //file_db.addTxsToBlockMap(tx_list, hash);
-          //TimeRecord.record(t1, "block_tx_map_add");
-
-          t1 = System.nanoTime();
-          ctx.setStatus("ADDR_SAVEALL");
-          file_db.addPublicKeysToTxMap(addrTxLst);
-          Assert.assertEquals(block.getTransactions().size(), addr_map.size());
-          TimeRecord.record(t1, "block_addr_save");
-
-          t1 = System.nanoTime();
-          ctx.setStatus("TX_NOTIFY");
-          HashSet<ByteString> all_addrs = new HashSet<ByteString>();
-          for(Transaction tx : block.getTransactions())
-          {
-            Collection<ByteString> addrs = addr_map.get(tx.getHash());
-
-            all_addrs.addAll(addrs);
-            
-            //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
-            Assert.assertNotNull(addrs);
-          }
-          jelly.getElectrumNotifier().notifyNewTransactionKeys(all_addrs, h);
-          TimeRecord.record(t1, "block_notify");
-
-
-
+          block_tx_map.put(tx.getHash(), tx);
         }
-        else
+        TimeRecord.record(t1, "block_tx_map_build");
+
+        t1 = System.nanoTime();
+        ctx.setStatus("BLOCK_GET_ADDRESSES");
+        for(Transaction tx : block.getTransactions())
         {
-          BlockSummary bs = file_db.getBlockSummaryMap().get(hash);
-          jelly.getElectrumNotifier().notifyNewTransaction(bs.getAllAddresses(), h);
-          size = bs.getTxMap().size();
+          imported_transactions.incrementAndGet();
+          Collection<ByteString> addrs = tx_util.getAllPublicKeys(tx, true, block_tx_map);
+          Assert.assertNotNull(addrs);
+          //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
+          addr_map.put(tx.getHash(), addrs);
+
+          for(ByteString addr : addrs)
+          {
+            addrTxLst.add(new java.util.AbstractMap.SimpleEntry<ByteString,Sha256Hash>(addr, tx.getHash()));
+          }
+
+          tx_list.add(tx.getHash());
+          size++;
         }
+        TimeRecord.record(t1, "block_get_addresses");
+
+        //t1 = System.nanoTime();
+        //ctx.setStatus("BLOCK_TX_MAP_ADD");
+        //file_db.addTxsToBlockMap(tx_list, hash);
+        //TimeRecord.record(t1, "block_tx_map_add");
+
+        t1 = System.nanoTime();
+        ctx.setStatus("ADDR_SAVEALL");
+        file_db.addPublicKeysToTxMap(addrTxLst);
+        Assert.assertEquals(block.getTransactions().size(), addr_map.size());
+        TimeRecord.record(t1, "block_addr_save");
+
+        t1 = System.nanoTime();
+        ctx.setStatus("TX_NOTIFY");
+        HashSet<ByteString> all_addrs = new HashSet<ByteString>();
+        for(Transaction tx : block.getTransactions())
+        {
+          Collection<ByteString> addrs = addr_map.get(tx.getHash());
+
+          all_addrs.addAll(addrs);
+          
+          //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
+          Assert.assertNotNull(addrs);
+        }
+        jelly.getElectrumNotifier().notifyNewTransactionKeys(all_addrs, h);
+        TimeRecord.record(t1, "block_notify");
+
 
         t1 = System.nanoTime();
         ctx.setStatus("DB_COMMIT");
@@ -525,7 +507,6 @@ public class Importer
         t1 = System.nanoTime();
         ctx.setStatus("BLOCK_WAIT_PREV");
         Sha256Hash prev_hash = block.getPrevBlockHash();
-        
         waitForBlockStored(prev_hash, h);
         TimeRecord.record(t1, "block_wait_prev");
 
@@ -741,101 +722,7 @@ public class Importer
 
     }
 
-  public class PrevBlockChecker extends Thread
-  {
 
-    public PrevBlockChecker()
-    {
-      setName("importer/prevblockchecker");
-      setDaemon(true);
-    }
-
-    public void run()
-    {
-      while(true)
-      {
-        try
-        {
-          Sha256Hash hash = needed_prev_blocks.take();
-          checkHash(hash);
-
-          
-
-
-
-        }
-        catch(Throwable t)
-        {
-          jelly.getEventLog().alarm("PrevBlockChecker: " + t);
-        }
-      
-
-      }
-
-    }
-
-    private void checkHash(Sha256Hash hash)
-    {
-      if (file_db.getBlockSavedMap().containsKey(hash))
-      {
-        return;
-      }
-      synchronized(in_progress)
-      {
-        if (in_progress.containsKey(hash))
-        {
-          return;
-        }
-      }
-      jelly.getEventLog().alarm("Block hash seems to be missing from download: " + hash);
-
-
-      while(true)
-      {
-        try
-        {
-
-          // Randomly pick a peer, probably drunk
-
-          ArrayList<Peer> peers = new ArrayList<>();
-          peers.addAll(jelly.getPeerGroup().getConnectedPeers());
-          if (peers.size()==0)
-          {
-            throw new Exception("no peers to get block from");
-          }
-
-
-
-          Random rnd = new Random();
-          Peer peer = peers.get(rnd.nextInt(peers.size()));
-          jelly.getEventLog().log("Selected peer: " + peer);
-
-          // Tell that peer to give up the B
-          Block blk = peer.getBlock(hash).get(30, TimeUnit.SECONDS);
-
-          // Profit
-          // Can't hand off to threads because the threads
-          // are probably all blocked waiting on this block or each other
-          putInternal(blk);
-          return;
-        }
-        catch(Exception e)
-        {
-          jelly.getEventLog().alarm("PrevBlockChecker: " + e);
-          try
-          {
-            sleep(15000);
-          }
-          catch(InterruptedException ie){throw new RuntimeException(ie);}
-          
-        }
-
-      }
-
-
-    }
-
-  }
 
 
 }

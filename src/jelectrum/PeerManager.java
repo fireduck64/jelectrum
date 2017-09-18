@@ -297,7 +297,7 @@ public class PeerManager
       {
         try
         {
-          Thread.sleep(10000L);
+          Thread.sleep(1000L);
           runPass();
 
         }

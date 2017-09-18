@@ -4,12 +4,9 @@ import org.bitcoinj.store.H2FullPrunedBlockStore;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.VersionMessage;
-import org.bitcoinj.core.Peer;
 import org.apache.commons.codec.binary.Hex;
 import java.net.InetAddress;
 import org.bitcoinj.net.discovery.DnsDiscovery;
@@ -32,7 +29,6 @@ public class Jelectrum
     private MapBlockStore block_store;
     private BlockChain block_chain;
     private BlockChainCache block_chain_cache; 
-    private PeerGroup peer_group;
     private EventLog event_log;
 
     private StratumServer stratum_server;
@@ -42,6 +38,7 @@ public class Jelectrum
     private BitcoinRPC bitcoin_rpc;
     private UtxoSource utxo_source;
     private PeerManager peer_manager;
+    private MemPooler mem_pooler;
 
     private volatile boolean caught_up=false;
 
@@ -51,7 +48,6 @@ public class Jelectrum
         config = conf;
         network_params = Util.getNetworkParameters(config);
 
-        config.require("bitcoin_network_use_peers");
         config.require("db_type");
         //config.require("bitcoin_peer_host");
         //config.require("bitcoin_peer_port");
@@ -97,10 +93,6 @@ public class Jelectrum
         else if (db_type.equals("lmdb"))
         {
           jelectrum_db = new jelectrum.db.lmdb.LMDB(config);
-        }
-        else if (db_type.equals("little"))
-        {
-          jelectrum_db = new jelectrum.db.little.LittleDB(config, event_log, network_params);
         }
         else if (db_type.equals("memory"))
         {
@@ -148,6 +140,8 @@ public class Jelectrum
 
         jelectrum_db.setBlockChainCache(block_chain_cache);
 
+        mem_pooler = new MemPooler(this);
+
     }
 
 
@@ -174,6 +168,8 @@ public class Jelectrum
 
         stratum_server.start();
         peer_manager.start();
+
+        mem_pooler.start();
         
         new BlockDownloadThread(this).start();
 
@@ -268,11 +264,11 @@ public class Jelectrum
           new BlockRepoSaver(this,10).start();
         }*/
 
-        while(true)
+        /*while(true)
         {
           int peer_height = peer_group.getMostCommonChainHeight();
           int my_height = notifier.getHeadHeight();
-          /*if (peer_height != my_height)
+          if (peer_height != my_height)
           {
             event_log.log("Peer height is: " + peer_height + " My height is: " + my_height);
             for(Peer p : peer_group.getConnectedPeers())
@@ -289,7 +285,7 @@ public class Jelectrum
             }
 
 
-          }*/
+          }
             if (peer_group.getMostCommonChainHeight() > notifier.getHeadHeight()+3)
             {
                 event_log.alarm("We are far behind.  Aborting.");
@@ -297,7 +293,7 @@ public class Jelectrum
             }
 
             Thread.sleep(25000);
-        }
+        }*/
         /*peer_group.stop();
         jelectrum_db.commit();
         jelectrum_db.close();*/
@@ -342,10 +338,6 @@ public class Jelectrum
     {
         return event_log;
     }
-    public PeerGroup getPeerGroup()
-    {
-        return peer_group;
-    }
 
     public BlockChainCache getBlockChainCache()
     {
@@ -372,6 +364,10 @@ public class Jelectrum
     public PeerManager getPeerManager()
     {
       return peer_manager;
+    }
+    public MemPooler getMemPooler()
+    {
+      return mem_pooler;
     }
 
     private volatile boolean space_limited;

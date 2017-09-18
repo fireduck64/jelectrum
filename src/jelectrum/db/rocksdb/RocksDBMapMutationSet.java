@@ -8,19 +8,22 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 import jelectrum.db.DBMapMutationSet;
+import jelectrum.db.DBMapMutationSetThreaded;
 import com.google.protobuf.ByteString;
 import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.concurrent.Executor;
 
-public class RocksDBMapMutationSet extends DBMapMutationSet
+public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
 {
   RocksDB db;
   String name;
   byte[] name_bytes;
   byte sep = '/';
-  public RocksDBMapMutationSet(RocksDB db, String name)
+  public RocksDBMapMutationSet(Executor exec, RocksDB db, String name)
   {
+    super(exec);
     this.db = db;
     this.name = name;
     name_bytes = name.getBytes();

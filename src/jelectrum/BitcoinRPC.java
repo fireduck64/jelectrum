@@ -2,6 +2,8 @@ package jelectrum;
 
 import java.net.URL;
 import java.util.Scanner;
+import java.util.List;
+import java.util.LinkedList;
 import java.net.HttpURLConnection;
 import java.io.OutputStream;
 import org.apache.commons.codec.binary.Base64;
@@ -213,6 +215,31 @@ public class BitcoinRPC implements RawBitcoinDataSource
 
     }
 
+    public List<Sha256Hash> getMempoolList()
+        throws java.io.IOException, org.json.JSONException
+    {
+      Random rnd = new Random();
+      JSONObject msg = new JSONObject();
+      msg.put("id", "" + rnd.nextInt());
+      msg.put("method","getrawmempool");
+      JSONArray params = new JSONArray();
+      msg.put("params", params);
+      JSONObject reply= sendPost(msg);
+      JSONArray result = reply.getJSONArray("result");
+
+      List<Sha256Hash> tx_list = new LinkedList<Sha256Hash>();
+      for(int i=0; i<result.length(); i++)
+      {
+        String tx_str = result.getString(i);
+        Sha256Hash tx_hash = new Sha256Hash(tx_str);
+        tx_list.add(tx_hash);
+      }
+
+      return tx_list;
+
+
+    }
+
     public SerializedTransaction getTransaction(Sha256Hash hash)
     {
       while(true)
@@ -237,6 +264,7 @@ public class BitcoinRPC implements RawBitcoinDataSource
         catch(Throwable t)
         {
           event_log.alarm("RPC error on tx "+hash+ " " + t.toString()); 
+          t.printStackTrace();
           try { Thread.sleep(5000); } catch(Throwable t2){}
         }
       }
@@ -274,9 +302,9 @@ public class BitcoinRPC implements RawBitcoinDataSource
       JSONObject data = getVerboseTransaction(hash);
       if (data == null) return null;
 
-      String blockhash = data.optString("blockhash");
-      if (blockhash == null) return null;
+      if (!data.has("blockhash")) return null;
 
+      String blockhash = data.optString("blockhash");
       return new Sha256Hash(blockhash);
     }
  
@@ -294,6 +322,7 @@ public class BitcoinRPC implements RawBitcoinDataSource
           JSONArray params = new JSONArray();
           params.put(hash.toString());
           params.put(false);
+          //params.put(0);
           msg.put("params", params);
           JSONObject reply= sendPost(msg);
 

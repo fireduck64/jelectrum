@@ -44,7 +44,7 @@ public class JRocksDB extends DB
 
   protected DBMapMutationSet openMutationMapSet(String name) throws Exception
   {
-    return new RocksDBMapMutationSet(db, name);
+    return new RocksDBMapMutationSet(getExec(), db, name);
   }
 
   protected DBMap openMap(String name) throws Exception

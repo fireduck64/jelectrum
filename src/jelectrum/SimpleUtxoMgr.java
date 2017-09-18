@@ -331,8 +331,9 @@ public class SimpleUtxoMgr implements UtxoSource
 
       for(ByteString key : txinfo)
       {
+        
         ByteString tx_data = key.substring(0,32);
-        ByteBuffer bb = ByteBuffer.wrap(tx_data.substring(32).toByteArray());
+        ByteBuffer bb = ByteBuffer.wrap(key.substring(32).toByteArray());
         bb.order(java.nio.ByteOrder.LITTLE_ENDIAN);
         int idx=bb.getInt();
 

@@ -24,8 +24,6 @@ import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
 import jelectrum.Util;
 import jelectrum.TXUtil;
-import jelectrum.TransactionSummary;
-import jelectrum.BlockSummary;
 import jelectrum.BlockChainCache;
 import jelectrum.CacheMap;
 
@@ -49,7 +47,6 @@ public abstract class DB implements DBFace
     protected Map<Integer, Sha256Hash> height_map;
     protected Map<String, UtxoTrieNode> utxo_trie_map;
     protected DBMapMutationSet utxo_simple_map;
-    protected Map<Sha256Hash, BlockSummary> block_summary_map;
     protected DBMapMutationSet pubkey_to_tx_map;
     protected NetworkParameters network_params;
     protected BlockChainCache block_chain_cache;
@@ -96,10 +93,6 @@ public abstract class DB implements DBFace
         utxo_trie_map = new ObjectConversionMap<>(UTXONODE, openMap("utxo_trie_map"));
         //utxo_simple_map = new ObjectConversionMap<>(STRING, openMap("utxo_simple_map"));
 
-        //these chazwogers are big an expensive to parse into memory
-        //so keeping a small cache of them makes sense
-        block_summary_map = new CacheMap<Sha256Hash,BlockSummary>(32,
-          new ObjectConversionMap<Sha256Hash,BlockSummary>(OBJECT, openMap("block_summary_map")));
 
         //address_to_tx_map = openMapSet("address_to_tx_map");
         //tx_to_block_map = openMapSet("tx_to_block_map");
@@ -125,7 +118,6 @@ public abstract class DB implements DBFace
     public Map<Integer, Sha256Hash> getHeightMap() {return height_map; }
     public Map<String, UtxoTrieNode> getUtxoTrieMap() { return utxo_trie_map; } 
     public DBMapMutationSet getUtxoSimpleMap() {return utxo_simple_map; }
-    public Map<Sha256Hash, BlockSummary> getBlockSummaryMap() { return block_summary_map; }
 
     public void setRawBitcoinDataSource(RawBitcoinDataSource rawSource)
     {
@@ -232,11 +224,6 @@ public abstract class DB implements DBFace
     public SerializedBlock getBlock(Sha256Hash hash)
     {
       return rawSource.getBlock(hash);
-    }
-
-    public TransactionSummary getTransactionSummary(Sha256Hash hash)
-    {
-      return new TransactionSummary(getTransaction(hash).getTx(network_params), tx_util, null);
     }
 
     public void setBlockChainCache(BlockChainCache block_chain_cache)
