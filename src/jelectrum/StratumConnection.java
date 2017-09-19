@@ -583,11 +583,6 @@ public class StratumConnection
                  Sha256Hash block_hash = jelectrum.getBlockChainCache().getBlockHashAtHeight(height);
                  Block blk = jelectrum.getDB().getBlock(block_hash).getBlock(jelectrum.getNetworkParameters());
 
-                 for(Transaction tx : blk.getTransactions())
-                 {
-                   jelectrum.getEventLog().log("merkle_tx: " + tx.getHash().toString());
-                 }
-
                  JSONObject result =  Util.getMerkleTreeForTransaction(blk.getTransactions(), tx_hash);
                  result.put("block_height", height);
 
