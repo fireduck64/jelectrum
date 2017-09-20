@@ -1,6 +1,8 @@
 package jelectrum;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
 import java.util.Set;
 import java.util.Collection;
 import java.util.HashSet;
@@ -43,6 +45,7 @@ public class MemPooler extends Thread
       catch(Throwable t)
       {
         jelly.getEventLog().alarm("Error in MemPooler: " + t.toString());
+        jelly.getEventLog().logTrace(t);
       }
       try
       {
@@ -75,6 +78,7 @@ public class MemPooler extends Thread
     new_info.tx_set.addAll(new_tx_set);
     int existing_tx=0;
     int new_tx=0;
+    int fail_tx=0;
 
     HashSet<ByteString> new_keys = new HashSet<>();
 
@@ -89,26 +93,40 @@ public class MemPooler extends Thread
       if (tx_summary == null)
       {
         Transaction tx = jelly.getDB().getTXUtil().getTransaction(tx_hash);
-        tx_summary = new TransactionSummary(tx, jelly.getDB().getTXUtil(), false, null);
-        new_tx++;
-
-        new_keys.addAll(tx_summary.getPublicKeys());
+        if (tx != null)
+        {
+          tx_summary = new TransactionSummary(tx, jelly.getDB().getTXUtil(), false, null);
+          new_tx++;
+  
+          new_keys.addAll(tx_summary.getPublicKeys());
+        }
+        else
+        {
+          jelly.getEventLog().log(String.format("MemPooler: Failed to load TX - %s", tx_hash.toString()));
+        }
       }
-      new_info.tx_summary_map.put(tx_hash, tx_summary);
 
-      for(ByteString pubkey : tx_summary.getPublicKeys())
+      if (tx_summary == null)
       {
-        new_info.pubkey_to_tx_map.put(pubkey, tx_hash);
+        fail_tx++;
+      }
+      else
+      {
+        new_info.tx_summary_map.put(tx_hash, tx_summary);
+
+        for(ByteString pubkey : tx_summary.getPublicKeys())
+        {
+          new_info.pubkey_to_tx_map.put(pubkey, tx_hash);
+        }
       }
 
     }
 
-    jelly.getEventLog().log(String.format("Mempool size: %d (existing %d, new %d)", new_tx_set.size(), existing_tx, new_tx));
+    jelly.getEventLog().log(String.format("Mempool size: %d (existing %d, new %d, fail %d)", new_tx_set.size(), existing_tx, new_tx, fail_tx));
 
     latest_info = new_info;
 
     jelly.getElectrumNotifier().notifyNewTransactionKeys(new_keys, -1);
-
   }
 
   public HashSet<Sha256Hash> getTxForPubKey(ByteString key)
@@ -123,6 +141,22 @@ public class MemPooler extends Thread
       set.addAll(mem_set);
     } 
     return set;
+  }
+  public boolean areSomeInputsPending(Transaction tx)
+  {
+    MemPoolInfo info = latest_info;
+    if (info == null) return false; //Hard to say
+
+    for(TransactionInput tx_in : tx.getInputs())
+    {
+      if (!tx_in.isCoinBase())
+      {
+        TransactionOutPoint tx_out = tx_in.getOutpoint();
+        Sha256Hash parent_hash = tx_out.getHash();
+        if (info.tx_set.contains(parent_hash)) return true;
+      }
+    }
+    return false;
   }
 
   public class MemPoolInfo

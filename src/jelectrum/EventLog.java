@@ -39,7 +39,14 @@ public class EventLog
     public void log(Throwable e)
     {
         log(e.toString());
-
+    }
+    public void logTrace(Throwable e)
+    {
+      synchronized(log_stream)
+      {
+        log(e);
+        e.printStackTrace(log_stream);
+      }
     }
 
     public void log(String msg)

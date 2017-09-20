@@ -534,7 +534,9 @@ public class ElectrumNotifier
                     }
                     else
                     {
-                        o.put("height", 0);
+                        int height = 0;
+                        if (jelly.getMemPooler().areSomeInputsPending(ts.tx)) height = -1;
+                        o.put("height", height);
                     }
                     if (ts.fee >= 0)
                     {
@@ -586,7 +588,9 @@ public class ElectrumNotifier
                 }
                 else
                 {
-                    sb.append("0");
+                    int height = 0;
+                    if (jelly.getMemPooler().areSomeInputsPending(ts.tx)) height=-1;
+                    sb.append(height);
                 }
                 sb.append(':');
             }
