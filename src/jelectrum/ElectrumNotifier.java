@@ -351,14 +351,14 @@ public class ElectrumNotifier
 
     }
 
-    public void sendAddressHistory(StratumConnection conn, Object request_id, String address)
+    public void sendAddressHistory(StratumConnection conn, Object request_id, String address, boolean include_confirmed, boolean include_mempool)
     {
         Subscriber sub = new Subscriber(conn, request_id);
         try
         {
             JSONObject reply = sub.startReply();
 
-            reply.put("result", getAddressHistory(address));
+            reply.put("result", getAddressHistory(address,include_confirmed,include_mempool));
 
             sub.sendReply(reply);
 
@@ -425,7 +425,7 @@ public class ElectrumNotifier
         {
             JSONObject reply = sub.startReply();
 
-            List<SortedTransaction> lst = getTransactionsForAddress(address);
+            List<SortedTransaction> lst = getTransactionsForAddress(address, true, true);
 
             TreeMap<String, Long> confirmed_outs = new TreeMap<>();
             TreeMap<String, Long> unconfirmed_outs = new TreeMap<>();
@@ -515,11 +515,11 @@ public class ElectrumNotifier
 
 
 
-    public Object getAddressHistory(String address)
+    public Object getAddressHistory(String address, boolean include_confirmed, boolean include_mempool)
     {
         try
         {
-            List<SortedTransaction> lst = getTransactionsForAddress(address);
+            List<SortedTransaction> lst = getTransactionsForAddress(address,include_confirmed,include_mempool);
             //if (lst.size() > 0)
             {
                 JSONArray arr =new JSONArray();
@@ -573,7 +573,7 @@ public class ElectrumNotifier
 
         String hash = null;
 
-        List<SortedTransaction> lst = getTransactionsForAddress(address);
+        List<SortedTransaction> lst = getTransactionsForAddress(address, true, true);
 
         if (lst.size() > 0)
         {
@@ -689,39 +689,44 @@ public class ElectrumNotifier
         }
     }
 
-    public List<SortedTransaction> getTransactionsForAddress(String address)
+    public List<SortedTransaction> getTransactionsForAddress(String address, boolean include_confirmed, boolean include_mempool)
     {
       ByteString publicKeyHash = ByteString.copyFrom(new Address(jelly.getNetworkParameters(), address).getHash160());
-      Set<Sha256Hash> tx_list = jelly.getDB().getPublicKeyToTxSet(publicKeyHash);
 
-      Set<Sha256Hash> tx_mem_list = jelly.getMemPooler().getTxForPubKey(publicKeyHash);
-
-      ArrayList<SortedTransaction> out = new ArrayList<SortedTransaction>();
 
       TreeSet<SortedTransaction> set = new TreeSet<SortedTransaction>();
-      if (tx_list != null)
+
+      if (include_confirmed)
       {
-          for(Sha256Hash tx_hash : tx_list)
-          {
-              SortedTransaction stx = new SortedTransaction(tx_hash, false);
-              if (stx.isValid())
-              {
-                  set.add(stx);
-              }
-          }
 
-
+        Set<Sha256Hash> tx_list = jelly.getDB().getPublicKeyToTxSet(publicKeyHash);
+        if (tx_list != null)
+        {
+            for(Sha256Hash tx_hash : tx_list)
+            {
+                SortedTransaction stx = new SortedTransaction(tx_hash, false);
+                if (stx.isValid())
+                {
+                    set.add(stx);
+                }
+            }
+        }
       }
 
-      for(Sha256Hash tx_hash : tx_mem_list)
+      if (include_mempool)
       {
-        SortedTransaction stx = new SortedTransaction(tx_hash, true);
-        if (stx.isValid())
+        Set<Sha256Hash> tx_mem_list = jelly.getMemPooler().getTxForPubKey(publicKeyHash);
+        for(Sha256Hash tx_hash : tx_mem_list)
         {
-          set.add(stx);
+          SortedTransaction stx = new SortedTransaction(tx_hash, true);
+          if (stx.isValid())
+          {
+            set.add(stx);
+          }
         }
       }
       
+      ArrayList<SortedTransaction> out = new ArrayList<SortedTransaction>();
       for(SortedTransaction s : set)
       {
         out.add(s);

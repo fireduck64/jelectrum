@@ -27,7 +27,7 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
-import org.apache.commons.codec.binary.Hex;
+import com.google.protobuf.ByteString;
 
 public class StratumConnection
 {
@@ -407,32 +407,58 @@ public class StratumConnection
 
                 logRequest(method, input_size, 0);
                 jelectrum.getElectrumNotifier().registerBlockCount(this, id, true);
-                
             }
             else if (method.equals("blockchain.address.get_history"))
             {
-                //{"id": 29, "result": [{"tx_hash": "fc054ede2383904323d9b54991693b9150bb1a0a7cd3c344afb883d3ffc093f4", "height": 274759}, {"tx_hash": "9dc9363fe032e08630057edb61488fc8fa9910d8b21f02eb1b12ef2928c88550", "height": 274709}]}
-                
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, true, true);
 
             }
+            else if (method.equals("blockchain.scripthash.get_history"))
+            {
+                JSONArray params = msg.getJSONArray("params");
+                String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
+                logRequest(method, input_size, 0);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, true, true);
+            }
+            else if (method.equals("blockchain.address.get_mempool"))
+            {
+                JSONArray params = msg.getJSONArray("params");
+                String address = params.getString(0);
+                logRequest(method, input_size, 0);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, false, true);
+            }
+            else if (method.equals("blockchain.scripthash.get_mempool"))
+            {
+                JSONArray params = msg.getJSONArray("params");
+                String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
+                logRequest(method, input_size, 0);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, false, true);
+            }
+ 
             else if ((method.equals("blockchain.address.get_proof")) && (client_protocol.compareTo("1.1") < 0))
             {
                 
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, true, true);
 
             }
- 
             else if (method.equals("blockchain.address.get_balance"))
             {
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
+                jelectrum.getElectrumNotifier().sendAddressBalance(this, id, address);
+            }
+            else if (method.equals("blockchain.scripthash.get_balance"))
+            {
+                JSONArray params = msg.getJSONArray("params");
+                String scripthash = params.getString(0);
+                ByteString hash = ByteString.copyFrom(Hex.decodeHex(scripthash.toCharArray()));
+                String address = tx_util.getAddressFromPublicKeyHash(hash); 
                 jelectrum.getElectrumNotifier().sendAddressBalance(this, id, address);
             }
             else if (method.equals("blockchain.address.listunspent"))
@@ -442,13 +468,15 @@ public class StratumConnection
               logRequest(method, input_size, 0);
               jelectrum.getElectrumNotifier().sendUnspent(this, id, address);
             }
+             else if (method.equals("blockchain.scripthash.listunspent"))
+            {
+              JSONArray params = msg.getJSONArray("params");
+              String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
+              logRequest(method, input_size, 0);
+              jelectrum.getElectrumNotifier().sendUnspent(this, id, address);
+            }
             else if (method.equals("blockchain.address.subscribe"))
             {
-                //the result is
-                //sha256(fc054ede2383904323d9b54991693b9150bb1a0a7cd3c344afb883d3ffc093f4:274759:7bb11e62ceb5c9e918d9de541ec8d5d215353c6bbf2fcb32b300ec641f3a0b3f:274708:)
-                //tx:height:tx:height:
-                //or null if no transactions
-
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
 
@@ -457,12 +485,24 @@ public class StratumConnection
                 {
                     first_address=address;
                 }
-
                 logRequest(method, input_size, 0);
                 jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, address);
-
             }
+            else if (method.equals("blockchain.scripthash.subscribe"))
+            {
+                JSONArray params = msg.getJSONArray("params");
 
+                String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
+
+                subscription_count.getAndIncrement();
+                if (first_address==null)
+                {
+                    first_address=address;
+                }
+                logRequest(method, input_size, 0);
+                jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, address);
+            }
+ 
             else if (method.equals("server.peers.subscribe"))
             {
                 JSONArray lst = jelectrum.getPeerManager().getPeers();

@@ -208,4 +208,10 @@ public class TXUtil
 
   }
 
+  public String getAddressFromPublicKeyHash(ByteString hash)
+  {
+    Address a = new Address(params, hash.toByteArray());
+    return a.toString();
+  }
+
 }
