@@ -672,8 +672,7 @@ public class Importer
                     {
                       if (block_rate < 0.05)
                       {
-                        jelly.getEventLog().alarm("Block rate too low, aborting");
-                        System.exit(-1);
+                        jelly.getEventLog().alarm("Block rate is really low");
                       }
                     }
                 
