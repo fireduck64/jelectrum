@@ -205,13 +205,15 @@ public class BitcoinRPC implements RawBitcoinDataSource
         Random rnd = new Random();
         JSONObject msg = new JSONObject();
         msg.put("id", "" + rnd.nextInt());
-        msg.put("method","estimatefee");
+        msg.put("method","estimatesmartfee");
         JSONArray params = new JSONArray();
         params.put(blocks);
         msg.put("params", params);
         JSONObject reply= sendPost(msg);
 
-        return reply.getDouble("result");
+        JSONObject res = reply.getJSONObject("result");
+
+        return res.getDouble("feerate");
 
     }
 

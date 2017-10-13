@@ -611,7 +611,7 @@ public class StratumConnection
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
 
-                jelectrum.getImporter().saveTransaction(tx);
+                //jelectrum.getImporter().saveTransaction(tx);
 
             }
             else if (method.equals("blockchain.transaction.get_merkle"))

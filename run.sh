@@ -5,6 +5,6 @@
 
 mkdir -p run
 rsync -aq jar/Jelectrum.jar run/Jelectrum-run.jar
-java -Xmx2g -jar run/Jelectrum-run.jar jelly.conf
+java -Xmx4g -jar run/Jelectrum-run.jar jelly.conf
 
 
