@@ -10,6 +10,8 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
+import com.google.protobuf.ByteString;
+import org.spongycastle.crypto.digests.RIPEMD160Digest;
 
 import java.util.Collection;
 import java.util.ArrayList;
@@ -34,7 +36,16 @@ public class Util
         return sb.toString();
     }
 
+  public static ByteString RIPEMD160(ByteString in)
+  {
+      RIPEMD160Digest digest = new RIPEMD160Digest();
 
+      digest.update(in.toByteArray(), 0, in.size());
+      byte[] out = new byte[20];
+      digest.doFinal(out, 0);
+      return ByteString.copyFrom(out);
+
+  }
   public static String SHA256(byte[] P)
   {   
         try
@@ -51,8 +62,6 @@ public class Util
         catch (java.security.NoSuchAlgorithmException e)
         {   
             throw new RuntimeException(e);
-
-
         }
 
   }

@@ -210,7 +210,8 @@ public class TXUtil
 
   public String getAddressFromPublicKeyHash(ByteString hash)
   {
-    Address a = new Address(params, hash.toByteArray());
+    ByteString b160 = Util.RIPEMD160(hash);
+    Address a = new Address(params, b160.toByteArray());
     return a.toString();
   }
 
