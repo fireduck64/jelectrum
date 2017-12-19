@@ -32,7 +32,7 @@ If you have a problem with strange error messages, try rebuilding the library on
  * apt-get install libsnappy-dev curl
  * git clone https://github.com/facebook/rocksdb.git
  * Build java library - details on [RocksJava-Basics](https://github.com/facebook/rocksdb/wiki/RocksJava-Basics)
-        export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+        export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
         export DEBUG_LEVEL=0
         make rocksdbjava
  * copy java/target/rocksdbjni-4.3.0-linux64.jar (or whatever it gets named) into your jelectrum lib directory
