@@ -11,6 +11,7 @@ import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.script.Script;
+import org.bitcoinj.core.Coin;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Collection;
@@ -45,7 +46,7 @@ public class TXUtil
   {
     if (transaction_cache != null)
     {
-      transaction_cache.put(tx.getHash(), SerializedTransaction.scrubTransaction(params,tx));
+     transaction_cache.put(tx.getHash(), SerializedTransaction.scrubTransaction(params,tx));
     }
   }
 
@@ -67,6 +68,83 @@ public class TXUtil
       return tx;
     }
     return null;
+  }
+
+  public ByteString getScriptHashForOutput(TransactionOutput out)
+  {
+    //System.out.println("Out Script: " + Util.getHexString(ByteString.copyFrom(out.getScriptBytes())));
+    //System.out.println("Out Script: " + out.getScriptPubKey());
+    return Util.reverse(Util.SHA256BIN(ByteString.copyFrom(out.getScriptBytes())));
+  }
+  public ByteString getScriptHashForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
+  {
+    //System.out.println("In Script: " + Util.getHexString(ByteString.copyFrom(in.getScriptBytes())));
+    //System.out.println("In Script: " + in.  getScriptSig());
+    if (in.isCoinBase()) return null;
+
+    try
+    {
+      Address a = in.getFromAddress();
+      return getScriptHashForAddress(a.toString());
+    }
+    catch(ScriptException e)
+    {
+      //Lets try this the other way
+      try
+      {
+
+        TransactionOutPoint out_p = in.getOutpoint();
+
+        Transaction src_tx = null;
+        int fail_count =0;
+        while(src_tx == null)
+        {
+          if (block_tx_map != null)
+          { 
+            src_tx = block_tx_map.get(out_p.getHash());
+          }
+          if (src_tx == null)
+          { 
+            src_tx = getTransaction(out_p.getHash());
+            if (src_tx == null)
+            {   
+              if (!confirmed)
+              {   
+                return null;
+              }
+              fail_count++;
+              if (fail_count > 30)
+              {
+                System.out.println("Unable to get source transaction: " + out_p.getHash());
+              }
+              if (fail_count > 240)
+              {
+                throw new RuntimeException("Waited too long to get transaction: " + out_p.getHash());
+              }
+              try{Thread.sleep(500);}catch(Exception e7){}
+            }
+          }
+        }
+        
+        TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
+        return getScriptHashForOutput(out);
+      }
+      catch(ScriptException e2)
+      {   
+        return null;
+      }
+    }
+
+  }
+
+  public ByteString getScriptHashForAddress(String str)
+  {
+    Address addr = Address.fromBase58(params, str);
+    Transaction tx= new Transaction(params);
+
+    TransactionOutput tx_out = new TransactionOutput(params, tx, Coin.CENT, addr);
+
+    return getScriptHashForOutput(tx_out);
   }
 
     public Address getAddressForOutput(TransactionOutput out)
@@ -98,46 +176,25 @@ public class TXUtil
 
     }
 
-    public HashSet<ByteString> getAllPublicKeys(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
+    public HashSet<ByteString> getAllScriptHashes(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
         HashSet<ByteString> lst = new HashSet<ByteString>();
-        boolean detail = false;
 
         for(TransactionInput in : tx.getInputs())
         {   
-            Address a = getAddressForInput(in, confirmed, block_tx_map);
-            if (a!=null) lst.add(ByteString.copyFrom(a.getHash160()));
+            ByteString a = getScriptHashForInput(in, confirmed, block_tx_map);
+            if (a!=null) lst.add(a);
         }
 
         for(TransactionOutput out : tx.getOutputs())
         {   
-            Address a = getAddressForOutput(out);
-            if (a!=null) lst.add(ByteString.copyFrom(a.getHash160()));
-
+            ByteString a = getScriptHashForOutput(out);
+            if (a!=null) lst.add(a);
         }
         return lst;
 
     }
 
-    public HashSet<String> getAllAddresses(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
-    {   
-        HashSet<String> lst = new HashSet<String>();
-        boolean detail = false;
-
-        for(TransactionInput in : tx.getInputs())
-        {   
-            Address a = getAddressForInput(in, confirmed, block_tx_map);
-            if (a!=null) lst.add(a.toString());
-        }
-
-        for(TransactionOutput out : tx.getOutputs())
-        {   
-            Address a = getAddressForOutput(out);
-            if (a!=null) lst.add(a.toString());
-
-        }
-        return lst;
-    }
 
     public Address getAddressForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
@@ -210,8 +267,10 @@ public class TXUtil
 
   public String getAddressFromPublicKeyHash(ByteString hash)
   {
+
     ByteString b160 = Util.RIPEMD160(hash);
     Address a = new Address(params, b160.toByteArray());
+    System.out.println("Converted " + Util.getHexString(hash.toByteArray()) + " to " + a.toString());
     return a.toString();
   }
 

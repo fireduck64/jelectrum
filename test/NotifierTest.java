@@ -7,6 +7,7 @@ import jelectrum.Config;
 import jelectrum.Jelectrum;
 import jelectrum.ElectrumNotifier;
 import jelectrum.Util;
+import jelectrum.TXUtil;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -15,12 +16,16 @@ import org.json.JSONArray;
 public class NotifierTest
 {
     private static Jelectrum jelly;
+    private static TXUtil tx_util;
+
 
     @BeforeClass
     public static void setup()
         throws Exception
     {
         jelly = new Jelectrum(new Config("jelly-test.conf"));
+
+        tx_util = jelly.getDB().getTXUtil();
     }
 
 
@@ -29,7 +34,7 @@ public class NotifierTest
         throws Exception
     {
 
-        Assert.assertNull(jelly.getElectrumNotifier().getAddressChecksum("1rUN1uarnD7BnjXrzuPufT9fnpKpzqQfD"));
+        Assert.assertNull(jelly.getElectrumNotifier().getScriptHashChecksum(tx_util.getScriptHashForAddress("1rUN1uarnD7BnjXrzuPufT9fnpKpzqQfD")));
 
         testAddress("1rUN1uarnD7BnjXrzuPufT9fnpKpzqQfD");
 
@@ -38,7 +43,9 @@ public class NotifierTest
     public void testAddressHashNormal()
         throws org.json.JSONException
     {
-        Assert.assertEquals("c439e52e607b352381b646ebbcdca37f2aedf8bee5f4e9d63b5a7f0ca7d9a442",jelly.getElectrumNotifier().getAddressChecksum("14h89KekfUn2n4dug6GxXJg177CV2m7Gz8"));
+        Assert.assertEquals("c439e52e607b352381b646ebbcdca37f2aedf8bee5f4e9d63b5a7f0ca7d9a442",
+          jelly.getElectrumNotifier().getScriptHashChecksum(
+            tx_util.getScriptHashForAddress("14h89KekfUn2n4dug6GxXJg177CV2m7Gz8")));
 
         testAddress("14h89KekfUn2n4dug6GxXJg177CV2m7Gz8");
 
@@ -49,7 +56,9 @@ public class NotifierTest
         throws org.json.JSONException
     {
 
-        Assert.assertEquals("7b8716f234c243861e85f73b5bf22cde74ec6b5e28c44c91967a91949496a348",jelly.getElectrumNotifier().getAddressChecksum("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4"));
+        Assert.assertEquals("7b8716f234c243861e85f73b5bf22cde74ec6b5e28c44c91967a91949496a348",
+          jelly.getElectrumNotifier().getScriptHashChecksum(
+            tx_util.getScriptHashForAddress("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4")));
 
         testAddress("13PHR5QM2cJLkFoA6E3rPEwTyYxxSCJ3B4");
 
@@ -60,7 +69,9 @@ public class NotifierTest
         throws org.json.JSONException
     {
 
-        Assert.assertEquals("950f8571564e04e504285a41e4bdc198f72418c201c6ce84c9650798d989d700",jelly.getElectrumNotifier().getAddressChecksum("17pFAsFzB1W3v8A1TAR6dnux7frLZEyHJ3"));
+        Assert.assertEquals("950f8571564e04e504285a41e4bdc198f72418c201c6ce84c9650798d989d700",
+          jelly.getElectrumNotifier().getScriptHashChecksum(
+            tx_util.getScriptHashForAddress("17pFAsFzB1W3v8A1TAR6dnux7frLZEyHJ3")));
 
         testAddress("17pFAsFzB1W3v8A1TAR6dnux7frLZEyHJ3");
 
@@ -71,14 +82,14 @@ public class NotifierTest
     private void testAddress(String address)
         throws org.json.JSONException
     {
-        String hash = jelly.getElectrumNotifier().getAddressChecksum(address);
+      
+        String hash = jelly.getElectrumNotifier().getScriptHashChecksum(tx_util.getScriptHashForAddress(address));
 
-        Object history = jelly.getElectrumNotifier().getAddressHistory(address);
+        Object history = jelly.getElectrumNotifier().getScriptHashHistory(tx_util.getScriptHashForAddress(address),true,false);
         JSONArray arr = (JSONArray)history;
 
         if (hash==null)
         {
-
             Assert.assertEquals(0, arr.length());
             return;
         }
@@ -95,14 +106,10 @@ public class NotifierTest
             sb.append(':');
             sb.append(height);
             sb.append(':');
-
         }
 
         String calc_hash = Util.SHA256(sb.toString());
         Assert.assertEquals(calc_hash, hash);
-
-
-
     }
 
 

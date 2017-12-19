@@ -56,7 +56,6 @@ public class StratumConnection
     private String version_info;
     private String client_version;
     private String client_protocol="0.10";
-    private String first_address;
     private AtomicInteger subscription_count = new AtomicInteger(0);
     private RateLimit session_rate_limit;
 
@@ -209,7 +208,6 @@ public class StratumConnection
 
                     if (!info_printed)
                     if (open)
-                    if (first_address != null)
                     if (System.currentTimeMillis() > PRINT_INFO_DELAY + connection_start_time)
                     {
                       if (detail_logs)
@@ -413,29 +411,31 @@ public class StratumConnection
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, true, true);
+                ByteString scripthash = tx_util.getScriptHashForAddress(address);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, scripthash, true, true);
 
             }
             else if (method.equals("blockchain.scripthash.get_history"))
             {
                 JSONArray params = msg.getJSONArray("params");
-                String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
+                ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, true, true);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, scripthash, true, true);
             }
             else if (method.equals("blockchain.address.get_mempool"))
             {
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, false, true);
+                ByteString scripthash = tx_util.getScriptHashForAddress(address);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, scripthash, false, true);
             }
             else if (method.equals("blockchain.scripthash.get_mempool"))
             {
                 JSONArray params = msg.getJSONArray("params");
-                String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
+                ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, false, true);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, scripthash, false, true);
             }
  
             else if ((method.equals("blockchain.address.get_proof")) && (client_protocol.compareTo("1.1") < 0))
@@ -444,63 +444,60 @@ public class StratumConnection
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, address, true, true);
+                ByteString scripthash = tx_util.getScriptHashForAddress(address);
+                jelectrum.getElectrumNotifier().sendAddressHistory(this, id, scripthash, true, true);
 
             }
             else if (method.equals("blockchain.address.get_balance"))
             {
                 JSONArray params = msg.getJSONArray("params");
                 String address = params.getString(0);
-                jelectrum.getElectrumNotifier().sendAddressBalance(this, id, address);
+                ByteString scripthash = tx_util.getScriptHashForAddress(address);
+                jelectrum.getElectrumNotifier().sendAddressBalance(this, id, scripthash);
             }
             else if (method.equals("blockchain.scripthash.get_balance"))
             {
                 JSONArray params = msg.getJSONArray("params");
-                String scripthash = params.getString(0);
-                ByteString hash = ByteString.copyFrom(Hex.decodeHex(scripthash.toCharArray()));
-                String address = tx_util.getAddressFromPublicKeyHash(hash); 
-                jelectrum.getElectrumNotifier().sendAddressBalance(this, id, address);
+                ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
+                jelectrum.getElectrumNotifier().sendAddressBalance(this, id, scripthash);
             }
             else if (method.equals("blockchain.address.listunspent"))
             {
               JSONArray params = msg.getJSONArray("params");
-              String address = params.getString(0);
               logRequest(method, input_size, 0);
-              jelectrum.getElectrumNotifier().sendUnspent(this, id, address);
+
+              String address = params.getString(0);
+              ByteString scripthash = tx_util.getScriptHashForAddress(address);
+              jelectrum.getElectrumNotifier().sendUnspent(this, id, scripthash);
             }
              else if (method.equals("blockchain.scripthash.listunspent"))
             {
               JSONArray params = msg.getJSONArray("params");
-              String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
               logRequest(method, input_size, 0);
-              jelectrum.getElectrumNotifier().sendUnspent(this, id, address);
+              ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
+              jelectrum.getElectrumNotifier().sendUnspent(this, id, scripthash);
             }
             else if (method.equals("blockchain.address.subscribe"))
             {
                 JSONArray params = msg.getJSONArray("params");
-                String address = params.getString(0);
 
-                subscription_count.getAndIncrement();
-                if (first_address==null)
-                {
-                    first_address=address;
-                }
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, address);
+
+                String address = params.getString(0);
+                ByteString scripthash = tx_util.getScriptHashForAddress(address);
+                jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, scripthash);
+                subscription_count.getAndIncrement();
             }
             else if (method.equals("blockchain.scripthash.subscribe"))
             {
                 JSONArray params = msg.getJSONArray("params");
-
-                String address = tx_util.getAddressFromPublicKeyHash(ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray())));
-
-                subscription_count.getAndIncrement();
-                if (first_address==null)
-                {
-                    first_address=address;
-                }
                 logRequest(method, input_size, 0);
-                jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, address);
+
+                ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
+                subscription_count.getAndIncrement();
+                jelectrum.getEventLog().log("scripthash sub " + params.getString(0));
+
+                jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, scripthash);
             }
  
             else if (method.equals("server.peers.subscribe"))

@@ -21,6 +21,7 @@ import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.Map;
 import java.net.URL;
+import org.apache.commons.codec.binary.Hex;
 
 public class Util
 {
@@ -36,6 +37,23 @@ public class Util
         return sb.toString();
     }
 
+   public static String getHexString(ByteString bs)
+    {
+      return new String(Hex.encodeHex(bs.toByteArray()));
+    }
+  public static ByteString reverse(ByteString in)
+  {
+    byte b[]=in.toByteArray();
+    byte o[]=new byte[b.length];
+
+    for(int i=0; i<b.length; i++)
+    {
+      o[i]=b[b.length-1-i];
+    }
+    return ByteString.copyFrom(o);
+  }
+
+
   public static ByteString RIPEMD160(ByteString in)
   {
       RIPEMD160Digest digest = new RIPEMD160Digest();
@@ -44,6 +62,21 @@ public class Util
       byte[] out = new byte[20];
       digest.doFinal(out, 0);
       return ByteString.copyFrom(out);
+
+  }
+  public static ByteString SHA256BIN(ByteString in)
+  {
+    try
+    {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      md.update(in.toByteArray());
+      return ByteString.copyFrom(md.digest());
+
+    }
+        catch (java.security.NoSuchAlgorithmException e)
+        {   
+            throw new RuntimeException(e);
+        }
 
   }
   public static String SHA256(byte[] P)

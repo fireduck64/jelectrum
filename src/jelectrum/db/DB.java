@@ -20,7 +20,7 @@ import static jelectrum.db.ObjectConversionMap.ConversionMode.*;
 
 import jelectrum.SerializedTransaction;
 import jelectrum.SerializedBlock;
-import jelectrum.UtxoTrieNode;
+
 import jelectrum.Config;
 import jelectrum.Util;
 import jelectrum.TXUtil;
@@ -45,7 +45,6 @@ public abstract class DB implements DBFace
     protected Map<String, Object> special_object_map;
     protected Map<Integer, String> header_chunk_map;
     protected Map<Integer, Sha256Hash> height_map;
-    protected Map<String, UtxoTrieNode> utxo_trie_map;
     protected DBMapMutationSet utxo_simple_map;
     protected DBMapMutationSet pubkey_to_tx_map;
     protected NetworkParameters network_params;
@@ -90,7 +89,6 @@ public abstract class DB implements DBFace
         special_object_map = new ObjectConversionMap<>(OBJECT, openMap("special_object_map"));
         header_chunk_map = new ObjectConversionMap<>(STRING, openMap("header_chunk_map"));
         height_map = new ObjectConversionMap<>(SHA256HASH, openMap("height_map"));
-        utxo_trie_map = new ObjectConversionMap<>(UTXONODE, openMap("utxo_trie_map"));
         //utxo_simple_map = new ObjectConversionMap<>(STRING, openMap("utxo_simple_map"));
 
 
@@ -116,7 +114,6 @@ public abstract class DB implements DBFace
     public Map<String, Object> getSpecialObjectMap() { return special_object_map; }
     public Map<Integer, String> getHeaderChunkMap() {return header_chunk_map; }
     public Map<Integer, Sha256Hash> getHeightMap() {return height_map; }
-    public Map<String, UtxoTrieNode> getUtxoTrieMap() { return utxo_trie_map; } 
     public DBMapMutationSet getUtxoSimpleMap() {return utxo_simple_map; }
 
     public void setRawBitcoinDataSource(RawBitcoinDataSource rawSource)
@@ -124,7 +121,7 @@ public abstract class DB implements DBFace
       this.rawSource = rawSource;
     }
 
-    public void addPublicKeysToTxMap(Collection<ByteString> publicKeys, Sha256Hash hash)
+    public void addScriptHashToTxMap(Collection<ByteString> publicKeys, Sha256Hash hash)
     {
       LinkedList<Map.Entry<ByteString, ByteString>> lst = new LinkedList<>();
       for(ByteString a : publicKeys)
@@ -135,7 +132,7 @@ public abstract class DB implements DBFace
 
     }
 
-    public void addPublicKeysToTxMap(Collection<Map.Entry<ByteString, Sha256Hash> > lst)
+    public void addScriptHashToTxMap(Collection<Map.Entry<ByteString, Sha256Hash> > lst)
     {
       LinkedList<Map.Entry<ByteString, ByteString>> out = new LinkedList<>();
       for(Map.Entry<ByteString, Sha256Hash> me : lst)
@@ -146,7 +143,7 @@ public abstract class DB implements DBFace
       pubkey_to_tx_map.addAll(out);
     }
 
-    public Set<Sha256Hash> getPublicKeyToTxSet(ByteString publicKey)
+    public Set<Sha256Hash> getScriptHashToTxSet(ByteString publicKey)
     {
       Set<ByteString> bs = pubkey_to_tx_map.getSet(publicKey, max_set_return_count);
 

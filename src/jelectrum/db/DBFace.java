@@ -18,7 +18,6 @@ import static jelectrum.db.ObjectConversionMap.ConversionMode.*;
 
 import jelectrum.SerializedTransaction;
 import jelectrum.SerializedBlock;
-import jelectrum.UtxoTrieNode;
 import jelectrum.Config;
 import jelectrum.BlockChainCache;
 import jelectrum.TXUtil;
@@ -36,12 +35,11 @@ public interface DBFace
     public Map<String, Object> getSpecialObjectMap();
     public Map<Integer, String> getHeaderChunkMap();
     public Map<Integer, Sha256Hash> getHeightMap();
-    public Map<String, UtxoTrieNode> getUtxoTrieMap();
     public DBMapMutationSet getUtxoSimpleMap();
 
-    public void addPublicKeysToTxMap(Collection<ByteString> publicKeys, Sha256Hash hash);
-    public void addPublicKeysToTxMap(Collection<Map.Entry<ByteString, Sha256Hash> > lst);
-    public Set<Sha256Hash> getPublicKeyToTxSet(ByteString publicKey);
+    public void addScriptHashToTxMap(Collection<ByteString> publicKeys, Sha256Hash hash);
+    public void addScriptHashToTxMap(Collection<Map.Entry<ByteString, Sha256Hash> > lst);
+    public Set<Sha256Hash> getScriptHashToTxSet(ByteString publicKey);
     
     /*public void addAddressesToTxMap(Collection<String> addresses, Sha256Hash hash);
     public void addAddressesToTxMap(Collection<Map.Entry<String, Sha256Hash> > lst);

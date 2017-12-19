@@ -65,10 +65,8 @@ import static org.bitcoinj.script.ScriptOpCodes.*;
 public class SimpleUtxoMgr implements UtxoSource
 {
 
-  public static final int UTXO_WORKER_THREADS = 12;
-
-  // A key is 20 bytes of public key, 32 bytes of transaction id and 4 bytes of output index
-  public static final int ADDR_SPACE = 56;
+  // A key is 32 bytes of script hash, 32 bytes of transaction id and 4 bytes of output index
+  public static final int ADDR_SPACE = 32 + 32 + 4;
   public static boolean DEBUG=false;
 
   private NetworkParameters params;
@@ -97,7 +95,7 @@ public class SimpleUtxoMgr implements UtxoSource
   private boolean enabled=true;
 
   private final Semaphore cache_sem = new Semaphore(0);
-  private LRUCache<Sha256Hash, Boolean> root_hash_cache = new LRUCache<>(256);
+  private LRUCache<Sha256Hash, Boolean> root_hash_cache = new LRUCache<>(1024);
 
   public SimpleUtxoMgr(Jelectrum jelly)
     throws java.io.FileNotFoundException
@@ -207,10 +205,16 @@ public class SimpleUtxoMgr implements UtxoSource
 
     Multimap<ByteString, ByteString> keys_to_add = HashMultimap.<ByteString,ByteString>create();
     Multimap<ByteString, ByteString> keys_to_remove = HashMultimap.<ByteString,ByteString>create();
+
+    Map<Sha256Hash, Transaction> block_tx_map = new HashMap<>();
+    for(Transaction tx : b.getTransactions())
+    {
+      block_tx_map.put(tx.getHash(), tx);
+    }
     for(Transaction tx : b.getTransactions())
     {
       long t2 = System.nanoTime();
-      addTransactionKeys(tx, keys_to_add, keys_to_remove);
+      addTransactionKeys(tx, keys_to_add, keys_to_remove, block_tx_map);
       TimeRecord.record(t2, "utxo_get_tx_keys");
     }
 
@@ -251,7 +255,7 @@ public class SimpleUtxoMgr implements UtxoSource
 
   }
 
-  private void addTransactionKeys(Transaction tx, Multimap<ByteString, ByteString> keys_to_add, Multimap<ByteString, ByteString> keys_to_remove)
+  private void addTransactionKeys(Transaction tx, Multimap<ByteString, ByteString> keys_to_add, Multimap<ByteString, ByteString> keys_to_remove, Map<Sha256Hash, Transaction> block_tx_map)
   {
     
     int idx=0;
@@ -262,8 +266,8 @@ public class SimpleUtxoMgr implements UtxoSource
       TimeRecord.record(t1, "utxo_get_key_for_output");
       if (key != null)
       {
-        ByteString addr=key.substring(0,20);
-        ByteString txinfo=key.substring(20);
+        ByteString addr=key.substring(0,32);
+        ByteString txinfo=key.substring(32);
         keys_to_add.put(addr,txinfo);
       }
 
@@ -275,13 +279,13 @@ public class SimpleUtxoMgr implements UtxoSource
       if (!tx_in.isCoinBase())
       {
         long t1 = System.nanoTime();
-        ByteString key = getKeyForInput(tx_in);
+        ByteString key = getKeyForInput(tx_in, block_tx_map);
         TimeRecord.record(t1, "utxo_get_key_for_input");
 
         if (key != null)
         {
-          ByteString addr=key.substring(0,20);
-          ByteString txinfo=key.substring(20);
+          ByteString addr=key.substring(0,32);
+          ByteString txinfo=key.substring(32);
           keys_to_remove.put(addr,txinfo);
         }
       }
@@ -298,8 +302,8 @@ public class SimpleUtxoMgr implements UtxoSource
       ByteString key = getKeyForOutput(tx_out, idx);
       if (key != null)
       {
-        ByteString addr=key.substring(0,20);
-        ByteString txinfo=key.substring(20);
+        ByteString addr=key.substring(0,32);
+        ByteString txinfo=key.substring(32);
         db_map.remove(addr,txinfo);
       }
       idx++;
@@ -309,11 +313,11 @@ public class SimpleUtxoMgr implements UtxoSource
     {
       if (!tx_in.isCoinBase())
       {
-        ByteString key = getKeyForInput(tx_in);
+        ByteString key = getKeyForInput(tx_in, null);
         if (key != null)
         {
-          ByteString addr=key.substring(0,20);
-          ByteString txinfo=key.substring(20);
+          ByteString addr=key.substring(0,32);
+          ByteString txinfo=key.substring(32);
           db_map.add(addr,txinfo);
         }
       }
@@ -321,10 +325,8 @@ public class SimpleUtxoMgr implements UtxoSource
   }
 
   @Override
-  public synchronized Collection<TransactionOutPoint> getUnspentForAddress(Address a)
+  public synchronized Collection<TransactionOutPoint> getUnspentForScriptHash(ByteString prefix)
   { 
-    ByteString prefix = getPrefixForAddress(a);
-
     Collection<ByteString> txinfo = db_map.getSet(prefix, 10000);
 
     LinkedList<TransactionOutPoint> outs = new LinkedList<TransactionOutPoint>();
@@ -381,20 +383,20 @@ public class SimpleUtxoMgr implements UtxoSource
   
   }
 
-  public static ByteString getKey(byte[] publicKey, Sha256Hash tx_id, int idx)
+  public static ByteString getKey(ByteString scriptHash, Sha256Hash tx_id, int idx)
   {
     try
     {
-    ByteString.Output key_out = ByteString.newOutput(20+32+4);
+      ByteString.Output key_out = ByteString.newOutput(32+32+4);
 
-    key_out.write(publicKey);
-    key_out.write(tx_id.getBytes());
+      key_out.write(scriptHash.toByteArray());
+      key_out.write(tx_id.getBytes());
 
-    ByteBuffer bb = ByteBuffer.allocate(4);
-    bb.order(java.nio.ByteOrder.LITTLE_ENDIAN);
-    bb.putInt(idx);
-    key_out.write(bb.array());
-    return key_out.toByteString();
+      ByteBuffer bb = ByteBuffer.allocate(4);
+      bb.order(java.nio.ByteOrder.LITTLE_ENDIAN);
+      bb.putInt(idx);
+      key_out.write(bb.array());
+      return key_out.toByteString();
     }
     catch(java.io.IOException e)
     {
@@ -402,136 +404,22 @@ public class SimpleUtxoMgr implements UtxoSource
     }
 
   }
-    public ByteString getKeyForInput(TransactionInput in)
+    public ByteString getKeyForInput(TransactionInput in, Map<Sha256Hash, Transaction> block_tx_map)
     {
       if (in.isCoinBase()) return null;
-      try
-      {   
-        byte[] public_key=null; 
-        Address a = in.getFromAddress();
-        public_key = a.getHash160();
 
-        return getKey(public_key, in.getOutpoint().getHash(), (int)in.getOutpoint().getIndex());
-      }
-      catch(ScriptException e)
-      {
-        //Lets try this the other way
-        try
-        {   
-
-          TransactionOutPoint out_p = in.getOutpoint();
-
-          Transaction src_tx = tx_util.getTransaction(out_p.getHash());
-          TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
-          return getKeyForOutput(out, (int)out_p.getIndex());
-        }
-        catch(ScriptException e2)
-        {   
-          return null;
-        }
-      }
-
- 
-    }
-
-    public static ByteString getPrefixForAddress(Address a)
-    {
-      byte[] public_key=a.getHash160();
-      return ByteString.copyFrom(public_key);
+      ByteString scriptHash = tx_util.getScriptHashForInput(in, true, block_tx_map);
+      return getKey(scriptHash, in.getOutpoint().getHash(), (int)in.getOutpoint().getIndex());
 
     }
 
-    public static byte[] getPublicKeyForTxOut(TransactionOutput out, NetworkParameters params)
-    {
-        byte[] public_key=null;
-        Script script = null;
-            try
-            {  
-                script = out.getScriptPubKey();
-                if (script.isSentToRawPubKey())
-                {  
-                    byte[] key = out.getScriptPubKey().getPubKey();
-                    byte[] address_bytes = org.bitcoinj.core.Utils.sha256hash160(key);
-
-                    public_key = address_bytes;
-                }
-                else
-                {  
-                    Address a = script.getToAddress(params);
-                    public_key = a.getHash160();
-                }
-            }
-            catch(ScriptException e)
-            { 
-              public_key = figureOutStrange(script, out, params);
-           }
-
-      return public_key; 
-    }
-
-    public static byte[] figureOutStrange(Script script, TransactionOutput out, NetworkParameters params)
-    {
-      if (script == null) return null;
-
-      //org.bitcoinj.core.Utils.sha256hash160 
-      List<ScriptChunk> chunks = script.getChunks();
-      /*System.out.println("STRANGE: " + out.getParentTransaction().getHash() + " - has strange chunks " + chunks.size());
-      for(int i =0; i<chunks.size(); i++)
-      {
-        System.out.print("Chunk " + i + " ");
-        System.out.print(Hex.encodeHex(chunks.get(i).data)); 
-        System.out.println(" " + getOpCodeName(chunks.get(i).data[0]));
-      }*/
-
-      //Remember, java bytes are signed because hate
-      //System.out.println(out);
-      //System.out.println(script);
-      if (chunks.size() == 6)
-      {
-        if (chunks.get(0).equalsOpCode(OP_DUP))
-        if (chunks.get(1).equalsOpCode(OP_HASH160))
-        if (chunks.get(3).equalsOpCode(OP_EQUALVERIFY))
-        if (chunks.get(4).equalsOpCode(OP_CHECKSIG))
-        if (chunks.get(5).equalsOpCode(OP_NOP))
-        if (chunks.get(2).isPushData())
-        if (chunks.get(2).data.length == 20)
-        {
-          return chunks.get(2).data;
-        }
-
-      }
-      
-      /*if ((chunks.size() == 6) && (chunks.get(2).data.length == 20))
-      {
-        for(int i=0; i<6; i++)
-        {
-          if (chunks.get(i) == null) return null;
-          if (chunks.get(i).data == null) return null;
-          if (i != 2)
-          {
-            if (chunks.get(i).data.length != 1) return null;
-          }
-        }
-        if (chunks.get(0).data[0] == OP_DUP)
-        if ((int)(chunks.get(1).data[0] & 0xFF) == OP_HASH160)
-        if ((int)(chunks.get(3).data[0] & 0xFF) == OP_EQUALVERIFY)
-        if ((int)(chunks.get(4).data[0] & 0xFF) == OP_CHECKSIG)
-        if (chunks.get(5).data[0] == OP_NOP)
-        {
-          return chunks.get(2).data;
-        }
-      }*/
-      return null;
-
-    }
 
     public ByteString getKeyForOutput(TransactionOutput out, int idx)
     {
-      byte[] public_key = getPublicKeyForTxOut(out, params);
-      if (public_key == null) return null;
-
-      return getKey(public_key, out.getParentTransaction().getHash(), idx);
+      ByteString scriptHash = tx_util.getScriptHashForOutput(out);
+      return getKey(scriptHash, out.getParentTransaction().getHash(), idx);
     }
+
 
   public class SimpleUtxoThread extends Thread
   {

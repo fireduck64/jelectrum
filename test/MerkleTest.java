@@ -30,7 +30,7 @@ public class MerkleTest
     {
         Sha256Hash block_hash = new Sha256Hash("000000000000000065cbc500ed77a2d8d3891e3b6450b194f1ac5fe8f8da0e62");
 
-        Block blk = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
+        Block blk = jelly.getDB().getBlock(block_hash).getBlock(jelly.getNetworkParameters());
 
         JSONObject result = Util.getMerkleTreeForTransaction(blk.getTransactions(), new Sha256Hash("f740f59b18a19edff98bcd5bb83a80b911b70d9378064cd65e5b05229fbe52dc"));
 
@@ -52,7 +52,7 @@ public class MerkleTest
     {
         Sha256Hash block_hash = new Sha256Hash("000000000000000083d9b2fcc1d14e53c97604648e4610091ba5f9eb4d1b930b");
 
-        Block blk = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
+        Block blk = jelly.getDB().getBlock(block_hash).getBlock(jelly.getNetworkParameters());
 
         JSONObject result = Util.getMerkleTreeForTransaction(blk.getTransactions(), new Sha256Hash("5672d9a9055237c3801ad03af38b75216e23f2f977fe1b38616046d87b6c4c5e"));
         JSONArray merk = result.getJSONArray("merkle");
@@ -71,7 +71,7 @@ public class MerkleTest
     {
         Sha256Hash block_hash = new Sha256Hash("000000000000000083d9b2fcc1d14e53c97604648e4610091ba5f9eb4d1b930b");
 
-        Block blk = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
+        Block blk = jelly.getDB().getBlock(block_hash).getBlock(jelly.getNetworkParameters());
 
         JSONObject result = Util.getMerkleTreeForTransaction(blk.getTransactions(), new Sha256Hash("32bb3d77f14a69e9998af9e6d60a2b4fa9c2bb0022f271928d01bfe7e4720b69"));
         JSONArray merk = result.getJSONArray("merkle");
@@ -89,7 +89,7 @@ public class MerkleTest
     public void testTreeHash()
     {
         Sha256Hash block_hash = new Sha256Hash("0000000021529d056348e04f7ed506286d0b332811e6c0f5f11194d54fccdfff");
-        Block blk = jelly.getDB().getBlockMap().get(block_hash).getBlock(jelly.getNetworkParameters());
+        Block blk = jelly.getDB().getBlock(block_hash).getBlock(jelly.getNetworkParameters());
         Assert.assertEquals(2, blk.getTransactions().size());
         Sha256Hash a = blk.getTransactions().get(0).getHash();
         Sha256Hash b = blk.getTransactions().get(1).getHash();

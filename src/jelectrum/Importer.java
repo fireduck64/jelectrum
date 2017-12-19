@@ -145,7 +145,7 @@ public class Importer
 
     public void saveTransaction(Transaction tx)
     {
-      //Only bother saving lose transactions if we are otherwise up to date
+      //Only bother saving loose transactions if we are otherwise up to date
       //otherwise this is just going to waste time importing transactions
       //that will either come with blocks or not at all later
       if (jelly.isUpToDate())
@@ -356,21 +356,21 @@ public class Importer
 
         if (block_hash == null)
         {
-          ctx.setStatus("TX_SERIALIZE");
-          SerializedTransaction s_tx = new SerializedTransaction(tx, System.currentTimeMillis());
-          ctx.setStatus("TX_PUT");
+          //ctx.setStatus("TX_SERIALIZE");
+          //SerializedTransaction s_tx = new SerializedTransaction(tx, System.currentTimeMillis());
+          //ctx.setStatus("TX_PUT");
           //file_db.getTransactionMap().put(tx.getHash(), s_tx);
         }
 
         boolean confirmed = (block_hash != null);
 
         ctx.setStatus("TX_GET_ADDR");
-        Collection<ByteString> addrs = tx_util.getAllPublicKeys(tx, confirmed, null);
+        Collection<ByteString> addrs = tx_util.getAllScriptHashes(tx, confirmed, null);
 
         Random rnd = new Random();
 
         ctx.setStatus("TX_SAVE_ADDRESS");
-        file_db.addPublicKeysToTxMap(addrs, tx.getHash());
+        file_db.addScriptHashToTxMap(addrs, tx.getHash());
 
         imported_transactions.incrementAndGet();
         int h = -1;
@@ -381,7 +381,7 @@ public class Importer
         }
 
         ctx.setStatus("TX_NOTIFY");
-        jelly.getElectrumNotifier().notifyNewTransactionKeys(addrs, h);
+        jelly.getElectrumNotifier().notifyNewTransaction(addrs, h);
         ctx.setStatus("TX_DONE");
 
     }
@@ -455,7 +455,7 @@ public class Importer
         for(Transaction tx : block.getTransactions())
         {
           imported_transactions.incrementAndGet();
-          Collection<ByteString> addrs = tx_util.getAllPublicKeys(tx, true, block_tx_map);
+          Collection<ByteString> addrs = tx_util.getAllScriptHashes(tx, true, block_tx_map);
           Assert.assertNotNull(addrs);
           //jelly.getEventLog().alarm("Saving addresses for tx: " + tx.getHash() + " - " + addrs);
           addr_map.put(tx.getHash(), addrs);
@@ -477,7 +477,7 @@ public class Importer
 
         t1 = System.nanoTime();
         ctx.setStatus("ADDR_SAVEALL");
-        file_db.addPublicKeysToTxMap(addrTxLst);
+        file_db.addScriptHashToTxMap(addrTxLst);
         Assert.assertEquals(block.getTransactions().size(), addr_map.size());
         TimeRecord.record(t1, "block_addr_save");
 
@@ -493,7 +493,7 @@ public class Importer
           //jelly.getEventLog().alarm("Notifying addresses for tx: " + tx.getHash() + " - " + addrs);
           Assert.assertNotNull(addrs);
         }
-        jelly.getElectrumNotifier().notifyNewTransactionKeys(all_addrs, h);
+        jelly.getElectrumNotifier().notifyNewTransaction(all_addrs, h);
         TimeRecord.record(t1, "block_notify");
 
 

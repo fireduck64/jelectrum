@@ -34,8 +34,8 @@ public class ElectrumNotifier
 {
     Map<String, Subscriber> block_subscribers;
     Map<String, Subscriber> blocknum_subscribers;
-    Map<String, Map<String, Subscriber> > address_subscribers;
-    LRUCache<String, String> address_sums;
+    Map<ByteString, Map<String, Subscriber> > scripthash_subscribers;
+    LRUCache<ByteString, String> scripthash_sums;
 
     Jelectrum jelly;
     private TXUtil tx_util;
@@ -51,8 +51,8 @@ public class ElectrumNotifier
 
         block_subscribers = new HashMap<String, Subscriber>(512, 0.5f);
         blocknum_subscribers = new HashMap<String, Subscriber>(512, 0.5f);
-        address_subscribers = new HashMap<String, Map<String, Subscriber> >(512, 0.5f);
-        address_sums = new LRUCache<String, String>(10000);
+        scripthash_subscribers = new HashMap<ByteString, Map<String, Subscriber> >(512, 0.5f);
+        scripthash_sums = new LRUCache<ByteString, String>(10000);
 
     }
     public void start()
@@ -165,64 +165,50 @@ public class ElectrumNotifier
         }
         
     }
-    public void notifyNewTransactionKeys(Collection<ByteString> publicKeys, int height)
+    public void notifyNewTransaction(Collection<ByteString> scripthashes, int height)
     {
-      LinkedList<String> addresses = new LinkedList<>();
-
-      for(ByteString b : publicKeys)
-      {
-        addresses.add(new Address(jelly.getNetworkParameters(), b.toByteArray()).toString());
-      }
-
-      notifyNewTransaction(addresses, height);
-
-    }
-    public void notifyNewTransaction(Collection<String> addresses, int height)
-    {
-      Assert.assertNotNull(addresses);
-        synchronized(address_sums)
+      Assert.assertNotNull(scripthashes);
+        synchronized(scripthash_sums)
         {
-            for(String s : addresses)
+            for(ByteString s : scripthashes)
             {
-                address_sums.remove(s);
+                scripthash_sums.remove(s);
             }
         }
 
         //Inside a sync do a deep copy of just the entries that we need
-        Map<String, Map<String, Subscriber> > address_subscribers_copy = new HashMap<String, Map<String, Subscriber>>();
-        synchronized(address_subscribers)
+        Map<ByteString, Map<String, Subscriber> > scripthash_subscribers_copy = new HashMap<ByteString, Map<String, Subscriber>>();
+        synchronized(scripthash_subscribers)
         {
-            for(String s : addresses)
+            for(ByteString s : scripthashes)
             {
-                Map<String, Subscriber> m = address_subscribers.get(s);
+                Map<String, Subscriber> m = scripthash_subscribers.get(s);
                 if (m != null)
                 {
                     TreeMap<String, Subscriber> copy = new TreeMap<String, Subscriber>();
                     copy.putAll(m);
-                    address_subscribers_copy.put(s, m);
+                    scripthash_subscribers_copy.put(s, m);
                 }
             }
         }
 
-
-
         //Now with our clean copy we can do the notifications without holding any locks
         try
         {
-            for(String s : addresses)
+            for(ByteString s : scripthashes)
             {
-                Map<String, Subscriber> m = address_subscribers_copy.get(s);
+                Map<String, Subscriber> m = scripthash_subscribers_copy.get(s);
                 if ((m != null) && (m.size() > 0))
                 {
-                    String sum = getAddressChecksum(s); 
+                    String sum = getScriptHashChecksum(s); 
 
-                        JSONObject reply = new JSONObject();
-                        JSONArray info = new JSONArray();
-                        info.put(s);
-                        info.put(sum);
-                        reply.put("params", info);
-                        reply.put("id", JSONObject.NULL);
-                        reply.put("method", "blockchain.address.subscribe");
+                    JSONObject reply = new JSONObject();
+                    JSONArray info = new JSONArray();
+                    info.put(s);
+                    info.put(sum);
+                    reply.put("params", info);
+                    reply.put("id", JSONObject.NULL);
+                    reply.put("method", "blockchain.address.subscribe");
 
 
                     for(Subscriber sub : m.values())
@@ -314,23 +300,23 @@ public class ElectrumNotifier
 
     }
 
-    public void registerBlockchainAddress(StratumConnection conn, Object request_id, boolean send_initial, String address)
+    public void registerBlockchainAddress(StratumConnection conn, Object request_id, boolean send_initial, ByteString scripthash)
     {
         Subscriber sub = new Subscriber(conn, request_id);
-        synchronized(address_subscribers)
+        synchronized(scripthash_subscribers)
         {
-            if (address_subscribers.get(address) == null)
+            if (scripthash_subscribers.get(scripthash) == null)
             {
-                address_subscribers.put(address, new TreeMap<String, Subscriber>());
+                scripthash_subscribers.put(scripthash, new TreeMap<String, Subscriber>());
             }
-            address_subscribers.get(address).put(conn.getId(), sub);
+            scripthash_subscribers.get(scripthash).put(conn.getId(), sub);
         }
         if (send_initial)
         {
             try
             {
                 JSONObject reply = sub.startReply();
-                String sum = getAddressChecksum(address);
+                String sum = getScriptHashChecksum(scripthash);
                 if (sum==null)
                 {
                     reply.put("result", JSONObject.NULL);
@@ -345,20 +331,18 @@ public class ElectrumNotifier
             {
                 throw new RuntimeException(e);
             }
-
-
         }
 
     }
 
-    public void sendAddressHistory(StratumConnection conn, Object request_id, String address, boolean include_confirmed, boolean include_mempool)
+    public void sendAddressHistory(StratumConnection conn, Object request_id, ByteString scripthash, boolean include_confirmed, boolean include_mempool)
     {
         Subscriber sub = new Subscriber(conn, request_id);
         try
         {
             JSONObject reply = sub.startReply();
 
-            reply.put("result", getAddressHistory(address,include_confirmed,include_mempool));
+            reply.put("result", getScriptHashHistory(scripthash,include_confirmed,include_mempool));
 
             sub.sendReply(reply);
 
@@ -369,16 +353,16 @@ public class ElectrumNotifier
             throw new RuntimeException(e);
         }
     }
-    public void sendUnspent(StratumConnection conn, Object request_id, String address)
+
+    public void sendUnspent(StratumConnection conn, Object request_id, ByteString target)
       throws AddressFormatException
     {
       try
       {
         Subscriber sub = new Subscriber(conn, request_id);
-        Address target = new Address(jelly.getNetworkParameters(), address);
         JSONObject reply = sub.startReply();
 
-        Collection<TransactionOutPoint> outs = jelly.getUtxoSource().getUnspentForAddress(target);
+        Collection<TransactionOutPoint> outs = jelly.getUtxoSource().getUnspentForScriptHash(target);
 
         
         JSONArray arr =new JSONArray();
@@ -411,21 +395,18 @@ public class ElectrumNotifier
       {   
         throw new RuntimeException(e);
       }
-
-
     }
 
-    public void sendAddressBalance(StratumConnection conn, Object request_id, String address)
+    public void sendAddressBalance(StratumConnection conn, Object request_id, ByteString target)
       throws AddressFormatException
     {
-      Address target = new Address(jelly.getNetworkParameters(), address);
 
       Subscriber sub = new Subscriber(conn, request_id);
         try
         {
             JSONObject reply = sub.startReply();
 
-            List<SortedTransaction> lst = getTransactionsForAddress(address, true, true);
+            List<SortedTransaction> lst = getTransactionsForScriptHash(target, true, true);
 
             TreeMap<String, Long> confirmed_outs = new TreeMap<>();
             TreeMap<String, Long> unconfirmed_outs = new TreeMap<>();
@@ -515,11 +496,11 @@ public class ElectrumNotifier
 
 
 
-    public Object getAddressHistory(String address, boolean include_confirmed, boolean include_mempool)
+    public Object getScriptHashHistory(ByteString address, boolean include_confirmed, boolean include_mempool)
     {
         try
         {
-            List<SortedTransaction> lst = getTransactionsForAddress(address,include_confirmed,include_mempool);
+            List<SortedTransaction> lst = getTransactionsForScriptHash(address,include_confirmed,include_mempool);
             //if (lst.size() > 0)
             {
                 JSONArray arr =new JSONArray();
@@ -561,19 +542,19 @@ public class ElectrumNotifier
 
     }
 
-    public String getAddressChecksum(String address)
+    public String getScriptHashChecksum(ByteString address)
     {
-        synchronized(address_sums)
+        synchronized(scripthash_sums)
         {
-            if (address_sums.containsKey(address))
+            if (scripthash_sums.containsKey(address))
             {
-                return address_sums.get(address);
+                return scripthash_sums.get(address);
             }
         }
 
         String hash = null;
 
-        List<SortedTransaction> lst = getTransactionsForAddress(address, true, true);
+        List<SortedTransaction> lst = getTransactionsForScriptHash(address, true, true);
 
         if (lst.size() > 0)
         {
@@ -599,9 +580,9 @@ public class ElectrumNotifier
             
         }
 
-        synchronized(address_sums)
+        synchronized(scripthash_sums)
         {
-            address_sums.put(address,hash);
+            scripthash_sums.put(address,hash);
         }
         return hash;
 
@@ -623,9 +604,9 @@ public class ElectrumNotifier
       {
         blocknum_subscriber_count = blocknum_subscribers.size();
       }
-      synchronized(address_subscribers)
+      synchronized(scripthash_subscribers)
       {
-        for(Map.Entry<String, Map<String, Subscriber>> me : address_subscribers.entrySet())
+        for(Map.Entry<ByteString, Map<String, Subscriber>> me : scripthash_subscribers.entrySet())
         {
           address_subscriptions += me.getValue().size();
         }
@@ -660,9 +641,9 @@ public class ElectrumNotifier
                   pruneMap(blocknum_subscribers);
                 }
 
-                synchronized(address_subscribers)
+                synchronized(scripthash_subscribers)
                 {
-                  for(Map.Entry<String, Map<String, Subscriber>> me : address_subscribers.entrySet())
+                  for(Map.Entry<ByteString, Map<String, Subscriber>> me : scripthash_subscribers.entrySet())
                   {
                     pruneMap(me.getValue());
                   }
@@ -689,17 +670,15 @@ public class ElectrumNotifier
         }
     }
 
-    public List<SortedTransaction> getTransactionsForAddress(String address, boolean include_confirmed, boolean include_mempool)
+    public List<SortedTransaction> getTransactionsForScriptHash(ByteString scripthash, boolean include_confirmed, boolean include_mempool)
     {
-      ByteString publicKeyHash = ByteString.copyFrom(new Address(jelly.getNetworkParameters(), address).getHash160());
-
 
       TreeSet<SortedTransaction> set = new TreeSet<SortedTransaction>();
 
       if (include_confirmed)
       {
 
-        Set<Sha256Hash> tx_list = jelly.getDB().getPublicKeyToTxSet(publicKeyHash);
+        Set<Sha256Hash> tx_list = jelly.getDB().getScriptHashToTxSet(scripthash);
         if (tx_list != null)
         {
             for(Sha256Hash tx_hash : tx_list)
@@ -715,7 +694,7 @@ public class ElectrumNotifier
 
       if (include_mempool)
       {
-        Set<Sha256Hash> tx_mem_list = jelly.getMemPooler().getTxForPubKey(publicKeyHash);
+        Set<Sha256Hash> tx_mem_list = jelly.getMemPooler().getTxForScriptHash(scripthash);
         for(Sha256Hash tx_hash : tx_mem_list)
         {
           SortedTransaction stx = new SortedTransaction(tx_hash, true);

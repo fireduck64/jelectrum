@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.nio.ByteBuffer;
 import com.google.protobuf.ByteString;
 
-import jelectrum.UtxoTrieNode;
 import jelectrum.SerializedTransaction;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -114,11 +113,10 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
       {
         return (V) new SerializedTransaction(buff.toByteArray());
       }
-      if (mode==ConversionMode.UTXONODE)
+      /*if (mode==ConversionMode.UTXONODE)
       {
         return (V) new UtxoTrieNode(buff);
-
-      }
+      }*/
       if (mode==ConversionMode.STOREDBLOCK)
       {
         ByteBuffer ba = ByteBuffer.wrap(buff.toByteArray());
@@ -211,11 +209,6 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
       {
         SerializedTransaction stx = (SerializedTransaction)value;
         b = ByteString.copyFrom(stx.getBytes());
-      }
-      if (mode==ConversionMode.UTXONODE)
-      {
-        UtxoTrieNode node = (UtxoTrieNode) value;
-        b = node.serialize();
       }
       if (mode==ConversionMode.STOREDBLOCK)
       {

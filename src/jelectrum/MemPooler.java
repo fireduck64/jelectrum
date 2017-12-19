@@ -98,7 +98,7 @@ public class MemPooler extends Thread
           tx_summary = new TransactionSummary(tx, jelly.getDB().getTXUtil(), false, null);
           new_tx++;
   
-          new_keys.addAll(tx_summary.getPublicKeys());
+          new_keys.addAll(tx_summary.getScriptHashes());
         }
         else
         {
@@ -114,9 +114,9 @@ public class MemPooler extends Thread
       {
         new_info.tx_summary_map.put(tx_hash, tx_summary);
 
-        for(ByteString pubkey : tx_summary.getPublicKeys())
+        for(ByteString hash : tx_summary.getScriptHashes())
         {
-          new_info.pubkey_to_tx_map.put(pubkey, tx_hash);
+          new_info.scripthash_to_tx_map.put(hash, tx_hash);
         }
       }
 
@@ -126,16 +126,16 @@ public class MemPooler extends Thread
 
     latest_info = new_info;
 
-    jelly.getElectrumNotifier().notifyNewTransactionKeys(new_keys, -1);
+    jelly.getElectrumNotifier().notifyNewTransaction(new_keys, -1);
   }
 
-  public HashSet<Sha256Hash> getTxForPubKey(ByteString key)
+  public HashSet<Sha256Hash> getTxForScriptHash(ByteString key)
   {
     HashSet<Sha256Hash> set = new HashSet<>();
     MemPoolInfo info = latest_info;
     if (info == null) return set;
 
-    Collection<Sha256Hash> mem_set = info.pubkey_to_tx_map.get(key);
+    Collection<Sha256Hash> mem_set = info.scripthash_to_tx_map.get(key);
     if (mem_set != null)
     {
       set.addAll(mem_set);
@@ -163,13 +163,13 @@ public class MemPooler extends Thread
   {
     HashSet<Sha256Hash> tx_set;
     HashMap<Sha256Hash, TransactionSummary> tx_summary_map;
-    Multimap<ByteString, Sha256Hash> pubkey_to_tx_map;
+    Multimap<ByteString, Sha256Hash> scripthash_to_tx_map;
 
     public MemPoolInfo()
     {
       tx_set = new HashSet<>(256, 0.5f);
       tx_summary_map = new HashMap<>(256, 0.5f);
-      pubkey_to_tx_map = HashMultimap.<ByteString,Sha256Hash>create();
+      scripthash_to_tx_map = HashMultimap.<ByteString,Sha256Hash>create();
     }
 
   }
