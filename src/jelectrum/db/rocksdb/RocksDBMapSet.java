@@ -24,12 +24,14 @@ import java.util.concurrent.Executor;
 public class RocksDBMapSet extends DBMapSetThreaded
 { 
   RocksDB db;
+  JRocksDB jdb;
   String name;
 
-  public RocksDBMapSet(Executor exec, RocksDB db, String name)
+  public RocksDBMapSet(JRocksDB jdb, Executor exec, RocksDB db, String name)
   { 
     super(exec);
     this.db = db;
+    this.jdb = jdb;
     this.name = name;
   }
 
@@ -40,12 +42,7 @@ public class RocksDBMapSet extends DBMapSetThreaded
     byte b[]=new byte[0];
     try
     {
-
-      WriteOptions write_options = new WriteOptions();
-      //write_options.setDisableWAL(true);
-      write_options.setSync(false);
-
-      db.put(write_options, s.getBytes(), b);
+      db.put(jdb.getWriteOption(), s.getBytes(), b);
     }
     catch(RocksDBException e)
     {

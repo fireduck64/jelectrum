@@ -18,12 +18,14 @@ public class RocksDBMap extends DBMapThreaded
 {
   RocksDB db;
   String name;
+  JRocksDB jdb;
 
-  public RocksDBMap(Executor exec, RocksDB db, String name)
+  public RocksDBMap(JRocksDB jdb, Executor exec, RocksDB db, String name)
   {
     super(exec);
     this.db = db;
     this.name = name;
+    this.jdb = jdb;
   }
 
   public ByteString get(String key)
@@ -52,11 +54,7 @@ public class RocksDBMap extends DBMapThreaded
     {
       String key_str = name + "/" + key;
 
-      WriteOptions write_options = new WriteOptions();
-      //write_options.setDisableWAL(true);
-      write_options.setSync(false);
-
-      db.put(write_options, key_str.getBytes(), value.toByteArray());
+      db.put(jdb.getWriteOption(), key_str.getBytes(), value.toByteArray());
 
     }
     catch(RocksDBException e)
@@ -79,11 +77,7 @@ public class RocksDBMap extends DBMapThreaded
 
       }
 
-      WriteOptions write_options = new WriteOptions();
-      //write_options.setDisableWAL(true);
-      write_options.setSync(false);
-
-      db.write(write_options, batch);
+      db.write(jdb.getWriteOption(), batch);
 
     }
     catch(RocksDBException e)

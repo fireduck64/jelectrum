@@ -17,15 +17,17 @@ import java.util.concurrent.Executor;
 
 public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
 {
+  JRocksDB jdb;
   RocksDB db;
   String name;
   byte[] name_bytes;
   byte sep = '/';
-  public RocksDBMapMutationSet(Executor exec, RocksDB db, String name)
+  public RocksDBMapMutationSet(JRocksDB jdb, Executor exec, RocksDB db, String name)
   {
     super(exec);
     this.db = db;
     this.name = name;
+    this.jdb = jdb;
     name_bytes = name.getBytes();
   }
 
@@ -70,13 +72,9 @@ public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
 
     ByteString w = getDBKey(key, value);
   
-    WriteOptions write_options = new WriteOptions();
-    //write_options.setDisableWAL(true);
-    write_options.setSync(false);
-
     try
     {
-    	db.put(write_options, w.toByteArray(), b);
+    	db.put(jdb.getWriteOption(), w.toByteArray(), b);
 		}
     catch(RocksDBException e)
     {
@@ -90,11 +88,7 @@ public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
 		try
 		{
     	ByteString w = getDBKey(key, value);
-      WriteOptions write_options = new WriteOptions();
-      //write_options.setDisableWAL(true);
-      write_options.setSync(false);
-
-    	db.remove(write_options, w.toByteArray());
+    	db.remove(jdb.getWriteOption(), w.toByteArray());
 
 		}
     catch(RocksDBException e)
