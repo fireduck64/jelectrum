@@ -42,7 +42,7 @@ public class RocksDBMapSet extends DBMapSetThreaded
     {
 
       WriteOptions write_options = new WriteOptions();
-      write_options.setDisableWAL(true);
+      //write_options.setDisableWAL(true);
       write_options.setSync(false);
 
       db.put(write_options, s.getBytes(), b);

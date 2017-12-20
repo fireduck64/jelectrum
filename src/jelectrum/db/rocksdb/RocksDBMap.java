@@ -53,7 +53,7 @@ public class RocksDBMap extends DBMapThreaded
       String key_str = name + "/" + key;
 
       WriteOptions write_options = new WriteOptions();
-      write_options.setDisableWAL(true);
+      //write_options.setDisableWAL(true);
       write_options.setSync(false);
 
       db.put(write_options, key_str.getBytes(), value.toByteArray());
@@ -80,7 +80,7 @@ public class RocksDBMap extends DBMapThreaded
       }
 
       WriteOptions write_options = new WriteOptions();
-      write_options.setDisableWAL(true);
+      //write_options.setDisableWAL(true);
       write_options.setSync(false);
 
       db.write(write_options, batch);

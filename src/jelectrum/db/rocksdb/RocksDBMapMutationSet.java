@@ -71,7 +71,7 @@ public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
     ByteString w = getDBKey(key, value);
   
     WriteOptions write_options = new WriteOptions();
-    write_options.setDisableWAL(true);
+    //write_options.setDisableWAL(true);
     write_options.setSync(false);
 
     try
@@ -91,7 +91,7 @@ public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
 		{
     	ByteString w = getDBKey(key, value);
       WriteOptions write_options = new WriteOptions();
-      write_options.setDisableWAL(true);
+      //write_options.setDisableWAL(true);
       write_options.setSync(false);
 
     	db.remove(write_options, w.toByteArray());
