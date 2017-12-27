@@ -495,7 +495,6 @@ public class StratumConnection
 
                 ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
                 subscription_count.getAndIncrement();
-                jelectrum.getEventLog().log("scripthash sub " + params.getString(0));
 
                 jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, scripthash);
             }
