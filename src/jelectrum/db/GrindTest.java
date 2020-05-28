@@ -1,27 +1,21 @@
 package jelectrum.db;
 
-import jelectrum.Config;
-
-import jelectrum.db.mongo.MongoDB;
-import jelectrum.db.lobstack.LobstackDB;
-import jelectrum.db.level.LevelDB;
-import jelectrum.db.lmdb.LMDB;
-import jelectrum.db.slopbucket.SlopbucketDB;
-import jelectrum.db.jedis.JedisDB;
-
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.HashMap;
 import com.google.protobuf.ByteString;
-import java.util.Random;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.text.DecimalFormat;
-import org.bitcoinj.core.Sha256Hash;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import jelectrum.Config;
 import jelectrum.EventLog;
 import jelectrum.TimeRecord;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import jelectrum.db.jedis.JedisDB;
+import jelectrum.db.lmdb.LMDB;
+import jelectrum.db.lobstack.LobstackDB;
+import jelectrum.db.slopbucket.SlopbucketDB;
+import org.bitcoinj.core.Sha256Hash;
 import org.junit.Assert;
 
 public class GrindTest
@@ -53,17 +47,9 @@ public class GrindTest
     Config conf = new Config("jelly-test.conf");
     log =new EventLog(System.out);
 
-    if (name.equals("mongo"))
-    {
-      db = new MongoDB(conf);
-    }
     if (name.equals("lobstack"))
     {
       db = new LobstackDB(null, conf);
-    }
-    if (name.equals("leveldb"))
-    {
-      db = new LevelDB(log, conf);
     }
     if (name.equals("lmdb"))
     {
@@ -73,11 +59,6 @@ public class GrindTest
     {
       db = new SlopbucketDB(conf, log);
     }
-    if (name.equals("lmdbnet"))
-    {
-      conf = new Config("jelly-lmdbnet.conf");
-      db = new LevelDB(log, conf);
-    }
     if (name.equals("redis"))
     {
       db = new JedisDB(conf);
@@ -85,10 +66,6 @@ public class GrindTest
     if (name.equals("rocksdb"))
     {
       db = new jelectrum.db.rocksdb.JRocksDB(conf, log);
-    }
-    if (name.equals("cassandra"))
-    {
-      db = new jelectrum.db.cassandra.CassandraDB(conf);
     }
 
     Assert.assertNotNull("DB must not be null", db);

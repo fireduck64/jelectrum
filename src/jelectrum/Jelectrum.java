@@ -70,19 +70,19 @@ public class Jelectrum
           throw new RuntimeException("Running without bitcoind_enable no longer supported");
         }
 
-        if (db_type.equals("mongo"))
+        /*if (db_type.equals("mongo"))
         {
           jelectrum_db = new jelectrum.db.mongo.MongoDB(config);
-        }
+        }*/
         /*else if (db_type.equals("sql"))
         {
           jelectrum_db = new JelectrumDBSQL(config);
         }*/
-        else if (db_type.equals("leveldb"))
+        /*else if (db_type.equals("leveldb"))
         {
           jelectrum_db = new jelectrum.db.level.LevelDB(event_log, config);
-        }
-        else if (db_type.equals("slopbucket"))
+        }*/
+        if (db_type.equals("slopbucket"))
         {
           jelectrum_db = new jelectrum.db.slopbucket.SlopbucketDB(config, event_log);
         }
@@ -106,10 +106,10 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.rocksdb.JRocksDB(config, event_log);
         }
-        else if (db_type.equals("cassandra"))
+        /*else if (db_type.equals("cassandra"))
         {
           jelectrum_db = new jelectrum.db.cassandra.CassandraDB(config);
-        }
+        }*/
         else
         {
           System.out.println("Unknown db_type: " + db_type);
