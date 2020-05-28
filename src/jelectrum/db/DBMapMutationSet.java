@@ -7,8 +7,6 @@ import jelectrum.TimeRecord;
 import com.google.protobuf.ByteString;
 import jelectrum.db.DBTooManyResultsException;
 
-import org.bitcoinj.core.Sha256Hash;
-
 public abstract class DBMapMutationSet
 {
   public abstract void add(ByteString key, ByteString value);
