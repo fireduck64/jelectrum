@@ -63,7 +63,7 @@ public class ScriptHashTest
     {
       // Bitcoinj can't parse these yet but shouldn't be an issue, anyone new enough to be using
       // these will most likely be using scripthash rather than addresses anyways
-      //testAddressToHash("bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej", "43f626c7e6c22741e3160900776ba65f2526956c54779d193267fde55624adaf");
+      testAddressToHash("bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej", "43f626c7e6c22741e3160900776ba65f2526956c54779d193267fde55624adaf");
     }
 
 
