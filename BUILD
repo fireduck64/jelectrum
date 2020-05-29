@@ -5,6 +5,7 @@ java_library(
   srcs = glob(["src/**/*.java", "src/*.java"]),
   deps = [
     "@duckutil//:duckutil_lib",
+    "@snowblossom//lib",
     "@maven//:com_google_guava_guava",
     "@maven//:org_bitcoinj_bitcoinj_core",
     "@maven//:com_google_protobuf_protobuf_java",
