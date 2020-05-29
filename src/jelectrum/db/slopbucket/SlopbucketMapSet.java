@@ -60,7 +60,7 @@ public class SlopbucketMapSet extends DBMapSet
 
     for(ByteString bs : entries)
     {
-      Sha256Hash h = new Sha256Hash(bs.toByteArray());
+      Sha256Hash h = Sha256Hash.wrap(bs.toByteArray());
       set.add(h);
       count ++;
 

@@ -339,7 +339,7 @@ public class SimpleUtxoMgr implements UtxoSource
         bb.order(java.nio.ByteOrder.LITTLE_ENDIAN);
         int idx=bb.getInt();
 
-        Sha256Hash tx_id = new Sha256Hash(tx_data.toByteArray());
+        Sha256Hash tx_id = Sha256Hash.wrap(tx_data.toByteArray());
         TransactionOutPoint o = new TransactionOutPoint(jelly.getNetworkParameters(), idx, tx_id);
         outs.add(o);
        

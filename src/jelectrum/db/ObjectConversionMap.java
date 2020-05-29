@@ -86,7 +86,7 @@ public class ObjectConversionMap<K, V> implements Map<K, V>
       }
       if (mode==ConversionMode.SHA256HASH)
       {
-        return (V) new Sha256Hash(buff.toByteArray());
+        return (V) Sha256Hash.wrap(buff.toByteArray());
       }
       if (mode==ConversionMode.OBJECT)
       {

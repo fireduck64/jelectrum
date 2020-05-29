@@ -33,7 +33,7 @@ public class LobstackMapSet extends DBMapSet
         int count = 0;
         for(String s : stack.getByPrefix(search).keySet())
         {
-          ret.add(new Sha256Hash(s.substring(len)));
+          ret.add(Sha256Hash.wrap(s.substring(len)));
           count ++;
           if (count > max_results) throw new DBTooManyResultsException();
         }

@@ -70,7 +70,7 @@ public class RocksDBMapSet extends DBMapSetThreaded
         if (!curr_key.startsWith(s)) break;
 
         String hash_string = curr_key.substring(s.length());
-        set.add(new Sha256Hash(hash_string));
+        set.add(Sha256Hash.wrap(hash_string));
         count++;
 
         if (count > max_reply) throw new DBTooManyResultsException();

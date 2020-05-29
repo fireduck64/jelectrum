@@ -552,7 +552,7 @@ public class StratumConnection
                   try
                   {
 
-                    hash =new Sha256Hash( params.getString(0));
+                    hash =Sha256Hash.wrap( params.getString(0));
                   }
                   catch(Throwable t)
                   {
@@ -613,7 +613,7 @@ public class StratumConnection
             else if (method.equals("blockchain.transaction.get_merkle"))
             {
                  JSONArray arr = msg.getJSONArray("params");
-                 Sha256Hash tx_hash = new Sha256Hash(arr.getString(0));
+                 Sha256Hash tx_hash = Sha256Hash.wrap(arr.getString(0));
                  int height = arr.getInt(1);
 
                  Sha256Hash block_hash = jelectrum.getBlockChainCache().getBlockHashAtHeight(height);

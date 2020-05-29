@@ -195,7 +195,7 @@ public class BitcoinRPC implements RawBitcoinDataSource
         msg.put("params", params);
         JSONObject reply = sendPost(msg);
 
-        return new Sha256Hash(reply.getString("result"));
+        return Sha256Hash.wrap(reply.getString("result"));
 
     }
 
@@ -233,7 +233,7 @@ public class BitcoinRPC implements RawBitcoinDataSource
       for(int i=0; i<result.length(); i++)
       {
         String tx_str = result.getString(i);
-        Sha256Hash tx_hash = new Sha256Hash(tx_str);
+        Sha256Hash tx_hash = Sha256Hash.wrap(tx_str);
         tx_list.add(tx_hash);
       }
 
@@ -307,7 +307,7 @@ public class BitcoinRPC implements RawBitcoinDataSource
       if (!data.has("blockhash")) return null;
 
       String blockhash = data.optString("blockhash");
-      return new Sha256Hash(blockhash);
+      return Sha256Hash.wrap(blockhash);
     }
  
     public SerializedBlock getBlock(Sha256Hash hash)

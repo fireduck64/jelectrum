@@ -1,27 +1,24 @@
 package jelectrum;
 
-import java.security.MessageDigest;
-
-
+import com.google.protobuf.ByteString;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.params.TestNet3Params;
-import com.google.protobuf.ByteString;
-import org.spongycastle.crypto.digests.RIPEMD160Digest;
-
-import java.util.Collection;
+import java.net.URL;
+import java.security.MessageDigest;
 import java.util.ArrayList;
-import org.json.JSONObject;
-import org.json.JSONArray;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
-import java.util.Map;
-import java.net.URL;
 import org.apache.commons.codec.binary.Hex;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.TestNet3Params;
+import org.json.JSONArray;
+import org.json.JSONObject;
+//import org.spongycastle.crypto.digests.RIPEMD160Digest;
 
 public class Util
 {
@@ -54,7 +51,7 @@ public class Util
   }
 
 
-  public static ByteString RIPEMD160(ByteString in)
+  /*public static ByteString RIPEMD160(ByteString in)
   {
       RIPEMD160Digest digest = new RIPEMD160Digest();
 
@@ -63,7 +60,7 @@ public class Util
       digest.doFinal(out, 0);
       return ByteString.copyFrom(out);
 
-  }
+  }*/
   public static ByteString SHA256BIN(ByteString in)
   {
     try
@@ -141,7 +138,7 @@ public class Util
             md = MessageDigest.getInstance("SHA-256");
             md.update(pass);
 
-            return swapEndian(new Sha256Hash(md.digest()));
+            return swapEndian(Sha256Hash.wrap(md.digest()));
         }
         catch(java.security.NoSuchAlgorithmException e)
         {
@@ -161,7 +158,7 @@ public class Util
             md = MessageDigest.getInstance("SHA-256");
             md.update(pass);
 
-            return new Sha256Hash(md.digest());
+            return Sha256Hash.wrap(md.digest());
         }
         catch(java.security.NoSuchAlgorithmException e)
         {
@@ -172,7 +169,7 @@ public class Util
 
     public static Sha256Hash swapEndian(Sha256Hash a)
     {
-        return new Sha256Hash(swapEndianHexString(a.toString()));
+        return Sha256Hash.wrap(swapEndianHexString(a.toString()));
         
     }
     public static String swapEndianHexString(String in)

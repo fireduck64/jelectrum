@@ -34,10 +34,9 @@ public class MapBlockStore implements BlockStore
     {
         this.jelly = jelly;
 
-        file_db = jelly.getDB();
+        this.file_db = jelly.getDB();
         NetworkParameters params = jelly.getNetworkParameters();
         
-        this.file_db = file_db;
 
 
         genisis_hash = params.getGenesisBlock().getHash();

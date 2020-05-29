@@ -320,12 +320,12 @@ public class Lobstack
     {
       for(int idx = 0; idx< min_file; idx++)
       {
-        FileChannel fc = data_files.get(idx);
+        FileChannel fc = data_files.get((long)idx);
         if (fc != null)
         {
           synchronized(fc)
           {
-            data_files.remove(idx);
+            data_files.remove((long)idx);
             fc.close();
           }
         }

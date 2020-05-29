@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import jelectrum.Config;
 import jelectrum.EventLog;
 import jelectrum.TimeRecord;
-import jelectrum.db.jedis.JedisDB;
-import jelectrum.db.lmdb.LMDB;
 import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.slopbucket.SlopbucketDB;
 import org.bitcoinj.core.Sha256Hash;
@@ -51,17 +49,9 @@ public class GrindTest
     {
       db = new LobstackDB(null, conf);
     }
-    if (name.equals("lmdb"))
-    {
-      db = new LMDB(conf);
-    }
     if (name.equals("slopbucket"))
     {
       db = new SlopbucketDB(conf, log);
-    }
-    if (name.equals("redis"))
-    {
-      db = new JedisDB(conf);
     }
     if (name.equals("rocksdb"))
     {
@@ -154,7 +144,7 @@ public class GrindTest
   {
     byte[] b=new byte[32];
     rnd.nextBytes(b);
-    return new Sha256Hash(b);
+    return Sha256Hash.wrap(b);
   }
   public static ByteString randomByteString(Random rnd)
   {
@@ -170,7 +160,6 @@ public class GrindTest
 
         public RateThread(long delay)
         {
-            this.name = name;
             this.delay = delay;
             setDaemon(true);
             setName("RateThread");

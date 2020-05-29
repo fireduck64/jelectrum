@@ -150,7 +150,7 @@ public abstract class DB implements DBFace
       HashSet<Sha256Hash> ret = new HashSet<>();
       for(ByteString b : bs)
       {
-        ret.add(new Sha256Hash(b.toByteArray()));
+        ret.add(Sha256Hash.wrap(b.toByteArray()));
       }
       return ret;
     }

@@ -20,7 +20,7 @@ public class DumpTx
   {
     Jelectrum jelly = new Jelectrum(new Config(args[0]));
 
-    Transaction tx = jelly.getDB().getTransaction(new Sha256Hash(args[1])).getTx(jelly.getNetworkParameters());
+    Transaction tx = jelly.getDB().getTransaction(Sha256Hash.wrap(args[1])).getTx(jelly.getNetworkParameters());
 
     System.out.println(tx);
 

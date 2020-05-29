@@ -27,7 +27,7 @@ public class ScriptHashTest
     public static void setup()
         throws Exception
     {
-        jelly = new Jelectrum(new Config("jelly-test.conf"));
+        jelly = new Jelectrum(new Config("/home/clash/projects/jelectrum.git/jelly-test.conf"));
 
         tx_util = jelly.getDB().getTXUtil();
     }
@@ -98,7 +98,7 @@ public class ScriptHashTest
     private void testTxOut(String tx_hash, int output, String scripthash_str)
       throws Exception
     {
-      Transaction tx = jelly.getDB().getTransaction(new Sha256Hash(tx_hash)).getTx(jelly.getNetworkParameters());
+      Transaction tx = jelly.getDB().getTransaction(Sha256Hash.wrap(tx_hash)).getTx(jelly.getNetworkParameters());
 
       ByteString scripthash = tx_util.getScriptHashForOutput(tx.getOutputs().get(output));
 
@@ -109,7 +109,7 @@ public class ScriptHashTest
     private void testTxIn(String tx_hash, int in, String scripthash_str)
       throws Exception
     {
-      Transaction tx = jelly.getDB().getTransaction(new Sha256Hash(tx_hash)).getTx(jelly.getNetworkParameters());
+      Transaction tx = jelly.getDB().getTransaction(Sha256Hash.wrap(tx_hash)).getTx(jelly.getNetworkParameters());
 
       ByteString scripthash = tx_util.getScriptHashForInput(tx.getInputs().get(in), true, null);
 

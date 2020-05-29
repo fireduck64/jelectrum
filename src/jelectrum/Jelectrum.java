@@ -90,18 +90,18 @@ public class Jelectrum
         {
           jelectrum_db = new jelectrum.db.lobstack.LobstackDB(this, config);
         }
-        else if (db_type.equals("lmdb"))
+        /*else if (db_type.equals("lmdb"))
         {
           jelectrum_db = new jelectrum.db.lmdb.LMDB(config);
-        }
+        }*/
         else if (db_type.equals("memory"))
         {
           jelectrum_db = new jelectrum.db.memory.MemoryDB(config);
         }
-        else if (db_type.equals("redis"))
+        /*else if (db_type.equals("redis"))
         {
           jelectrum_db = new jelectrum.db.jedis.JedisDB(config);
-        }
+        }*/
         else if (db_type.equals("rocksdb"))
         {
           jelectrum_db = new jelectrum.db.rocksdb.JRocksDB(config, event_log);

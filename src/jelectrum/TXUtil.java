@@ -82,13 +82,13 @@ public class TXUtil
     //System.out.println("In Script: " + in.  getScriptSig());
     if (in.isCoinBase()) return null;
 
-    try
+    /*try
     {
       Address a = in.getFromAddress();
       return getScriptHashForAddress(a.toString());
     }
     catch(ScriptException e)
-    {
+    {*/
       //Lets try this the other way
       try
       {
@@ -133,13 +133,13 @@ public class TXUtil
       {   
         return null;
       }
-    }
+    //}
 
   }
 
   public ByteString getScriptHashForAddress(String str)
   {
-    Address addr = Address.fromBase58(params, str);
+    Address addr = Address.fromString(params, str);
     Transaction tx= new Transaction(params);
 
     TransactionOutput tx_out = new TransactionOutput(params, tx, Coin.CENT, addr);
@@ -147,7 +147,7 @@ public class TXUtil
     return getScriptHashForOutput(tx_out);
   }
 
-    public Address getAddressForOutput(TransactionOutput out)
+    /*public Address getAddressForOutput(TransactionOutput out)
     {
       try
       {
@@ -174,7 +174,7 @@ public class TXUtil
       }
       return null;
 
-    }
+    }*/
 
     public HashSet<ByteString> getAllScriptHashes(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
@@ -196,7 +196,7 @@ public class TXUtil
     }
 
 
-    public Address getAddressForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
+    /*public Address getAddressForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
         if (in.isCoinBase()) return null;
 
@@ -253,7 +253,7 @@ public class TXUtil
           }
         }
 
-    }
+    }*/
     
 
   public int getTXBlockHeight(Transaction tx, BlockChainCache chain_cache, BitcoinRPC rpc)
@@ -265,13 +265,13 @@ public class TXUtil
 
   }
 
-  public String getAddressFromPublicKeyHash(ByteString hash)
+  /*public String getAddressFromPublicKeyHash(ByteString hash)
   {
 
     ByteString b160 = Util.RIPEMD160(hash);
     Address a = new Address(params, b160.toByteArray());
     System.out.println("Converted " + Util.getHexString(hash.toByteArray()) + " to " + a.toString());
     return a.toString();
-  }
+  }*/
 
 }

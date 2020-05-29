@@ -419,7 +419,9 @@ public class ElectrumNotifier
               int idx=0;
               for(TransactionOutput tx_out : tx.getOutputs())
               {
-                Address a = tx_util.getAddressForOutput(tx_out);
+                Address a = null; 
+                //TODO - fix
+                //a=tx_util.getAddressForOutput(tx_out);
                 if (target.equals(a))
                 {
                   String k = tx.getHash().toString() + ":" + idx;
