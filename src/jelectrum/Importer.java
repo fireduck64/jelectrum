@@ -80,7 +80,7 @@ public class Importer
         config.require("transaction_save_threads");
 
 
-        block_queue = new LinkedBlockingQueue<Block>(8);
+        block_queue = new LinkedBlockingQueue<Block>(64);
         tx_queue = new LinkedBlockingQueue<TransactionWork>(512);
         needed_prev_blocks = new LinkedBlockingQueue<>();
 
@@ -103,8 +103,6 @@ public class Importer
         }
         
         putInternal(params.getGenesisBlock());
-
-
 
     }
 
@@ -426,10 +424,7 @@ public class Importer
 
         ctx.setStatus("BLOCK_TX_CACHE_INSERT");
         t1 = System.nanoTime();
-        for(Transaction tx : block.getTransactions())
-        {
-          tx_util.saveTxCache(SerializedTransaction.scrubTransaction(params, tx));
-        }
+        tx_util.saveTxCache(block);
         TimeRecord.record(t1, "block_tx_cache_insert");
 
         t1 = System.nanoTime();
@@ -497,10 +492,10 @@ public class Importer
         TimeRecord.record(t1, "block_notify");
 
 
-        t1 = System.nanoTime();
+        /*t1 = System.nanoTime();
         ctx.setStatus("DB_COMMIT");
         file_db.commit();
-        TimeRecord.record(t1, "block_commit");
+        TimeRecord.record(t1, "block_commit");*/
 
         //Once all transactions are in, check for prev block in this store
 

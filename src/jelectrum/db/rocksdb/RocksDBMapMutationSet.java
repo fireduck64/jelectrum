@@ -12,10 +12,14 @@ import jelectrum.db.DBMapMutationSetThreaded;
 import com.google.protobuf.ByteString;
 import java.util.Collection;
 import java.util.Set;
+import java.util.Map;
 import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.concurrent.Executor;
+import snowblossom.lib.trie.ByteStringComparator;
 
-public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
+
+public class RocksDBMapMutationSet extends DBMapMutationSet
 {
   JRocksDB jdb;
   RocksDB db;
@@ -24,7 +28,6 @@ public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
   byte sep = '/';
   public RocksDBMapMutationSet(JRocksDB jdb, Executor exec, RocksDB db, String name)
   {
-    super(exec);
     this.db = db;
     this.name = name;
     this.jdb = jdb;
@@ -63,6 +66,64 @@ public class RocksDBMapMutationSet extends DBMapMutationSetThreaded
     {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public void addAll(Collection<Map.Entry<ByteString, ByteString> > lst)
+  {
+    byte b[]=new byte[0];
+
+    TreeSet<ByteString> sorted_set = new TreeSet<>(new ByteStringComparator());
+
+    for(Map.Entry<ByteString, ByteString> me : lst)
+    {
+      ByteString w = getDBKey(me.getKey(), me.getValue());
+      sorted_set.add(w);
+    }
+
+    try(WriteBatch batch = new WriteBatch())
+    {
+      for(ByteString w : sorted_set)
+      {
+        batch.put(w.toByteArray(), b);
+      }
+
+      db.write(jdb.getWriteOption(), batch);
+
+    }
+    catch(RocksDBException e)
+    {
+      throw new RuntimeException(e);
+    }
+
+  }
+
+  @Override
+  public void removeAll(Collection<Map.Entry<ByteString, ByteString>> lst)
+  {
+    TreeSet<ByteString> sorted_set = new TreeSet<>(new ByteStringComparator());
+
+    for(Map.Entry<ByteString, ByteString> me : lst)
+    {
+      ByteString w = getDBKey(me.getKey(), me.getValue());
+      sorted_set.add(w);
+    }
+
+    try(WriteBatch batch = new WriteBatch())
+    {
+      for(ByteString w : sorted_set)
+      {
+        batch.remove(w.toByteArray());
+      }
+
+      db.write(jdb.getWriteOption(), batch);
+
+    }
+    catch(RocksDBException e)
+    {
+      throw new RuntimeException(e);
+    }
+
   }
 
 

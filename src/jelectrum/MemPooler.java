@@ -7,9 +7,11 @@ import java.util.Set;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.TreeMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.HashMultimap;
 import com.google.protobuf.ByteString;
+import org.json.JSONArray;
 
 /**
  * The dolphin of this class is to fetch and maintain a view of the current mempool.
@@ -171,6 +173,52 @@ public class MemPooler extends Thread
       tx_summary_map = new HashMap<>(256, 0.5f);
       scripthash_to_tx_map = HashMultimap.<ByteString,Sha256Hash>create();
     }
+
+  }
+
+
+  public JSONArray getFeeHistogram()
+  {
+    JSONArray arr = new JSONArray();
+    MemPoolInfo info = latest_info;
+
+    if (info != null)
+    {
+
+      TreeMap<Integer, Long> bucket_map = new TreeMap<>();
+      double bucket_factor=1.8;
+
+      for(TransactionSummary tx : info.tx_summary_map.values())
+      {
+        long vsize = tx.getSize(); //probably wrong
+        double fee = tx.getFee();
+        double sat_per_byte = fee / vsize;
+
+        double bucket = Math.log(sat_per_byte) / Math.log(bucket_factor);
+        int bucket_int = (int)Math.floor(Math.pow(bucket_factor, Math.floor(bucket)));
+
+        if (!bucket_map.containsKey(bucket_int))
+        {
+          bucket_map.put(bucket_int, 0L);
+        }
+        bucket_map.put(bucket_int, bucket_map.get(bucket_int) + vsize);
+
+      }
+
+
+      for(int bi : bucket_map.descendingMap().keySet())
+      {
+        JSONArray inner = new JSONArray();
+        inner.put(bi);
+        inner.put(bucket_map.get(bi));
+
+        arr.put(inner);
+      }
+    }
+
+    return arr;
+
+    
 
   }
 

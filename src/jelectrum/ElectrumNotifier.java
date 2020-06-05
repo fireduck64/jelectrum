@@ -294,6 +294,8 @@ public class ElectrumNotifier
         block_data.put("block_height", blk.getHeight());
         block_data.put("version",header.getVersion());
         block_data.put("bits", header.getDifficultyTarget());
+        block_data.put("height", blk.getHeight());
+        block_data.put("hex", Util.getHeaderHex(header));
         //block_data.put("utxo_root", jelly.getUtxoTrieMgr().getRootHash(header.getHash()));
 
 
@@ -419,9 +421,8 @@ public class ElectrumNotifier
               int idx=0;
               for(TransactionOutput tx_out : tx.getOutputs())
               {
-                Address a = null; 
-                //TODO - fix
-                //a=tx_util.getAddressForOutput(tx_out);
+                
+                ByteString a = tx_util.getScriptHashForOutput(tx_out);
                 if (target.equals(a))
                 {
                   String k = tx.getHash().toString() + ":" + idx;

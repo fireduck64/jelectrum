@@ -13,6 +13,7 @@ java_library(
     "@maven//:org_rocksdb_rocksdbjni",
     "@maven//:org_json_json",
     "@maven//:commons_codec_commons_codec",
+    "@maven//:net_minidev_json_smart",
     
   ],
 )
@@ -23,7 +24,19 @@ java_binary(
   runtime_deps = [
     ":jelectrumlib",
   ],
+  jvm_flags = [ 
+    '-Dhttp.keepalive=true',
+    '-Dhttp.maxConnections=32'],
 )
+
+java_binary(
+  name = "EleCheck",
+  main_class = "elecheck.EleCheck",
+  runtime_deps = [
+    ":jelectrumlib",
+  ],
+)
+
 
 java_test(
     name = "script_hash_test",

@@ -25,6 +25,8 @@ public class TransactionSummary implements java.io.Serializable
   private TreeMap<Integer, TransactionOutSummary> outs;
   private TreeMap<Integer, TransactionInSummary> ins;
   private HashSet<ByteString> involved_scripthashes;
+  private long fee;
+  private int size;
 
   public TransactionSummary(Transaction tx, TXUtil tx_util, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
   {
@@ -33,30 +35,46 @@ public class TransactionSummary implements java.io.Serializable
     ins = new TreeMap<>();
     outs = new TreeMap<>();
 
+    long total_out=0L;
+    long total_in=0L;
+
     for(TransactionOutput tx_out : tx.getOutputs())
     {
       TransactionOutSummary os = new TransactionOutSummary(tx_out, tx_util);
 
       outs.put( tx_out.getIndex(), os );
       involved_scripthashes.add(os.getScriptHash());
+      total_out += os.getValue();
     }
     int idx=0;
     for(TransactionInput tx_in : tx.getInputs())
     {
-      TransactionInSummary is =  new TransactionInSummary(tx_in, tx_util, confirmed, block_tx_map);
+      TransactionInSummary is = new TransactionInSummary(tx_in, tx_util, confirmed, block_tx_map);
 
       ByteString addr = is.getScriptHash();
       if (addr != null) involved_scripthashes.add(addr);
 
       ins.put(idx, is);  
       idx++;
+      total_in += is.getValue();
     }
+    if (tx.isCoinBase())
+    {
+      fee = 0L;
+    }
+    else
+    {
+      fee = total_in - total_out;
+    }
+    size = tx.getOptimalEncodingMessageSize();
   }
 
   public Sha256Hash getHash() { return tx_hash; }
   public Map<Integer, TransactionOutSummary> getOutputs(){ return ImmutableMap.copyOf(outs); }
   public Map<Integer, TransactionInSummary> getInputs(){ return ImmutableMap.copyOf(ins); }
   public Set<ByteString> getScriptHashes(){ return ImmutableSet.copyOf(involved_scripthashes); }
+  public long getFee(){return fee; }
+  public int getSize(){return size;}
 
   public String toString()
   {
@@ -103,6 +121,7 @@ public class TransactionSummary implements java.io.Serializable
     private int tx_out_index;
     private boolean is_coinbase;
     private ByteString scripthash;
+    private long value;
 
     public TransactionInSummary(TransactionInput tx_in, TXUtil tx_util, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
@@ -112,16 +131,21 @@ public class TransactionSummary implements java.io.Serializable
         return;
       }
 
+
       tx_out_index = (int) tx_in.getOutpoint().getIndex();
       tx_out_hash = tx_in.getOutpoint().getHash();
 
       scripthash = tx_util.getScriptHashForInput(tx_in, confirmed, block_tx_map);
+
+      value = tx_util.getValueForInput(tx_in, confirmed, block_tx_map);
+
     }
 
     public Sha256Hash getTxOutHash(){return tx_out_hash;}
     public int getTxOutIndex(){return tx_out_index;}
     public boolean isCoinbase(){return is_coinbase;}
     public ByteString getScriptHash(){return scripthash;}
+    public long getValue(){ return value;}
 
     public String toString()
     {

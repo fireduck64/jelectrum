@@ -111,7 +111,7 @@ public class BitcoinRPC implements RawBitcoinDataSource
 
 
           scan.close();
-          connection.disconnect();
+          //connection.disconnect();
           return sb.toString();
     }
 

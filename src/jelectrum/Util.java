@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 import org.apache.commons.codec.binary.Hex;
+import org.bitcoinj.core.Block;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
@@ -18,7 +19,6 @@ import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.json.JSONArray;
 import org.json.JSONObject;
-//import org.spongycastle.crypto.digests.RIPEMD160Digest;
 
 public class Util
 {
@@ -361,5 +361,13 @@ public class Util
       System.out.println("Error getting fee estimates: " + t);
     }
 
+  }
+
+  public static String getHeaderHex(Block blk)
+  {
+    byte[] b = blk.bitcoinSerialize();
+    ByteString bs = ByteString.copyFrom(b,0,b.length-1);
+
+    return getHexString(bs);
   }
 }
