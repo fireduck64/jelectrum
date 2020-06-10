@@ -8,6 +8,12 @@ import java.net.Socket;
 import java.util.Scanner;
 import java.net.URI;
 import org.junit.Assert;
+import org.bitcoinj.core.Sha256Hash;
+import jelectrum.Util;
+import com.google.protobuf.ByteString;
+import java.util.ArrayList;
+import snowblossom.lib.HexUtil;
+import java.util.Random;
 
 /**
  * General test of an electrum server.
@@ -40,10 +46,11 @@ public class EleCheck
    
     checkServerVersion(conn);
     //checkBlockHeader(conn);
-    //checkBlockHeaderCheckPoint(conn);
-    checkBlockHeaders(conn);
+    //checkBlockHeaders(conn);
     checkBlockchainHeadersSubscribe(conn);
     checkMempoolGetFeeHistogram(conn);
+    checkBlockHeaderCheckPoint(conn);
+
 
   }
 
@@ -89,27 +96,77 @@ public class EleCheck
   public static void checkBlockHeaderCheckPoint(EleConn conn)
     throws Exception
   {
-    JSONArray params = new JSONArray();
     
-    params.add(0);
-    params.add(2048);
+    //int blk_n = 109;
+    //int cp = 32911;
+    Random rnd = new Random();
 
-    JSONObject msg = conn.request("blockchain.block.header", params);
-    JSONObject result = (JSONObject) msg.get("result");
+    for(int i=0; i<20; i++)
+    {
+      JSONArray params = new JSONArray();
+      int cp = rnd.nextInt(630000)+10;
+      int blk_n = rnd.nextInt(cp);
+      //cp = 5;
+      //blk_n = 2;
 
-    String header = (String) result.get("header");
+      params.add(blk_n);
+      params.add(cp);
+
+      JSONObject msg = conn.request("blockchain.block.header", params);
+      JSONObject result = (JSONObject) msg.get("result");
+
+      String header = (String) result.get("header");
+      
+      if (header.length() != 160) throw new Exception("Header not 160 chars"); 
+      JSONArray branch = (JSONArray) result.get("branch");
+
+      String header_hex = (String) result.get("header");
+
+      
+      String root = (String) result.get("root");
+      validateMerkle(HexUtil.hexStringToBytes(header_hex), branch, blk_n, cp, root);
+
+    }
     
-    if (header.length() != 160) throw new Exception("Header not 160 chars"); 
-    JSONArray branch = (JSONArray) result.get("branch");
 
     
-    System.out.println(branch.size());
+  }
 
-    String root = (String) result.get("root");
+  protected static void validateMerkle(ByteString header, JSONArray branch, int target, int checkpoint, String expected_root)
+  {
+    int loc = target;
+
+    Sha256Hash cur_hash = Util.swapEndian(Util.hashDoubleBs(header));
+
+    int level = 0;
+    while(checkpoint > 0)
+    {
+      Sha256Hash other = Sha256Hash.wrap((String) branch.get(level));
+      if (level ==0)
+      {
+        System.out.println(other+ " " + cur_hash);
+      }
+
+      if (loc % 2 == 0) // we are left
+      {
+        cur_hash = Util.treeHash(cur_hash, other);  
+      }
+      else
+      { // we are right
+        cur_hash = Util.treeHash(other, cur_hash);
+      }
+      loc /= 2;
+      level++;
+      checkpoint /= 2;
+
+    }
+
+    Sha256Hash root = cur_hash;
+    System.out.println("root: " + root);
+
+    Assert.assertEquals(root.toString(), expected_root);
 
 
-    
-    
   }
 
   public static void checkBlockHeaders(EleConn conn)
@@ -122,9 +179,6 @@ public class EleCheck
 
     JSONObject msg = conn.request("blockchain.block.headers", params);
     JSONObject result = (JSONObject) msg.get("result");
-
-
-    
     
   }
 
@@ -157,9 +211,5 @@ public class EleCheck
     }
 
   }
-
-
-
-
 
 }

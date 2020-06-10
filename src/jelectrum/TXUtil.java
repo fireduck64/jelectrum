@@ -1,32 +1,26 @@
 package jelectrum;
 
+import com.google.protobuf.ByteString;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import jelectrum.db.DBFace;
-
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.Block;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Block;
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.LegacyAddress;
-import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.script.Script;
-import org.bitcoinj.script.ScriptError;
 import org.bitcoinj.script.ScriptChunk;
-import org.bitcoinj.core.Coin;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Collection;
-import java.util.Set;
-import java.util.List;
-import com.google.protobuf.ByteString;
-
-import org.junit.Assert;
+import org.bitcoinj.script.ScriptError;
+import org.bitcoinj.script.ScriptException;
 import static org.bitcoinj.script.ScriptOpCodes.*;
-
 
 public class TXUtil
 {

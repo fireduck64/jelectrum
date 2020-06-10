@@ -124,15 +124,51 @@ public class Util
 
   }
 
-
-    public static Sha256Hash treeHash(Sha256Hash a, Sha256Hash b)
+    public static Sha256Hash hashDoubleBs(ByteString bs)
     {
         try
         {
 
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(swapEndian(a).getBytes());
-            md.update(swapEndian(b).getBytes());
+            md.update(bs.toByteArray());
+
+            byte[] pass = md.digest();
+            md.update(pass);
+
+            return Sha256Hash.wrap(md.digest());
+        }
+        catch(java.security.NoSuchAlgorithmException e)
+        {
+            throw new RuntimeException(e);
+        }
+
+    }
+ 
+
+
+    public static Sha256Hash treeHash(Sha256Hash a, Sha256Hash b)
+    {
+        try
+        {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            if (a != null) 
+            {   
+              md.update(swapEndian(a).getBytes());
+            }
+            else
+            {
+              md.update(swapEndian(b).getBytes());
+            }
+
+            if (b != null)
+            {
+              md.update(swapEndian(b).getBytes());
+            }
+            else
+            {
+              md.update(swapEndian(a).getBytes());
+
+            }
 
             byte[] pass = md.digest();
             md = MessageDigest.getInstance("SHA-256");
@@ -150,7 +186,6 @@ public class Util
     {
         try
         {
-
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(a.getBytes());
 
@@ -218,10 +253,6 @@ public class Util
             }
             result.put("merkle", merkle);
 
-
-
-
-
             return result;
         }
         catch(org.json.JSONException e)
@@ -261,8 +292,6 @@ public class Util
             tx_list=next_list;
         }
         return tx_list.get(0);
-        
-        
 
     }
 
@@ -284,12 +313,10 @@ public class Util
                 if (target_pos < mid)
                 {
                     out_list.add(second);
-
                 }
                 else
                 {
                     out_list.add(first);
-                    
                 }
             }
             return treeHash(first, second);
@@ -300,7 +327,6 @@ public class Util
             return treeHash(
                 getInternalMerkleTreeMadness(tx_list, target_pos, start, span/2, null),
                 getInternalMerkleTreeMadness(tx_list, target_pos, mid, span/2, null));
-            
         }
 
     }

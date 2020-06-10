@@ -615,16 +615,30 @@ public class StratumConnection
                  Sha256Hash block_hash = jelectrum.getBlockChainCache().getBlockHashAtHeight(height);
                  StoredBlock blk = jelectrum.getDB().getBlockStoreMap().get(block_hash);
 
-                 JSONObject result = new JSONObject();
 
-                 throw new Exception("not implemented");
+                 String header =  Util.getHeaderHex(blk.getHeader());
+                 if (arr.length() == 1)
+                 {
+                    reply.put("result", header);
+                 }
+                 else
+                 {
 
-                 /*jelectrum.getElectrumNotifier().populateBlockData(blk, result);
+                  JSONObject result = new JSONObject();
+                  result.put("header", header);
+                  int cp_height = arr.getInt(1);
 
-                 reply.put("result", result);
+
+                  jelectrum.getBlockChainCache().populateBlockProof(block_hash, height, cp_height, result);
+
+
+                  reply.put("result", result);
+
+                 }
+
                  logRequest(method, input_size, reply.toString().length());
 
-                 sendMessage(reply);*/
+                 sendMessage(reply);
             }
  
             else if (method.equals("blockchain.transaction.broadcast"))
