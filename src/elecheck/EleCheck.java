@@ -45,11 +45,12 @@ public class EleCheck
     EleConn conn = new EleConn(sock);
    
     checkServerVersion(conn);
-    //checkBlockHeader(conn);
-    //checkBlockHeaders(conn);
+    checkServerPing(conn);
+    checkBlockHeader(conn);
+    checkBlockHeaderCheckPoint(conn);
+    checkBlockHeaders(conn);
     checkBlockchainHeadersSubscribe(conn);
     checkMempoolGetFeeHistogram(conn);
-    checkBlockHeaderCheckPoint(conn);
 
 
   }
@@ -74,6 +75,13 @@ public class EleCheck
 
     System.out.println("Server id: " + server_id);
     System.out.println("Server selected version: " + ver);
+
+  }
+   public static void checkServerPing(EleConn conn)
+  {
+  
+    JSONObject msg = conn.request("server.ping");
+    JSONArray result = (JSONArray) msg.get("result");
 
   }
   
@@ -172,13 +180,38 @@ public class EleCheck
   public static void checkBlockHeaders(EleConn conn)
     throws Exception
   {
-    JSONArray params = new JSONArray();
-    
-    params.add(100000);
-    params.add(10);
+    Random rnd = new Random();
 
-    JSONObject msg = conn.request("blockchain.block.headers", params);
-    JSONObject result = (JSONObject) msg.get("result");
+    for(int i=0; i<20; i++)
+    {
+
+      JSONArray params = new JSONArray();
+      
+      int cp = rnd.nextInt(600000)+1000;
+      int count = rnd.nextInt(Math.min(4000, cp-1))+1;
+      int height = rnd.nextInt(cp-count);
+
+      params.add(height);
+      params.add(count);
+      params.add(cp);
+
+
+      JSONObject msg = conn.request("blockchain.block.headers", params);
+      JSONObject result = (JSONObject) msg.get("result");
+
+      String hex = (String) result.get("hex");
+      JSONArray branch = (JSONArray) result.get("branch");
+      String root = (String) result.get("root");
+
+      String last_block_hex = hex.substring( hex.length() - 160);
+      
+      Assert.assertEquals(0 , hex.length() % 160);
+      
+      int blk_n = height + hex.length()/160 - 1;
+      validateMerkle(HexUtil.hexStringToBytes(last_block_hex), branch, blk_n, cp, root);
+
+
+    }
     
   }
 

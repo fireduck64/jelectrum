@@ -394,6 +394,12 @@ public class StratumConnection
                 logRequest(method, input_size, reply.toString().length());
                 sendMessage(reply);
             }
+            else if (method.equals("server.ping"))
+            {
+              reply.put("result", JSONObject.NULL);
+              logRequest(method, input_size, reply.toString().length());
+              sendMessage(reply);
+            }
             else if (method.equals("server.banner"))
             {
                 reply.put("result",banner);
@@ -558,17 +564,12 @@ public class StratumConnection
             {
 
                 JSONArray params = msg.getJSONArray("params");
-                if ((client_protocol.compareTo("1.1") >= 0) && (msg.length() != 1))
-                {
-                  reply.put("error","blockchain.transaction.get takes exactly one parameter");
-                }
-                else
+
                 {
 
-                Sha256Hash hash = null;
+                  Sha256Hash hash = null;
                   try
                   {
-
                     hash =Sha256Hash.wrap( params.getString(0));
                   }
                   catch(Throwable t)
@@ -635,6 +636,24 @@ public class StratumConnection
                   reply.put("result", result);
 
                  }
+
+                 logRequest(method, input_size, reply.toString().length());
+
+                 sendMessage(reply);
+            }
+            else if (method.equals("blockchain.block.headers"))
+            {
+                 JSONArray arr = msg.getJSONArray("params");
+                 int height = arr.getInt(0);
+                 int count = arr.getInt(1);
+                 int cp = -1;
+
+                 if (arr.length() == 3)
+                 {
+                    cp = arr.getInt(2);
+                 }
+
+                 reply.put("result", jelectrum.getHeaderChunkAgent().getHeaders(height, count, cp));
 
                  logRequest(method, input_size, reply.toString().length());
 
@@ -762,8 +781,6 @@ public class StratumConnection
       }
 
       return null;
-
-
     }
     
 
