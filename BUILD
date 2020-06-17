@@ -26,7 +26,8 @@ java_binary(
   ],
   jvm_flags = [ 
     '-Dhttp.keepalive=true',
-    '-Dhttp.maxConnections=32'],
+    '-Dhttp.maxConnections=32',
+    '-XX:+ExitOnOutOfMemoryError'],
 )
 
 java_binary(
