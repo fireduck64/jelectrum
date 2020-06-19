@@ -31,8 +31,8 @@ import com.google.protobuf.ByteString;
 
 public class StratumConnection
 {
-    //ghostbird, dirtnerd, beancurd, thingword, absurd, ferd, mort
-    public static final String JELECTRUM_VERSION="mort";
+    //ghostbird, dirtnerd, beancurd, thingword, absurd, ferd, mort, bitspren
+    public static final String JELECTRUM_VERSION="bitspren";
     public static final String PROTO_VERSION="1.4";
     public static final boolean use_thread_per_request=false;
 
