@@ -51,16 +51,22 @@ public class Util
   }
 
 
-  /*public static ByteString RIPEMD160(ByteString in)
+  public static ByteString RIPEMD160(ByteString in)
   {
-      RIPEMD160Digest digest = new RIPEMD160Digest();
+    //RIPEMD160Digest digest = new RIPEMD160Digest();
+    try
+    {
 
-      digest.update(in.toByteArray(), 0, in.size());
-      byte[] out = new byte[20];
-      digest.doFinal(out, 0);
-      return ByteString.copyFrom(out);
+      MessageDigest md = MessageDigest.getInstance("RIPEMD160");
+      md.update(in.toByteArray());
+      return ByteString.copyFrom(md.digest());
+    }
+    catch (java.security.NoSuchAlgorithmException e)
+    {   
+        throw new RuntimeException(e);
+    }
 
-  }*/
+  }
   public static ByteString SHA256BIN(ByteString in)
   {
     try
@@ -70,10 +76,10 @@ public class Util
       return ByteString.copyFrom(md.digest());
 
     }
-        catch (java.security.NoSuchAlgorithmException e)
-        {   
-            throw new RuntimeException(e);
-        }
+    catch (java.security.NoSuchAlgorithmException e)
+    {   
+        throw new RuntimeException(e);
+    }
 
   }
   public static String SHA256(byte[] P)

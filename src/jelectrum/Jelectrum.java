@@ -45,6 +45,7 @@ public class Jelectrum
     public Jelectrum(Config conf)
         throws Exception
     {
+        snowblossom.lib.Globals.addCryptoProvider();
         config = conf;
         network_params = Util.getNetworkParameters(config);
 

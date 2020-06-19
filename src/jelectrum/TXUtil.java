@@ -369,11 +369,12 @@ public class TXUtil
 
   }
 
-  /*public String getAddressFromPublicKeyHash(ByteString hash)
+  // this is really not correct
+  /*
+  public String getAddressFromScriptHash(ByteString hash)
   {
 
-    ByteString b160 = Util.RIPEMD160(hash);
-    Address a = new Address(params, b160.toByteArray());
+    Address a = LegacyAddress.fromPubKeyHash(params, Util.RIPEMD160(hash).toByteArray());
     System.out.println("Converted " + Util.getHexString(hash.toByteArray()) + " to " + a.toString());
     return a.toString();
   }*/

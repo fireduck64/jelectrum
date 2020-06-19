@@ -251,6 +251,7 @@ public class StratumConnection
                 while(open)
                 {
                     line = scan.nextLine();
+                    //jelectrum.getEventLog().log("Input: " + line);
                     updateLastNetworkAction();
                     int input_size = line.length();
                     line = line.trim();
@@ -516,7 +517,10 @@ public class StratumConnection
                 JSONArray params = msg.getJSONArray("params");
                 logRequest(method, input_size, 0);
 
+
+
                 ByteString scripthash = ByteString.copyFrom(Hex.decodeHex(params.getString(0).toCharArray()));
+
                 subscription_count.getAndIncrement();
 
                 jelectrum.getElectrumNotifier().registerBlockchainAddress(this, id, true, scripthash);

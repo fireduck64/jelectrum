@@ -204,11 +204,12 @@ public class ElectrumNotifier
 
                     JSONObject reply = new JSONObject();
                     JSONArray info = new JSONArray();
-                    info.put(s);
+                    info.put(Util.getHexString(s));
                     info.put(sum);
+                    reply.put("jsonrpc", "2.0");
                     reply.put("params", info);
                     reply.put("id", JSONObject.NULL);
-                    reply.put("method", "blockchain.address.subscribe");
+                    reply.put("method", "blockchain.scripthash.subscribe");
 
 
                     for(Subscriber sub : m.values())
@@ -244,6 +245,7 @@ public class ElectrumNotifier
                 crap.put(block_data);
 
                 reply.put("params", crap);
+                reply.put("jsonrpc", "2.0");
                 reply.put("id", JSONObject.NULL);
                 reply.put("method", "blockchain.headers.subscribe");
 
@@ -269,6 +271,7 @@ public class ElectrumNotifier
 
                 reply.put("params", crap);
                 reply.put("id", JSONObject.NULL);
+                reply.put("jsonrpc", "2.0");
                 reply.put("method", "blockchain.numblocks.subscribe");
 
                 sub.sendReply(reply);
