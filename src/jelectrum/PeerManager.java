@@ -64,8 +64,9 @@ public class PeerManager
     addPeer("luggsqxihfzqjnwm.onion",443,0);
     addPeer("ecdsa.net", 0, 110);
     addPeer("electrum.hsmiths.com", 50001, 50002);
-    addPeer("mash.1209k.com",50001,50002);
-    addPeer("gibi.1209k.com",50001,50002);
+    addPeer("electroncash.de",50001,50002);
+    addPeer("electrumx-cash.1209k.com", 50001, 50002);
+    addPeer("electrumx-core.1209k.com", 50001, 50002);
 
     if (config.isSet("advertise_host"))
     {
@@ -406,14 +407,15 @@ public class PeerManager
       JSONObject my_result = new JSONObject();
       jelly.getElectrumNotifier().populateBlockData(blk, my_result);
 
-      JSONObject blockhead = getRecentBlockHeader(out, scan, height_to_check);
-      String myroot=my_result.getString("merkle_root");
-      String remoteroot=blockhead.getString("merkle_root");
+      String my_header = my_result.getString("hex");
 
-      if (!myroot.equals(remoteroot))
+      String header_string = getRecentBlockHeader(out, scan, height_to_check);
+
+      if (!my_header.equals(header_string))
       {
-        throw new Exception(String.format("Merkle root for %d: expected %s, got %s", height_to_check, myroot, remoteroot));
+        throw new Exception(String.format("Header string mismatch - %d  Expected: %s, got %s", height_to_check, my_header, header_string));
       }
+      //System.out.println("Header match on " + height_to_check);
 
 
       JSONObject serverfeatures = getServerFeatures(out, scan);
@@ -456,12 +458,12 @@ public class PeerManager
 
   }
 
-  private JSONObject getRecentBlockHeader(PrintStream out, Scanner scan, int height)
+  private String getRecentBlockHeader(PrintStream out, Scanner scan, int height)
     throws Exception
   { 
     JSONObject request = new JSONObject();
     request.put("id","blkhead");
-    request.put("method", "blockchain.block.get_header");
+    request.put("method", "blockchain.block.header");
     JSONArray params = new JSONArray();
     params.put(height);
     request.put("params",params);
@@ -472,7 +474,7 @@ public class PeerManager
 
     JSONObject reply = new JSONObject(scan.nextLine());
     if (reply.has("error")) throw new Exception(reply.getJSONObject("error").toString(0));
-    return reply.getJSONObject("result");
+    return reply.getString("result");
   }
 
 
