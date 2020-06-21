@@ -177,6 +177,10 @@ public class TXUtil
 
       ByteString parsed_hash = parseInputScript(in.getScriptSig());
       if (parsed_hash != null) return parsed_hash;
+
+      parsed_hash = parseWitness(in);
+      if (parsed_hash != null) return parsed_hash;
+
       try
       {
 
@@ -215,8 +219,17 @@ public class TXUtil
 
         TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
 
-        //System.out.println("In unknown Script: " + in.getScriptSig() + " " + Util.getHexString(ByteString.copyFrom(in.  getScriptBytes())));
-        //System.out.println("Out unknown script: " + out.getScriptPubKey() + " " + Util.getHexString(ByteString.copyFrom(out.  getScriptBytes()))); 
+        /*System.out.println("In unknown Script: " + in.getScriptSig() + " " + Util.getHexString(ByteString.copyFrom(in.  getScriptBytes())));
+        if (in.hasWitness())
+        {
+          System.out.println("in witness: " + in. getWitness());
+          System.out.println("witness pushes: " + in.getWitness().getPushCount());
+          for(int i=0; i<in.getWitness().getPushCount(); i++)
+          {
+
+          }
+        }
+        System.out.println("Out unknown script: " + out.getScriptPubKey() + " " + Util.getHexString(ByteString.copyFrom(out.  getScriptBytes()))); */
         ByteString out_pub = getScriptHashForOutput(out);
 
         return out_pub;
@@ -369,6 +382,25 @@ public class TXUtil
     return a.toString();
   }*/
 
+  public static ByteString parseWitness(TransactionInput in)
+  {
+    if (in.hasWitness())
+    if (in.getWitness().getPushCount() == 2)
+    {
+      ByteString h = ByteString.copyFrom( in.getWitness().getPush(1));
+      h = Util.SHA256BIN(h);
+      h = Util.RIPEMD160(h);
+      ByteString prefix = HexUtil.hexStringToBytes("0014");
+
+      ByteString out_script = prefix.concat(h);
+
+      return Util.reverse(Util.SHA256BIN(out_script));
+ 
+    }
+
+
+    return null;
+  }
   
   public static ByteString parseInputScript(Script script)
   {
@@ -380,7 +412,6 @@ public class TXUtil
       ByteString h = ByteString.copyFrom(chunks.get(0).data);
       h = Util.SHA256BIN(h);
       h = Util.RIPEMD160(h);
-
       ByteString prefix = HexUtil.hexStringToBytes("a914");
       ByteString suffix = HexUtil.hexStringToBytes("87");
 
