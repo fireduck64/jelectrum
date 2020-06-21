@@ -47,6 +47,7 @@ java_test(
     size="small",
     deps = [
       ":jelectrumlib",
+      "@snowblossom//lib",
       "@maven//:com_google_protobuf_protobuf_java",
       "@maven//:commons_codec_commons_codec",
       "@maven//:org_bitcoinj_bitcoinj_core",

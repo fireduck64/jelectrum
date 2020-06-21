@@ -15,7 +15,10 @@ import org.apache.commons.codec.binary.Hex;
 import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Sha256Hash;
+import snowblossom.lib.HexUtil;
 
 public class ScriptHashTest
 {
@@ -92,6 +95,60 @@ public class ScriptHashTest
       testTxIn("0317c467eaf898a751b5ff597176a96f2b002057ffc28828c4c740684cce8b78",0,"43f626c7e6c22741e3160900776ba65f2526956c54779d193267fde55624adaf");
       testTxOut("0317c467eaf898a751b5ff597176a96f2b002057ffc28828c4c740684cce8b78",0,"4a7b3ea6a7307ac77e920f514dc4a5d2ea7825722c29102488621bf27a2f23c9");
       testTxOut("0317c467eaf898a751b5ff597176a96f2b002057ffc28828c4c740684cce8b78",1,"43f626c7e6c22741e3160900776ba65f2526956c54779d193267fde55624adaf");
+    }
+
+    @Test
+    public void testTransactions()
+      throws Exception
+    {
+      testTransaction("85db49cb288f3a92168fae9f4bf155279f7d5418636c9ef04e9fdc1b7f5fa024");
+      testTransaction("8bedbd27fc8b8cc4f1771b95b878d8a2279ad88cb1ef52e15a2b8f69778a9ccb");
+      testTransaction("8afaf20659ac2762b2c10c74f0a26bdecc78f82c011a89db8a006f6827a80390");
+      testTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4");
+      testTransaction("f6f89da0b22ca49233197e072a39554147b55755be0c7cdf139ad33cc973ec46");
+      testTransaction("92a8b6d40b58d802ab2e8488af204742b0db3e6d2651a55b0e4456425cb5497c");
+      testTransaction("0d94f4d0ea3c092a8bce7afe27edb84a4167cda55871b12b0bd0d6e2b4ef4e81");
+      testTransaction("bc26380619a36e0ecbb5bae4eebf78d8fdef24ba5ed5fd040e7bff37311e180d");
+
+    }
+
+    @Test
+    public void testHashParse()
+      throws Exception
+    {
+      String in = "001417ca05a1d56941111642013774bdd0741113715f";
+
+      ByteString in_b = HexUtil.hexStringToBytes(in);
+
+      ByteString h = Util.SHA256BIN(in_b);
+      h = Util.RIPEMD160(h);
+      
+      String out = "12129f0e5a9904cc2120724de3d5743aa4f4c02b";
+
+      Assert.assertEquals(out, getHexString(h));
+    }
+
+    // Take a transaction, parse all the inputs and then double check with the outputs
+    // they come from
+    private void testTransaction(String tx_hash)
+    {
+      System.out.println("Test tx: " + tx_hash);
+      Transaction tx = jelly.getDB().getTransaction(Sha256Hash.wrap(tx_hash)).getTx(jelly.getNetworkParameters());
+
+      for(TransactionInput in : tx.getInputs())
+      {
+        ByteString in_parse = tx_util.getScriptHashForInput(in, true, null);
+
+        Transaction src = jelly.getDB().getTransaction(in.getOutpoint().getHash()).getTx(jelly.getNetworkParameters());
+
+        TransactionOutput out = src.  getOutput(in.getOutpoint().getIndex());
+
+        ByteString out_parse = tx_util.getScriptHashForOutput(out);
+
+        Assert.assertEquals( getHexString(out_parse), getHexString(in_parse));
+
+      }
+
     }
 
 

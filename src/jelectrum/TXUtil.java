@@ -21,6 +21,7 @@ import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.script.ScriptError;
 import org.bitcoinj.script.ScriptException;
 import static org.bitcoinj.script.ScriptOpCodes.*;
+import snowblossom.lib.HexUtil;
 
 public class TXUtil
 {
@@ -111,8 +112,6 @@ public class TXUtil
 
   public ByteString getScriptHashForOutput(TransactionOutput out)
   {
-    //System.out.println("Out Script: " + Util.getHexString(ByteString.copyFrom(out.getScriptBytes())));
-    //System.out.println("Out Script: " + out.getScriptPubKey());
     return Util.reverse(Util.SHA256BIN(ByteString.copyFrom(out.getScriptBytes())));
   }
 
@@ -160,21 +159,24 @@ public class TXUtil
 
 
   }
+
+
   public ByteString getScriptHashForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
   {
     //System.out.println("In Script: " + Util.getHexString(ByteString.copyFrom(in.getScriptBytes())));
-    //System.out.println("In Script: " + in.  getScriptSig());
     if (in.isCoinBase()) return null;
 
     try
     {
       Address a = getFromAddress(in);
-      //System.out.println("Get from address worked: " + a);
       return getScriptHashForAddress(a.toString());
     }
     catch(ScriptException e)
     {
       //Lets try this the other way
+
+      ByteString parsed_hash = parseInputScript(in.getScriptSig());
+      if (parsed_hash != null) return parsed_hash;
       try
       {
 
@@ -210,24 +212,12 @@ public class TXUtil
             }
           }
         }
-        
+
         TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
+
+        //System.out.println("In unknown Script: " + in.getScriptSig() + " " + Util.getHexString(ByteString.copyFrom(in.  getScriptBytes())));
+        //System.out.println("Out unknown script: " + out.getScriptPubKey() + " " + Util.getHexString(ByteString.copyFrom(out.  getScriptBytes()))); 
         ByteString out_pub = getScriptHashForOutput(out);
-
-        //This does not work at all
-        /*try
-        {
-
-          ByteString in_p = ByteString.copyFrom(in.getScriptSig().getPubKeyHash());
-
-          System.out.println( String.format("in: %s out: %s", 
-                Util.getHexString(in_p),
-                Util.getHexString(out_pub)));
-
-        }
-        catch(ScriptException e3)
-        {}*/
-
 
         return out_pub;
 
@@ -378,6 +368,32 @@ public class TXUtil
     System.out.println("Converted " + Util.getHexString(hash.toByteArray()) + " to " + a.toString());
     return a.toString();
   }*/
+
+  
+  public static ByteString parseInputScript(Script script)
+  {
+    List<ScriptChunk> chunks = script.getChunks();
+
+    //if ((chunks.size() == 1) && (chunks.get(0).data.length == 22))
+    if (chunks.size() == 1)
+    {
+      ByteString h = ByteString.copyFrom(chunks.get(0).data);
+      h = Util.SHA256BIN(h);
+      h = Util.RIPEMD160(h);
+
+      ByteString prefix = HexUtil.hexStringToBytes("a914");
+      ByteString suffix = HexUtil.hexStringToBytes("87");
+
+      ByteString out_script = prefix.concat(h).concat(suffix);
+
+      return Util.reverse(Util.SHA256BIN(out_script));
+
+    }
+
+    return null;
+
+
+  }
 
 
   public static byte[] getPubKey(TransactionInput in) throws ScriptException
