@@ -35,7 +35,7 @@ public class TXUtil
 
   public static final int TX_CACHE_SIZE=64000;
 
-  public static final boolean DEBUG_SCRIPT=true;
+  public static final boolean DEBUG_SCRIPT=false;
 
   public TXUtil(DBFace db, NetworkParameters params)
   {
