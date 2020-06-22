@@ -1,6 +1,6 @@
 package bloomtime;
 
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 import java.util.Random;
 import org.junit.Assert;
 

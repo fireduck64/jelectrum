@@ -22,7 +22,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingQueue;
 import jelectrum.LRUCache;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 import java.util.concurrent.SynchronousQueue;
 import java.text.SimpleDateFormat;
 

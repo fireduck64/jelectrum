@@ -14,7 +14,7 @@ java_library(
     "@maven//:org_json_json",
     "@maven//:commons_codec_commons_codec",
     "@maven//:net_minidev_json_smart",
-    
+    "@maven//:org_zeromq_jeromq",
   ],
 )
 
@@ -44,7 +44,7 @@ java_test(
     name = "script_hash_test",
     srcs = ["test/ScriptHashTest.java"],
     test_class = "ScriptHashTest",
-    size="small",
+    size="medium",
     deps = [
       ":jelectrumlib",
       "@snowblossom//lib",
@@ -52,6 +52,7 @@ java_test(
       "@maven//:commons_codec_commons_codec",
       "@maven//:org_bitcoinj_bitcoinj_core",
       "@maven//:org_json_json",
+      "@duckutil//:duckutil_lib",
     ],
 )
 

@@ -10,7 +10,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import jelectrum.Config;
 import jelectrum.EventLog;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 import jelectrum.db.lobstack.LobstackDB;
 import jelectrum.db.slopbucket.SlopbucketDB;
 import org.bitcoinj.core.Sha256Hash;

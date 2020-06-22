@@ -17,7 +17,7 @@ import java.util.Set;
 
 import com.google.protobuf.ByteString;
 import org.junit.Assert;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 import bloomtime.DeterministicStream;
 import java.nio.channels.FileChannel;

@@ -16,7 +16,7 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.NetworkParameters;
 import org.junit.Assert;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 /**
  * Converts the high level types to and from the simple

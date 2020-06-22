@@ -20,7 +20,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.Executor;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 public class LobstackNode implements java.io.Serializable
 {

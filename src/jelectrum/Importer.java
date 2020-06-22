@@ -14,6 +14,7 @@ import org.bitcoinj.core.NetworkParameters;
 import org.apache.commons.codec.binary.Hex;
 
 import java.util.HashSet;
+import duckutil.TimeRecord;
 
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.core.TransactionInput;

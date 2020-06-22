@@ -11,7 +11,7 @@ import java.util.BitSet;
 import com.google.protobuf.ByteString;
 import java.security.SecureRandom;
 import java.util.Random;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 
 /**

@@ -1,6 +1,6 @@
 package jelectrum.db;
 
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 import com.google.protobuf.ByteString;
 import java.util.Map;
 

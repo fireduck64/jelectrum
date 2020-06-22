@@ -1,5 +1,7 @@
 package jelectrum;
 
+import duckutil.TimeRecord;
+import duckutil.TimeRecordAuto;
 import com.google.protobuf.ByteString;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +34,8 @@ public class TXUtil
   private Object tx_cache_lock = new Object();
 
   public static final int TX_CACHE_SIZE=64000;
+
+  public static final boolean DEBUG_SCRIPT=true;
 
   public TXUtil(DBFace db, NetworkParameters params)
   {
@@ -163,82 +167,92 @@ public class TXUtil
 
   public ByteString getScriptHashForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
   {
+    
     //System.out.println("In Script: " + Util.getHexString(ByteString.copyFrom(in.getScriptBytes())));
     if (in.isCoinBase()) return null;
-
-    try
+    try (TimeRecordAuto tra = new TimeRecordAuto("txutil_parse_input"))
     {
-      Address a = getFromAddress(in);
-      return getScriptHashForAddress(a.toString());
-    }
-    catch(ScriptException e)
-    {
-      //Lets try this the other way
-
-      ByteString parsed_hash = parseInputScript(in.getScriptSig());
-      if (parsed_hash != null) return parsed_hash;
-
-      parsed_hash = parseWitness(in);
-      if (parsed_hash != null) return parsed_hash;
 
       try
       {
+        Address a = getFromAddress(in);
+        new TimeRecordAuto("txutil_parse_input_getfromaddress").close();
+        return getScriptHashForAddress(a.toString());
+      }
+      catch(ScriptException e)
+      {
+        //Lets try this the other way
+        ByteString parsed_hash = null;
 
-        TransactionOutPoint out_p = in.getOutpoint();
+        parsed_hash = parseInputScript(in.getScriptSig());
+        if (parsed_hash != null) return parsed_hash;
 
-        Transaction src_tx = null;
-        int fail_count =0;
-        while(src_tx == null)
+        parsed_hash = parseWitness(in);
+        if (parsed_hash != null) return parsed_hash;
+
+        try (TimeRecordAuto tra_out = new TimeRecordAuto("txutil_parse_input_output"))
         {
-          if (block_tx_map != null)
-          { 
-            src_tx = block_tx_map.get(out_p.getHash());
-          }
-          if (src_tx == null)
-          { 
-            src_tx = getTransaction(out_p.getHash());
+
+          TransactionOutPoint out_p = in.getOutpoint();
+
+          Transaction src_tx = null;
+          int fail_count =0;
+          while(src_tx == null)
+          {
+            if (block_tx_map != null)
+            { 
+              src_tx = block_tx_map.get(out_p.getHash());
+            }
             if (src_tx == null)
-            {   
-              if (!confirmed)
+            { 
+              src_tx = getTransaction(out_p.getHash());
+              if (src_tx == null)
               {   
-                return null;
+                if (!confirmed)
+                {   
+                  return null;
+                }
+                fail_count++;
+                if (fail_count > 30)
+                {
+                  System.out.println("Unable to get source transaction: " + out_p.getHash());
+                }
+                if (fail_count > 240)
+                {
+                  throw new RuntimeException("Waited too long to get transaction: " + out_p.getHash());
+                }
+                try{Thread.sleep(500);}catch(Exception e7){}
               }
-              fail_count++;
-              if (fail_count > 30)
-              {
-                System.out.println("Unable to get source transaction: " + out_p.getHash());
-              }
-              if (fail_count > 240)
-              {
-                throw new RuntimeException("Waited too long to get transaction: " + out_p.getHash());
-              }
-              try{Thread.sleep(500);}catch(Exception e7){}
             }
           }
-        }
 
-        TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
+          TransactionOutput out = src_tx.getOutput((int)out_p.getIndex());
 
-        /*System.out.println("In unknown Script: " + in.getScriptSig() + " " + Util.getHexString(ByteString.copyFrom(in.  getScriptBytes())));
-        if (in.hasWitness())
-        {
-          System.out.println("in witness: " + in. getWitness());
-          System.out.println("witness pushes: " + in.getWitness().getPushCount());
-          for(int i=0; i<in.getWitness().getPushCount(); i++)
+
+          if (DEBUG_SCRIPT)
           {
+            System.out.println("In unknown Script: " + in.getScriptSig() + " " + Util.getHexString(ByteString.copyFrom(in.  getScriptBytes())));
+            if (in.hasWitness())
+            {
+              System.out.println("in witness: " + in. getWitness());
+              System.out.println("witness pushes: " + in.getWitness().getPushCount());
+              for(int i=0; i<in.getWitness().getPushCount(); i++)
+              {
 
+              }
+            }
+            System.out.println("Out unknown script: " + out.getScriptPubKey() + " " + Util.getHexString(ByteString.copyFrom(out.  getScriptBytes()))); 
           }
+          ByteString out_pub = getScriptHashForOutput(out);
+
+          return out_pub;
+
+
         }
-        System.out.println("Out unknown script: " + out.getScriptPubKey() + " " + Util.getHexString(ByteString.copyFrom(out.  getScriptBytes()))); */
-        ByteString out_pub = getScriptHashForOutput(out);
-
-        return out_pub;
-
-
-      }
-      catch(ScriptException e2)
-      {   
-        return null;
+        catch(ScriptException e2)
+        {   
+          return null;
+        }
       }
     }
 
@@ -386,15 +400,19 @@ public class TXUtil
   {
     if (in.hasWitness())
     if (in.getWitness().getPushCount() == 2)
+    if (in.getWitness().getPush(1).length == 33)
     {
-      ByteString h = ByteString.copyFrom( in.getWitness().getPush(1));
-      h = Util.SHA256BIN(h);
-      h = Util.RIPEMD160(h);
-      ByteString prefix = HexUtil.hexStringToBytes("0014");
+      try (TimeRecordAuto tra = new TimeRecordAuto("txutil_parse_input_witness"))
+      {
+        ByteString h = ByteString.copyFrom( in.getWitness().getPush(1));
+        h = Util.SHA256BIN(h);
+        h = Util.RIPEMD160(h);
+        ByteString prefix = HexUtil.hexStringToBytes("0014");
 
-      ByteString out_script = prefix.concat(h);
+        ByteString out_script = prefix.concat(h);
 
-      return Util.reverse(Util.SHA256BIN(out_script));
+        return Util.reverse(Util.SHA256BIN(out_script));
+      }
  
     }
 
@@ -406,18 +424,21 @@ public class TXUtil
   {
     List<ScriptChunk> chunks = script.getChunks();
 
-    //if ((chunks.size() == 1) && (chunks.get(0).data.length == 22))
+    if ((chunks.size() == 1) && (chunks.get(0).data.length == 22))
     if (chunks.size() == 1)
     {
-      ByteString h = ByteString.copyFrom(chunks.get(0).data);
-      h = Util.SHA256BIN(h);
-      h = Util.RIPEMD160(h);
-      ByteString prefix = HexUtil.hexStringToBytes("a914");
-      ByteString suffix = HexUtil.hexStringToBytes("87");
+      try (TimeRecordAuto tra = new TimeRecordAuto("txutil_parse_input_single"))
+      {
+        ByteString h = ByteString.copyFrom(chunks.get(0).data);
+        h = Util.SHA256BIN(h);
+        h = Util.RIPEMD160(h);
+        ByteString prefix = HexUtil.hexStringToBytes("a914");
+        ByteString suffix = HexUtil.hexStringToBytes("87");
 
-      ByteString out_script = prefix.concat(h).concat(suffix);
+        ByteString out_script = prefix.concat(h).concat(suffix);
 
-      return Util.reverse(Util.SHA256BIN(out_script));
+        return Util.reverse(Util.SHA256BIN(out_script));
+      }
 
     }
 

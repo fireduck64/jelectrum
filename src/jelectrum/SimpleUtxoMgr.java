@@ -16,6 +16,7 @@ import java.util.Map;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
 import java.net.URL;
+import duckutil.TimeRecord;
 
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Transaction;

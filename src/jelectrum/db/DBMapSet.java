@@ -3,7 +3,7 @@ package jelectrum.db;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 import org.bitcoinj.core.Sha256Hash;
 

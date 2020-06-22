@@ -62,6 +62,7 @@ maven_install(
         "org.bouncycastle:bcprov-jdk15on:1.65",
         "org.bouncycastle:bcpkix-jdk15on:1.65",
         "io.netty:netty-tcnative-boringssl-static:2.0.25.Final",
+        "org.zeromq:jeromq:0.5.2",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",

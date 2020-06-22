@@ -9,7 +9,7 @@ import java.util.List;
 import org.junit.Assert;
 import java.text.DecimalFormat;
 import jelectrum.StatData;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.LinkedBlockingQueue;
 

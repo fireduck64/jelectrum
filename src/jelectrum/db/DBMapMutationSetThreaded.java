@@ -1,12 +1,12 @@
 package jelectrum.db;
 
+import duckutil.TimeRecord;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.List;
 import java.util.LinkedList;
-import jelectrum.TimeRecord;
 
 import org.bitcoinj.core.Sha256Hash;
 

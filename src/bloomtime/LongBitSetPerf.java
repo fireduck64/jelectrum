@@ -1,6 +1,6 @@
 package bloomtime;
 
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 import java.io.File;
 import java.util.Random;
 import java.text.DecimalFormat;

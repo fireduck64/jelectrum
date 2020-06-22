@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import org.junit.Assert;
 import com.google.protobuf.ByteString;
 import java.security.MessageDigest;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 
   /**

@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 import org.bitcoinj.core.Sha256Hash;
 

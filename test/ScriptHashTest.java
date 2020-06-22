@@ -1,6 +1,7 @@
 
 import org.junit.Test;
 import org.junit.BeforeClass;
+import org.junit.AfterClass;
 import org.junit.Assert;
 
 import jelectrum.Config;
@@ -15,16 +16,21 @@ import org.apache.commons.codec.binary.Hex;
 import com.google.protobuf.ByteString;
 
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Block;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Sha256Hash;
 import snowblossom.lib.HexUtil;
+import jelectrum.SerializedBlock;
+import duckutil.TimeRecord;
+import duckutil.TimeRecordAuto;
 
 public class ScriptHashTest
 {
     private static Jelectrum jelly;
     private static TXUtil tx_util;
 
+    private static TimeRecord tr;
 
     @BeforeClass
     public static void setup()
@@ -33,6 +39,15 @@ public class ScriptHashTest
         jelly = new Jelectrum(new Config("/home/clash/projects/jelectrum.git/jelly-test.conf"));
 
         tx_util = jelly.getDB().getTXUtil();
+        tr = new TimeRecord();
+        tr.setSharedRecord(tr);
+    }
+
+    @AfterClass
+    public static void report()
+    {
+      tr.printReport(System.out);
+
     }
 
 
@@ -113,6 +128,34 @@ public class ScriptHashTest
     }
 
     @Test
+    public void testBlocks()
+      throws Exception
+    {
+      testBlock("0000000000000000000abb82ce85913cbcd99e1d9c214793bbb92b42d9bc146a");
+      testBlock("0000000000000000000ac78c6dfb803467e0bd5a89595f2b57b6c6c5abe78645");
+
+    }
+
+    private void testBlock(String block_id)
+      throws Exception
+    {
+      
+      SerializedBlock sblock = jelly.getDB().getBlock(Sha256Hash.wrap(block_id));
+      Block block = sblock.getBlock(jelly.getNetworkParameters());
+
+      tx_util.saveTxCache(block);
+
+      for(Transaction tx : block.getTransactions())
+      {
+        if (!tx.isCoinBase())
+        {
+          testTransaction(tx.getTxId().toString());
+        }
+      }
+
+    }
+
+    @Test
     public void testHashParse()
       throws Exception
     {
@@ -132,21 +175,24 @@ public class ScriptHashTest
     // they come from
     private void testTransaction(String tx_hash)
     {
-      System.out.println("Test tx: " + tx_hash);
-      Transaction tx = jelly.getDB().getTransaction(Sha256Hash.wrap(tx_hash)).getTx(jelly.getNetworkParameters());
-
-      for(TransactionInput in : tx.getInputs())
+      try (TimeRecordAuto tra = new TimeRecordAuto("test_transaction"))
       {
-        ByteString in_parse = tx_util.getScriptHashForInput(in, true, null);
+        System.out.println("Test tx: " + tx_hash);
+        Transaction tx = jelly.getDB().getTransaction(Sha256Hash.wrap(tx_hash)).getTx(jelly.getNetworkParameters());
 
-        Transaction src = jelly.getDB().getTransaction(in.getOutpoint().getHash()).getTx(jelly.getNetworkParameters());
+        for(TransactionInput in : tx.getInputs())
+        {
+          ByteString in_parse = tx_util.getScriptHashForInput(in, true, null);
 
-        TransactionOutput out = src.  getOutput(in.getOutpoint().getIndex());
+          Transaction src = jelly.getDB().getTransaction(in.getOutpoint().getHash()).getTx(jelly.getNetworkParameters());
+          
+          TransactionOutput out = src.getOutput(in.getOutpoint().getIndex());
 
-        ByteString out_parse = tx_util.getScriptHashForOutput(out);
+          ByteString out_parse = tx_util.getScriptHashForOutput(out);
 
-        Assert.assertEquals( getHexString(out_parse), getHexString(in_parse));
+          Assert.assertEquals( getHexString(out_parse), getHexString(in_parse));
 
+        }
       }
 
     }

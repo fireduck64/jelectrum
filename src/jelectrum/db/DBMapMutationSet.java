@@ -1,9 +1,9 @@
 package jelectrum.db;
 
+import duckutil.TimeRecord;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import jelectrum.TimeRecord;
 import com.google.protobuf.ByteString;
 import jelectrum.db.DBTooManyResultsException;
 

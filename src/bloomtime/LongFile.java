@@ -8,7 +8,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.io.IOException;
 import java.util.BitSet;
-import jelectrum.TimeRecord;
+import duckutil.TimeRecord;
 
 import org.junit.Assert;
 
