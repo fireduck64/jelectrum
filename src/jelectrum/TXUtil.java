@@ -424,6 +424,8 @@ public class TXUtil
   {
     List<ScriptChunk> chunks = script.getChunks();
 
+    if (chunks==null) return null;
+
     if ((chunks.size() == 1) && (chunks.get(0).data.length == 22))
     if (chunks.size() == 1)
     {
