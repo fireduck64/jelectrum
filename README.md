@@ -29,7 +29,7 @@ Make your SSL cert:
 ./makekey.sh
 
 Build:
-ant jar
+bazel build :all :Jelectrum_deploy.jar
 
 Config:
 cp jelly.default.conf jelly.conf
@@ -38,19 +38,27 @@ edit jelly.conf as makes sense
 Run:
 while true
 do
-java -Xmx3g -jar jar/Jelectrum.jar jelly.conf
+bazel-bin/Jelectrum jelly.conf
 done
+
+
+Alternatively
+
+bazel build :all :Jelectrum_deploy.jar
+will create a jar file that can be moved around: bazel-bin/Jelectrum_deploy.jar
+
 
 My Instance
 -----------
 
 Feel free to connect to my instance which should be running the latest version.
+Note: these hosts are IPv6 only
 
 ```
-b.1209k.com 50001 (tcp)
-b.1209k.com 50002 (ssl)
-h.1209k.com 50001 (tcp)
-h.1209k.com 50002 (ssl)
+jelectrum-core.1209k.com 50001 (tcp)
+jelectrum-core.1209k.com 50002 (ssl)
+jelectrum-cash.1209k.com 50001 (tcp)
+jelectrum-cash.1209k.com 50002 (ssl)
 ```
 
 What Doesn't Work
