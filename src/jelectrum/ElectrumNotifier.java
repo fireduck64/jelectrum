@@ -525,7 +525,7 @@ public class ElectrumNotifier
                         if (jelly.getMemPooler().areSomeInputsPending(ts.tx)) height = -1;
                         o.put("height", height);
                     }
-                    if (ts.fee >= 0)
+                    // Fee must always be set: https://github.com/fireduck64/jelectrum/issues/30
                     {
                       o.put("fee",ts.fee);
                     }
@@ -771,16 +771,15 @@ public class ElectrumNotifier
           this.s_tx = jelly.getDB().getTransaction(tx_hash);
           if (s_tx==null) return;
           this.tx = s_tx.getTx(jelly.getNetworkParameters());
+
           
           height = tx_util.getTXBlockHeight(tx, jelly.getBlockChainCache(), jelly.getBitcoinRPC());
           if (height >= 0) confirmed=true;
 
           if (tx!=null)
           {
-            if (tx.getFee() != null)
-            {
-              this.fee = tx.getFee().getValue();
-            }
+            TransactionSummary ts = new TransactionSummary(tx, tx_util, confirmed, null);
+            this.fee = ts.getFee();
           }
 
         }
