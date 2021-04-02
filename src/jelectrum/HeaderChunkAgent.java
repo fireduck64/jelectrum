@@ -38,6 +38,7 @@ public class HeaderChunkAgent extends Thread
     {
       JSONObject result = new JSONObject();
 
+      result.put("count", count);
       result.put("max", MAX_RETURN);
       count = Math.min(count, MAX_RETURN);
       count = Math.min(count, last_saved_height - start);
@@ -63,7 +64,6 @@ public class HeaderChunkAgent extends Thread
         block_header = chunk_data.substring(idx_in_chunk * BLOCK_HEADER_SIZE, idx_in_chunk * BLOCK_HEADER_SIZE + BLOCK_HEADER_SIZE);
         sb.append(block_header);
       }
-
       
       result.put("hex", sb.toString());
 
@@ -73,11 +73,9 @@ public class HeaderChunkAgent extends Thread
         ByteString last_block_header = HexUtil.hexStringToBytes(block_header);
         Sha256Hash last_block_hash = Util.swapEndian(Util.hashDoubleBs(last_block_header));
 
-
         jelly.getBlockChainCache().populateBlockProof(last_block_hash, start+count-1, cp, result);
 
       }
-
 
       return result;
     }
