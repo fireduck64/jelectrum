@@ -32,6 +32,15 @@ java_binary(
 )
 
 java_binary(
+  name = "DumpAddresses",
+  main_class = "jelectrum.DumpAddresses",
+  runtime_deps = [
+    ":jelectrumlib",
+  ],
+)
+
+
+java_binary(
   name = "EleCheck",
   main_class = "elecheck.EleCheck",
   runtime_deps = [

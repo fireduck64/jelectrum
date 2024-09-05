@@ -316,6 +316,20 @@ public class TXUtil
 
     }
 
+    public HashSet<ByteString> getAllOutputScriptHashes(Transaction tx, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
+    {
+        HashSet<ByteString> lst = new HashSet<ByteString>();
+
+        for(TransactionOutput out : tx.getOutputs())
+        {   
+            ByteString a = getScriptHashForOutput(out);
+            if (a!=null) lst.add(a);
+        }
+        return lst;
+
+    }
+
+
 
     /*public Address getAddressForInput(TransactionInput in, boolean confirmed, Map<Sha256Hash, Transaction> block_tx_map)
     {
@@ -478,7 +492,9 @@ public class TXUtil
   }
 
   public Address getFromAddress(TransactionInput in) throws ScriptException {
-       return new LegacyAddress(params, org.bitcoinj.core.Utils.sha256hash160(getPubKey(in)));
+
+    return LegacyAddress.fromPubKeyHash(params, org.bitcoinj.core.Utils.sha256hash160(getPubKey(in)));
+    //return new LegacyAddress(params, org.bitcoinj.core.Utils.sha256hash160(getPubKey(in)));
   }
 
 

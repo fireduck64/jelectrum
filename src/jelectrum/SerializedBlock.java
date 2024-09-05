@@ -30,7 +30,9 @@ public class SerializedBlock implements java.io.Serializable
     public Block getBlock(NetworkParameters params)
     {
         if (tx != null) return tx;
-        tx = new Block(params, bytes);
+        tx = new Block(params, bytes,
+          new org.bitcoinj.core.BitcoinSerializer(params, false),
+          org.bitcoinj.core.Message.UNKNOWN_LENGTH);
         return tx;
         
     }
